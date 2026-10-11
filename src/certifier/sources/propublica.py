@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Callable
 
-from ..models import Source
+from ..models import Location, Source
 
 BASE = "https://projects.propublica.org/nonprofits"
 _LINE5 = re.compile(r"individuals employed in calendar year (\d{4}).{0,80}?\.\s*5\s+([\d,]+)", re.I)
@@ -80,11 +80,21 @@ class ProPublica:
                 continue
             year, count = int(m.group(1)), int(m.group(2).replace(",", ""))
             signed = _SIGNED.search(text)
+            start = text.rfind("5 Total number", 0, m.end())
+            start = start if start >= 0 else max(0, m.start() - 40)
+            end = text.find("7a ", m.end())
+            passage = re.sub(r"\s+", " ", text[start: end if 0 < end - m.end() < 400 else m.end() + 160]).strip()
             out.append(Source(
                 url=f"{BASE}/organizations/{ein}/{oid}/full", tier=2, value=count, qualifier="exact",
-                excerpt=f"Form 990 Part I line 5: Total number of individuals employed in calendar year {year}: {count:,}",
+                excerpt=re.sub(r"\s+", " ", text[_line_start(text, m): m.end()]).strip(),
                 as_of_date=date(year, 12, 31),
                 published_date=date.fromisoformat(signed.group(1)) if signed else None,
+                location=Location(
+                    section="Form 990 › Part I (Summary) › line 5",
+                    page="1", page_basis="form", context="…" + passage + "…",
+                    note=f"Line 5 is the total number of individuals employed in calendar year {year} (cross-referenced "
+                         f"to Part V, line 2a), on page 1 of the IRS Form 990 as filed; shown on ProPublica's "
+                         "full-filing view."),
                 notes=["W-3 count of everyone paid during the calendar year; can exceed point-in-time headcount."]))
             if len(out) == limit:
                 break
@@ -93,3 +103,9 @@ class ProPublica:
 
 def _text(raw: str) -> str:
     return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", raw)))
+
+
+def _line_start(text: str, m: re.Match) -> int:
+    """Start of line 5's own wording ("Total number of individuals employed ...")."""
+    start = text.rfind("Total number", max(0, m.start() - 60), m.end())
+    return start if start >= 0 else m.start()

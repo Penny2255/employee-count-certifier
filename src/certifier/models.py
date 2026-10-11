@@ -17,6 +17,20 @@ LinkedInStatus = Literal["pass", "flag", "not_available"]
 SourceRole = Literal["selected", "derived_input", "corroborates", "conflicts", "supporting"]
 
 
+PageBasis = Literal["printed", "html_page", "pdf", "form"]
+
+
+class Location(BaseModel):
+    """Where in the document the figure appears, with a detailed verbatim passage."""
+
+    section: str | None = None  # e.g. "Item 1. Business › Human Capital Management"
+    page: str | None = None  # page number as shown, e.g. "10"
+    page_basis: PageBasis | None = None  # printed page, position in the HTML filing, PDF page, or form page
+    context: str = ""  # detailed excerpt: the quote with the sentences around it, verbatim
+    deep_link: str | None = None  # URL that scrolls to the quote (text fragment), where supported
+    note: str | None = None  # how it was located, or why the section or page is unknown
+
+
 class Source(BaseModel):
     """One candidate figure found during research."""
 
@@ -25,6 +39,7 @@ class Source(BaseModel):
     value: int = Field(ge=0)
     qualifier: Qualifier = "exact"
     excerpt: str = ""
+    location: Location | None = None
     as_of_date: date | None = None
     published_date: date | None = None
     modified_date: date | None = None  # last-updated date, when the page shows one

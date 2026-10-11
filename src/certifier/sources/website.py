@@ -22,7 +22,20 @@ _TILE_REV = re.compile(rf"\b{_WORKERS}\b{_FILLER}{_NUM}", re.I)
 @dataclass
 class PageSnippet:
     url: str
-    text: str
+    text: str  # "1,500 Employees (page context: ...)"
+
+    @property
+    def figure(self) -> str:
+        return self.text.split(" (page context:")[0]
+
+    @property
+    def context(self) -> str:
+        return self.text.split("(page context: ", 1)[-1].rstrip(")")
+
+    @property
+    def readable_context(self) -> str:
+        """Stat tiles as 'Label: value' pairs when the page stores them as data; otherwise the cleaned text."""
+        return readable_tiles(self.context) or self.context
 
 
 def _get(url: str, user_agent: str) -> str | None:
@@ -55,6 +68,20 @@ def stat_snippets(raw: str) -> list[str]:
             seen.add(key)
             unique.append(s)
     return unique[:10]
+
+
+_PAIR = re.compile(r"description\W+([A-Za-z][A-Za-z &]{1,30}?)\W+(?:(?:prefix|suffix)\W+\w*\W+){0,2}value\W+([\d,]+\+?)"
+                   r"|value\W+([\d,]+\+?)\W+(?:animateNumber\W+\w+\W+)?description\W+([A-Za-z][A-Za-z &]{1,30}?)", re.I)
+
+
+def readable_tiles(context: str) -> str | None:
+    pairs = []
+    for m in _PAIR.finditer(context):
+        label, value = (m.group(1), m.group(2)) if m.group(1) else (m.group(4), m.group(3))
+        item = f"{label.strip().capitalize()}: {value}"
+        if item not in pairs:
+            pairs.append(item)
+    return ("Statistics shown on the page: " + "; ".join(pairs) + ".") if pairs else None
 
 
 def website_snippets(website: str, user_agent: str = "Mozilla/5.0 (compatible; employee-count-certifier)",

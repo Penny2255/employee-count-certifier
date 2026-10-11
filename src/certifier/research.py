@@ -10,7 +10,8 @@ from pydantic import BaseModel, Field
 
 from .examples import load_examples
 from .llm import Claude, Spend
-from .models import Entity, Event, LinkedInEvidence, Source
+from .locate import text_fragment_link
+from .models import Entity, Event, LinkedInEvidence, Location, Source
 from .policy import Policy
 from .sources.edgar import Snippet
 from .sources.website import PageSnippet
@@ -38,6 +39,10 @@ class XSource(BaseModel):
     restates: bool = Field(description="True if this source repeats another source's figure (e.g. Wikipedia, "
                                        "Bullfincher or an aggregator quoting the 10-K) rather than reporting its own")
     excerpt: str = Field(description="Verbatim quote containing the figure")
+    context: str = Field(description="Detailed excerpt: the verbatim passage around the figure, 2-4 sentences")
+    section: str | None = Field(description="Heading or part of the page/document where the figure appears, "
+                                            "e.g. 'Item 1. Business > Human Capital' or 'About us > Our team'")
+    page_number: str | None = Field(description="Page number for PDFs and printed documents; null for web pages")
     contractors_included: int | None = Field(description="Independent contractors included in value, if stated")
     separately_reported: list[XCount] = Field(
         description="Worker categories the source lists outside its stated total (e.g., graduate assistants)")
@@ -107,6 +112,9 @@ url: <exact URL>
 source: <publisher and document, e.g. "Adobe 10-K FY2025" or "LinkedIn company page">
 tier: <1-9 per the table>
 quote: "<verbatim sentence containing the figure>"
+passage: "<verbatim 2-4 sentences around the figure>"
+section: <heading or part of the page/document where it appears>
+page: <page number for PDFs and printed documents, or none for web pages>
 as_of: <date the count applies to, or unknown>
 published: <publication date, or unknown>
 scope: <whole organization worldwide | region/segment/subsidiary/department | includes outside bodies>
@@ -245,12 +253,25 @@ def research_entity(entity: Entity, snippets: list[Snippet], lookup_date: date, 
 def to_source(x: XSource) -> Source:
     return Source(
         url=x.url, tier=x.tier, value=x.value, qualifier=x.qualifier, basis=x.basis, scope=x.scope,
-        excerpt=x.excerpt, as_of_date=x.as_of_date, published_date=x.published_date,
+        excerpt=x.excerpt, location=_location(x), as_of_date=x.as_of_date, published_date=x.published_date,
         modified_date=x.modified_date, restates=x.restates,
         contractors_included=x.contractors_included or None,
         separately_reported={c.category: c.count for c in x.separately_reported} or None,
         notes=[x.note] if x.note else [],
     )
+
+
+def _location(x: XSource) -> Location:
+    is_pdf = ".pdf" in x.url.lower()
+    notes = []
+    if not x.page_number:
+        notes.append("PDF page number not identified." if is_pdf else "Web page: no page numbers.")
+    if not x.section:
+        notes.append("Section not identified.")
+    return Location(section=x.section, page=x.page_number,
+                    page_basis=("pdf" if is_pdf else "printed") if x.page_number else None,
+                    context=x.context or x.excerpt, deep_link=text_fragment_link(x.url, x.excerpt) if x.excerpt else None,
+                    note=" ".join(notes) or "Located by the research step.")
 
 
 def dedupe(sources: list[Source]) -> list[Source]:

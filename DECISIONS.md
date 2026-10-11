@@ -125,3 +125,39 @@ Decisions made while building the `feature/company-card` branch, most consequent
 - **Effect:**
   - The in-chat card appears only after you restart Claude Desktop.
   - The new `certifier-card` command installs on the next `uv sync`. Until then, `python -m certifier.card` works.
+
+## Source location: URL, detailed excerpt, section and page (record v1.1)
+
+### D21. SEC quotes are located in the filing itself, not by the model
+- **What:** for every sec.gov source, `locate.py` re-reads the filing and finds the quote, or the figure next to an employment word, along with its page, its ITEM heading and sub-heading, and the passage around it. This overrides any location the research step reported.
+- **Why:** the filing is the authoritative copy, it costs nothing (EDGAR is free and already fetched), and the model can misremember page numbers.
+- **Alternatives:** trust the extraction's section and page for every source.
+
+### D22. Show the printed page number, labelled; fall back to the page's position in the HTML filing
+- **What:**
+  - **Printed:** the page number is read from the page footer (e.g. "printed page 10").
+  - **Fallback:** when a page has no printed number, the label says "page 22 of the HTML filing", and the note explains why.
+  - **Both:** the note always gives both numbers, e.g. "Printed page 10 (page 11 of 101 in the HTML filing)".
+- **Why:** readers cite printed page numbers. The HTML position keeps the location findable when a filing prints none (Novo Nordisk's 20-F, for example).
+
+### D23. Jump-to-quote links use text fragments
+- **What:** `deep_link` is the source URL plus `#:~:text=<start>,<end>`. Commas and hyphens are percent-encoded. No link is made for quotes under 4 words, which are too short to be unique.
+- **Why:** this jumps to and highlights the exact quote in Chromium-based browsers; other browsers just open the page. No server or index is needed.
+- **Alternatives:** page anchors, which SEC filings don't provide consistently.
+
+### D24. Form 990 and website locations are fixed by the source type
+- **What:**
+  - **Form 990:** "Form 990 › Part I (Summary) › line 5", Form page 1. The verbatim quote is line 5's own text, and the passage runs through line 6.
+  - **Websites:** stat tiles are rewritten as readable pairs ("Statistics shown on the page: Customers: 5,000; Employees: 1,500.") instead of raw page data, and say "no page numbers".
+- **Why:** these locations are known from how the source is structured, so guessing isn't needed. A raw-data passage would be unreadable.
+
+### D25. The primary source may lack a verbatim quote only with an explicit reason
+- **What:** validation requires either the quote or `excerpt_missing_reason`. Today only SAP's golden example uses the reason, because sap.com blocks automated reading.
+- **Why:** this is the conservative choice. It never invents text, and it never fails a real record silently.
+
+### D26. Re-recorded the four live lookups so the fixtures carry locations captured end to end
+- **What:** all four were re-recorded ($0.47), then Gong and Donor Network West again after the readable-tile and Form 990 fixes ($0.22). That's $0.69 for this request and $1.15 on the branch in total. The Form 990 entries in Donor Network West's fixture were later refreshed from ProPublica for free, to pick up the shorter section name and the verbatim line-5 quote.
+- **Why:** this proves the whole pipeline captures locations, rather than patching old fixtures.
+
+### Open issue: a dated URL path isn't used as a date
+Donor Network West scores 2 because a 2023 sponsorship PDF reporting 300 people came back from research with no date, so it counted as a non-stale conflict. Its URL contains `/wp-content/uploads/2023/03/`. Inferring a published date from such paths would fix this, but it's a policy change, so it's logged rather than made.

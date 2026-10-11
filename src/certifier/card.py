@@ -83,6 +83,8 @@ summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; b
 .status.yellow { color: var(--yellow); background: var(--yellow-bg); }
 .status.red { color: var(--red); background: var(--red-bg); }
 .group-title { margin: 12px 0 0; font-size: 13px; font-weight: 600; color: var(--muted); }
+mark { background: var(--accent-soft); color: inherit; padding: 0 2px; border-radius: 3px; font-weight: 600; }
+.where { margin-top: 6px; }
 blockquote { margin: 8px 0; padding: 8px 12px; border-left: 3px solid var(--accent); background: var(--soft);
   border-radius: 0 6px 6px 0; }
 .lines { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -166,6 +168,31 @@ footer.block { font-size: 13px; color: var(--muted); }
     return a;
   }
 
+  function passage(loc, quote) {
+    var text = (loc && loc.detailed_excerpt) || quote || "";
+    var q = (quote || "").trim(), bq = el("blockquote");
+    var i = q ? text.indexOf(q) : -1;
+    if (i < 0 && q.length > 30) i = text.indexOf(q.slice(0, 30));
+    if (i < 0) { bq.appendChild(document.createTextNode("“" + text + "”")); return bq; }
+    var end = text.indexOf(q) === i ? i + q.length : i + 30;
+    bq.appendChild(document.createTextNode("“" + text.slice(0, i)));
+    bq.appendChild(el("mark", { text: text.slice(i, end) }));
+    bq.appendChild(document.createTextNode(text.slice(end) + "”"));
+    return bq;
+  }
+  function where(url, loc) {
+    var parts = [host(url)];
+    if (loc && loc.section) parts.push(loc.section);
+    if (loc && loc.page_label) parts.push(loc.page_label);
+    return parts.join(" · ");
+  }
+  function locationPairs(url, loc) {
+    return [["Section", loc.section || "not identified"], ["Page", loc.page_label],
+            ["Link", el("span", null, [link(url, host(url)), loc.deep_link ? " · " : null,
+              loc.deep_link ? link(loc.deep_link, "open at the quote") : null])],
+            ["Location note", loc.note]];
+  }
+
   function header(r) {
     var e = r.entity;
     return el("div", { cls: "block" }, [
@@ -200,17 +227,22 @@ footer.block { font-size: 13px; color: var(--muted); }
     table.appendChild(el("tr", { cls: "total" }, [el("td", { cls: "pts", text: String(c.score) }), el("td", { text: "= " + c.arithmetic })]));
     var conf = el("details", null, [el("summary", { cls: "wrap" }, [el("span", null, [meter]), el("strong", { text: c.score + "/5 " + c.level }),
       el("span", { cls: "muted small", text: "score breakdown" })]), table]);
-    return el("div", { cls: "block" }, [top, el("div", { style: "margin-top:12px" }, [conf])]);
+    var p = r.primary_source;
+    var src = p && p.source_id ? el("div", { cls: "row small muted where" }, [el("span", { text: "Source: " + where(p.url, p.location) })]) : null;
+    return el("div", { cls: "block" }, [top, src, el("div", { style: "margin-top:12px" }, [conf])].filter(Boolean));
   }
 
   function primary(r) {
     var p = r.primary_source;
     if (!p.source_id) return section("Primary source", "none", [none(p.none_reason)], true);
-    return section("Primary source", "tier " + p.tier, [
+    var loc = p.location;
+    return section("Primary source", "tier " + p.tier + " · " + (loc.section ? loc.section + " · " : "") + loc.page_label, [
       el("div", { cls: "row" }, [el("span", { cls: "badge accent", text: "Tier " + p.tier }), el("span", { cls: "small", text: p.tier_name })]),
-      p.excerpt ? el("blockquote", { text: "“" + p.excerpt + "”" }) : null,
-      kv([["Link", link(p.url, host(p.url))], ["Accession", p.accession], ["As of", p.as_of_date], ["Published", p.published_date],
-          ["Modified", p.modified_date], ["Why this tier", p.tier_rationale]])
+      el("p", { cls: "small muted", style: "margin:8px 0 0", text: "Detailed excerpt (the exact quote is highlighted):" }),
+      passage(loc, p.excerpt),
+      p.excerpt_missing_reason ? el("p", { cls: "small muted", text: p.excerpt_missing_reason }) : null,
+      kv(locationPairs(p.url, loc).concat([["Accession", p.accession], ["As of", p.as_of_date], ["Published", p.published_date],
+          ["Modified", p.modified_date], ["Why this tier", p.tier_rationale]]))
     ].filter(Boolean), true);
   }
 
@@ -251,10 +283,11 @@ footer.block { font-size: 13px; color: var(--muted); }
           el("span", { cls: "host" }, [el("strong", { text: (QUAL[s.qualifier] ? QUAL[s.qualifier] + " " : "") + num(s.value) }), " · " + host(s.url)]),
           el("span", { cls: "date muted small", text: s.as_of_date || "undated" }),
           el("span", { cls: "badge" + (s.used ? " accent" : ""), text: s.used ? "Used" : "Excluded" })])]),
-        el("div", { cls: "body" }, [s.excerpt ? el("blockquote", { text: "“" + s.excerpt + "”" }) : null,
-          kv([["Role", ROLE[s.role] || s.role], ["Why used / excluded", s.use_rationale], ["Why this tier", s.tier_rationale],
-              ["Scope / basis", s.scope + " · " + s.basis], ["Published", s.published_date], ["Modified", s.modified_date],
-              ["Link", link(s.url, host(s.url))], ["Notes", s.notes.length ? s.notes.join(" ") : null]])].filter(Boolean))
+        el("div", { cls: "body" }, [passage(s.location, s.excerpt),
+          kv([["Role", ROLE[s.role] || s.role], ["Why used / excluded", s.use_rationale], ["Why this tier", s.tier_rationale]]
+              .concat(locationPairs(s.url, s.location))
+              .concat([["Scope / basis", s.scope + " · " + s.basis], ["Published", s.published_date], ["Modified", s.modified_date],
+                       ["Notes", s.notes.length ? s.notes.join(" ") : null]]))])
       ]));
     });
     return section("Sources", items.length + " found, " + used + " used", nodes);

@@ -21,6 +21,8 @@ from .engine import certify
 from .llm import Claude, Spend
 from .models import Certification, Entity
 from .policy import Policy, default_policy
+from .locate import locate_sources
+from .models import Location
 from .research import dedupe, research_entity
 from .sources.edgar import Edgar, Snippet
 from .sources.propublica import ProPublica
@@ -95,7 +97,7 @@ def _lookup(entity: Entity, cik: int | None, lookup_date: date | None, policy: P
     spend = Spend(policy)
     site = website_snippets(entity.website) if entity.website else []
     found = research_entity(entity, snippets, lookup_date, claude, spend, site=site, known=known)
-    sources = dedupe(known + found.sources)
+    sources = locate_sources(attach_site_locations(dedupe(known + found.sources), site), edgar)
     if not found.sources and snippets:  # extraction failed; keep the filings
         sources += heuristic.best_per_filing(snippets, policy)
         notes.append("Claude extraction returned nothing; fell back to rule-based extraction of SEC filings.")
@@ -132,6 +134,21 @@ def resolve_cik(edgar: Edgar, name: str, notes: list[str]) -> int | None:
         notes.append(f"SEC CIK {cik} resolved from the name.")
         return cik
     return None
+
+
+def attach_site_locations(sources: list, site: list) -> list:
+    """Website figures read by the stat-tile reader: record the page and the tile's surrounding text."""
+    out = []
+    for s in sources:
+        snip = next((p for p in site if p.url.rstrip("/") == s.url.rstrip("/") and f"{s.value:,}" in p.figure), None)
+        if snip is not None:  # the tile reader saw the page itself: its readable context is authoritative
+            section = (s.location.section if s.location and s.location.section else
+                       f"Statistics on the {s.url.rstrip('/').rsplit('/', 1)[-1] or 'home'} page")
+            s = s.model_copy(update={"location": Location(
+                section=section, context=snip.readable_context,
+                note="Web page: no page numbers; read from the page's stat tiles (embedded page data).")})
+        out.append(s)
+    return out
 
 
 def form990_sources(entity: Entity, notes: list[str], propublica: ProPublica | None = None) -> list:

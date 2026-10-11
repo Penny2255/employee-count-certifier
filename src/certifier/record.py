@@ -20,7 +20,7 @@ from . import rules
 from .models import Basis, Certification, CountType, Entity, Qualifier, Source
 from .policy import Policy, default_policy
 
-RECORD_VERSION = "1.0"
+RECORD_VERSION = "1.1"
 T = TypeVar("T")
 
 
@@ -100,6 +100,32 @@ class ConfidenceSection(BaseModel):
         return self
 
 
+class LocationRow(BaseModel):
+    """Where the figure sits in its document. Missing section or page must be explained in `note`."""
+
+    section: str | None
+    page: str | None
+    page_basis: str | None
+    page_label: str  # e.g. "printed page 10", "page 22 of the HTML filing", "Form 990 page 1", "no page numbers"
+    detailed_excerpt: str  # the verbatim passage around the figure
+    deep_link: str | None
+    note: str | None
+
+    @model_validator(mode="after")
+    def _explained(self):
+        if not self.detailed_excerpt.strip():
+            raise ValueError("a detailed excerpt is required")
+        if (self.section is None or self.page is None) and not (self.note or "").strip():
+            raise ValueError("a missing section or page number needs a note saying why")
+        return self
+
+
+def _http(url: str | None) -> str | None:
+    if url is not None and not re.match(r"https?://\S+", url):
+        raise ValueError("a source URL (http or https) is required")
+    return url
+
+
 class PrimarySource(BaseModel):
     source_id: str | None
     tier: int | None
@@ -107,6 +133,8 @@ class PrimarySource(BaseModel):
     url: str | None
     accession: str | None
     excerpt: str | None
+    excerpt_missing_reason: str | None = None
+    location: LocationRow | None
     as_of_date: date | None
     published_date: date | None
     modified_date: date | None
@@ -118,8 +146,15 @@ class PrimarySource(BaseModel):
         if self.source_id is None:
             if not (self.none_reason or "").strip():
                 raise ValueError("a missing primary source needs a none_reason")
-        else:
-            _one_sentence(self.tier_rationale or "")
+            return self
+        _one_sentence(self.tier_rationale or "")
+        if not (self.url or "").strip():
+            raise ValueError("the primary source needs a URL")
+        _http(self.url)
+        if not (self.excerpt or "").strip() and not (self.excerpt_missing_reason or "").strip():
+            raise ValueError("the primary source needs a verbatim excerpt, or a reason none was captured")
+        if self.location is None:
+            raise ValueError("the primary source needs a location (section, page, detailed excerpt)")
         return self
 
 
@@ -144,8 +179,9 @@ class SourceRow(BaseModel):
     as_of_date: date | None
     published_date: date | None
     modified_date: date | None
-    url: str
+    url: Annotated[str, AfterValidator(_http)]
     excerpt: str
+    location: LocationRow
     role: str
     used: bool
     tier_rationale: Rationale
@@ -287,6 +323,26 @@ def _sentence(text: str) -> str:
     return text if text.endswith((".", "!", "?")) else text + "."
 
 
+_BASIS_LABEL = {"printed": "printed page {p}", "html_page": "page {p} of the HTML filing", "pdf": "PDF page {p}",
+                "form": "Form page {p}"}
+
+
+def location_row(s: Source) -> LocationRow:
+    loc = s.location
+    if loc is None:
+        return LocationRow(section=None, page=None, page_basis=None, page_label="not captured",
+                           detailed_excerpt=s.excerpt or f"(No verbatim text captured; the source states {s.value:,}.)",
+                           deep_link=None, note="Section and page were not captured for this source.")
+    if loc.page:
+        label = _BASIS_LABEL.get(loc.page_basis or "printed", "page {p}").format(p=loc.page)
+    else:
+        label = "no page numbers" if "no page numbers" in (loc.note or "").lower() else "page not identified"
+    return LocationRow(section=loc.section, page=loc.page, page_basis=loc.page_basis, page_label=label,
+                       detailed_excerpt=loc.context or s.excerpt or f"(No verbatim text captured; the source states "
+                                                                     f"{s.value:,}.)",
+                       deep_link=loc.deep_link, note=loc.note)
+
+
 class _Findings:
     def __init__(self) -> None:
         self.items: list[Finding] = []
@@ -294,6 +350,7 @@ class _Findings:
     def add(self, category: str, status: str, title: str, rationale: str, evidence: list[str] | None = None,
             impact: int = 0) -> str:
         fid = f"F{len(self.items) + 1}"
+        title = title[:1].upper() + title[1:]
         self.items.append(Finding(id=fid, category=category, status=status, title=title, rationale=rationale,
                                   evidence=evidence or [], score_impact=impact))
         return fid
@@ -389,7 +446,7 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
         body = flag.split(":", 1)[1].strip() if flag.split(":", 1)[0] in ("Conflict", "LinkedIn", "Event-driven", "Complexity") else flag
         evidence = [sid for url, sid in by_url.items() if url in flag]
         flag_ids[flag] = findings.add(
-            category, "red", _first_sentence(body, limit=72),
+            category, "red", _first_sentence(re.sub(r"\s*\(https?://[^)]*\)", "", body), limit=72),
             f"{_sentence(body)} Policy lowers confidence one level for this"
             + (", but the score was already at its minimum of 1." if impact == 0 else ".")
             + " A reviewer should check it before relying on the figure.", evidence, impact)
@@ -486,7 +543,8 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
     source_rows = [SourceRow(
         id=ids[id(s)], tier=s.tier, tier_name=policy.tiers[s.tier].name, value=s.value, qualifier=s.qualifier,
         basis=s.basis, scope=s.scope, as_of_date=s.as_of_date, published_date=s.published_date,
-        modified_date=s.modified_date, url=s.url, excerpt=s.excerpt, role=s.role or "supporting",
+        modified_date=s.modified_date, url=s.url, excerpt=s.excerpt, location=location_row(s),
+        role=s.role or "supporting",
         used=s.role in ("selected", "corroborates", "derived_input"),
         tier_rationale=tier_rationale(s, cert.entity, policy),
         use_rationale=s.role_reason or "Recorded as context; not compared against the certified value.",
@@ -498,11 +556,14 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
         primary = PrimarySource(
             source_id=ids[id(selected)], tier=selected.tier, tier_name=policy.tiers[selected.tier].name,
             url=selected.url, accession=accession_of(selected.url), excerpt=selected.excerpt,
+            excerpt_missing_reason=None if selected.excerpt.strip() else "No verbatim excerpt was captured for this source.",
+            location=location_row(selected),
             as_of_date=selected.as_of_date, published_date=selected.published_date,
             modified_date=selected.modified_date, tier_rationale=tier_rationale(selected, cert.entity, policy))
     else:
         primary = PrimarySource(
-            source_id=None, tier=None, tier_name=None, url=None, accession=None, excerpt=None, as_of_date=None,
+            source_id=None, tier=None, tier_name=None, url=None, accession=None, excerpt=None, location=None,
+            as_of_date=None,
             published_date=None, modified_date=None, tier_rationale=None,
             none_reason=("The value was derived from tier 7-9 inputs, so no single source sets it."
                          if cert.certified_count is not None else "No usable source was found."))

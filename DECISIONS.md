@@ -206,3 +206,51 @@ Done now rather than in the design pass, since it's a one-word change. It's logg
 
 ### Open issue: overuse of complexity flags
 In the Stripe rerun, research listed data disagreements as "complexity" flags ("tracker estimates disagree"). The extraction instructions say complexity is for entity-scope ambiguity only. It didn't change Stripe's result, since the score was at its minimum, but tightening this further would make the findings cleaner.
+
+## Hosting (code ready; you create the Render service)
+
+### D33. Claude connector access is OAuth sign-in by access code; a bearer header is also accepted
+- **What:** Claude's documentation says a fixed bearer-token header ("Request headers") is a beta feature, limited to some organizations, set by an organization Owner, and shared by the whole organization. Most accounts can't send a per-user header. So the server also runs a minimal OAuth authorization server:
+  - Claude registers itself automatically (Dynamic Client Registration)
+  - Claude sends the person to `/oauth/login`, where they enter their access code
+  - a valid code yields tokens tied to that person's name: a 1-hour access token and a 30-day rotating refresh token, both stored hashed
+  - PKCE, discovery, `/register`, `/token` and `/revoke` are served by the MCP SDK
+
+  A raw access code is still accepted as `Authorization: Bearer ecc_…`, for the web page, the API and organizations that have request headers.
+- **Why:** this is the only way that works per person in every Claude plan and app. Revoking a code also kills that person's OAuth tokens immediately, because every token lookup checks the code is still active.
+- **Alternatives:**
+  - bearer header only: works for few organizations
+  - token in the URL: the docs forbid it, and it leaks into logs
+  - a third-party identity provider: more setup than you asked for
+
+### D34. Access codes are stored as hashes in an environment variable
+- **What:** `CERTIFIER_ACCESS_CODES` holds `name:sha256` entries. `certifier-access new NAME` prints a code (shown once) plus the entry to add. To revoke, delete the entry or add the name to `CERTIFIER_REVOKED`, then redeploy.
+- **Why:** no database of secrets, nothing sensitive in git, and Render's dashboard is the only admin console needed. Codes use a recognisable `ecc_` prefix with 192 bits of randomness, and are compared in constant time.
+
+### D35. Spend controls
+- **What:**
+  - **Per person:** 20 new lookups a day (UTC). A subsidiary lookup that also certifies its parent counts as 2. Cache hits are free.
+  - **Global cap:** $10 a day, checked before each new lookup and entity search. One lookup already in progress can go past it by up to the $0.50 per-lookup budget.
+  - **Errors:** plain messages saying which limit was hit and when it resets. They return HTTP 429 on the web, and a tool error the Claude app shows. A first version wrapped them in a generic "Error executing tool"; a test caught it.
+- **Local use:** Claude Desktop over stdio, with no signed-in person, has no limits and no cache, as before.
+
+### D36. A 30-day cache per entity, with refresh
+- **What:** the cache key is the normalized name, the website host, and the CIK and parent CIK. It stores the full lookup result, so the card and record rebuild exactly. A cached result carries a note: "Cached certification from <date>; ask for a refresh…". Refresh is a tool parameter and a web button.
+- **Why:** most repeat questions are for the same companies, so the cache cuts cost the most.
+
+### D37. One service, with the MCP app mounted at the root
+- **What:** FastAPI serves `/`, `/api/*`, `/cards/*`, `/oauth/login` and `/health`. The MCP Starlette app is mounted at `/` behind them, so OAuth discovery (`/.well-known/…`) and `/mcp` sit at the origin root, where Claude looks for them. The MCP transport is stateless, so restarts don't break sessions. DNS-rebinding protection is off, because it's meant for unauthenticated local servers and every request here is authenticated. Token audience checking is off too: every token this server issues is only for this server, and an exact-URL comparison risked spurious 401s.
+
+### D38. Render setup
+- **What:** `render.yaml` uses the **Starter** plan with a 1 GB disk at `/var/data`, about $7–8 a month.
+- **Why:** the free plan sleeps (the first request after idle takes about a minute and can time out the Claude app), and has no persistent disk. Without one, the cache, the daily counts and Claude sign-ins reset on every deploy. DEPLOY.md explains how to run on the free plan with those trade-offs.
+- **Also:** uv installs exactly the locked versions, and Python is pinned to 3.12.10.
+
+### D39. Hosted cards are served from `/cards/<file>`
+- **What:** in hosted mode the MCP tool returns `card_url` (`PUBLIC_BASE_URL` plus `/cards/…`) instead of a path on the server's disk. File names are checked against a strict pattern.
+- **Why:** remote users can't open a server path. The in-chat card still renders from the tool result.
+
+### Open issues (hosting)
+- **Not deployed or tested in the real Claude app.** The OAuth flow, MCP over HTTP, limits and cache are tested end to end with a test client, and a real `uvicorn` run answered `/health`, the page, the 401 sign-in challenge and discovery correctly. The real Claude sign-in can only be tested once the service is on Render.
+- **Single instance only.** SQLite on one disk suits one Render instance. Scaling out would need Postgres.
+- **No admin page.** Today's spend shows on `/health`. Per-person usage is only in the SQLite file.

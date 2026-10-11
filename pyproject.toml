@@ -5,6 +5,7 @@ description = "Certified global employee counts per a documented source policy, 
 requires-python = ">=3.12"
 dependencies = [
     "anthropic>=1.13.0",
+    "fastapi>=0.143.0",
     "mcp>=2.3.0",
     "pydantic>=2.14.0",
     "python-dotenv>=1.2.4",
@@ -14,6 +15,7 @@ dependencies = [
 [project.scripts]
 certifier-mcp = "certifier.server:main"
 certifier-card = "certifier.card:main"
+certifier-access = "certifier.access:main"
 
 [build-system]
 requires = ["uv_build>=0.13.0,<0.14.0"]
@@ -21,6 +23,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28.1",
     "pytest>=9.1.1",
 ]
 

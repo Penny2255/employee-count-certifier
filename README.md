@@ -39,6 +39,19 @@ Then ask, for example, "What's the certified employee count for Adobe?" Claude c
 3. **Research:** Claude searches the web for the other tiers and extracts every figure with its quote, date and scope.
 4. **Engine:** the deterministic rules in `src/certifier/` choose the value, apply the counting rules and score confidence.
 
+## Hosted service (Claude app + web page)
+
+The same engine also runs as one web service that has three parts:
+- a search page at `/`
+- an MCP endpoint at `/mcp` for the Claude app's custom connectors, with an in-chat company card
+- a JSON API
+
+Access is by per-person access codes, created with `uv run certifier-access new NAME`. The service applies daily lookup limits, a daily dollar cap and a 30-day cache. See [DEPLOY.md](DEPLOY.md) for step-by-step Render setup.
+
+```
+uv run uvicorn certifier.web:app --port 8000      # run the hosted service locally
+```
+
 ## Development
 
 ```

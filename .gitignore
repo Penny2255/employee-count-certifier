@@ -221,3 +221,6 @@ __marimo__/
 
 # Review queue of flagged lookups
 logs/
+
+# Hosted service state (usage, cache, OAuth) and saved cards
+data/

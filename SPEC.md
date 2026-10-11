@@ -364,7 +364,21 @@ Each step ends with passing tests before the next one starts.
 3. **Research and extraction for tiers 2–9. Done.** There are two Claude calls (`claude-sonnet-5-5`): research with web search and fetch, then structured extraction. There are also direct fetchers for the company website (stat tiles) and Form 990 (ProPublica). Spend is tracked against the budget, and server-side refusal fallbacks are on.
 4. **Entity resolution and confirmation. Done.** Candidates with website, description, HQ, type, ticker → CIK, and global parent. A subsidiary without its own filings uses its parent's combined filing.
 5. **Local MCP server. Done.** An `MCPServer` (mcp 2.x) over stdio with `find_entity` and `certify_employee_count`, registered in Claude Desktop as `employee-count-certifier`.
-6. **Hosted service. Next.** One Python service with an MCP endpoint (`/mcp`, streamable HTTP) for users' own Claude apps, plus a JSON API and web page, all on the same engine. It runs on a small container host (Fly.io, Render or Cloud Run). It needs sign-in, because every lookup spends API credit.
+6. **Hosted service. Ready to deploy (Render).** One FastAPI service (`certifier.web`) serves:
+   - the web page (search, entity confirmation, company card)
+   - a JSON API
+   - the MCP server over Streamable HTTP at `/mcp`
+
+   Local Claude Desktop keeps using stdio. Access works by per-user **access codes**, stored as SHA-256 hashes in `CERTIFIER_ACCESS_CODES`; a code is revoked by removing its entry or listing its name in `CERTIFIER_REVOKED`. A code is accepted in two ways:
+   - as a bearer header, for the web page, the API, and organizations that have Claude's request-headers feature
+   - through a built-in OAuth sign-in for the Claude custom connector: Claude registers itself automatically, the person enters their access code, and tokens are tied to that person
+
+   Spend controls:
+   - a per-user limit of 20 new lookups a day
+   - a global daily cap of $10
+   - certifications cached per entity for 30 days, with a refresh option
+
+   Secrets come only from environment variables. Also provided: `/health`, `render.yaml` and `DEPLOY.md`.
 
 **Live results (2026-10-11):**
 

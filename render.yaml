@@ -1,0 +1,37 @@
+# Render Blueprint for the hosted Employee Count Certifier (web page + MCP connector).
+# Create it from the Render dashboard: New > Blueprint > connect this GitHub repo. See DEPLOY.md.
+services:
+  - type: web
+    name: employee-count-certifier
+    runtime: python
+    plan: starter            # paid plan: stays awake, and allows the persistent disk below
+    region: oregon
+    buildCommand: pip install uv && uv sync --frozen --no-dev
+    startCommand: uv run --no-sync uvicorn certifier.web:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      # Secrets: Render asks for these when you create the Blueprint (sync: false = never stored in git).
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: SEC_USER_AGENT        # e.g. "Your Name you@example.com" (SEC requires contact info)
+        sync: false
+      - key: CERTIFIER_ACCESS_CODES  # name:hash entries from `uv run certifier-access new NAME`
+        sync: false
+      - key: PUBLIC_BASE_URL       # https://<your-service>.onrender.com (no trailing slash)
+        sync: false
+      # Spend controls and cache (change any time in the dashboard).
+      - key: CERTIFIER_DAILY_LOOKUPS_PER_USER
+        value: "20"
+      - key: CERTIFIER_DAILY_USD_CAP
+        value: "10"
+      - key: CERTIFIER_CACHE_DAYS
+        value: "30"
+      - key: CERTIFIER_DATA_DIR
+        value: /var/data
+    disk:                    # keeps the cache, daily usage and Claude sign-ins across deploys
+      name: certifier-data
+      mountPath: /var/data
+      sizeGB: 1

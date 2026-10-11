@@ -9,12 +9,15 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import anyio
+from mcp.server.apps import Apps
 from mcp.server.mcpserver import MCPServer
 
+from .card import APP_URI, app_html, save_card
 from .entity import find_entities
 from .llm import Claude, Spend
 from .models import Certification, Entity
 from .policy import default_policy
+from .record import record_from_lookup
 from .service import LookupResult, lookup
 from .sources.edgar import Edgar
 
@@ -27,11 +30,16 @@ Workflow:
    subsidiary) and ask which one they mean. Do not certify until the user confirms.
 3. Call certify_employee_count with the confirmed entity's details from find_entity. By default the
    parent is certified too when the entity is a subsidiary.
-4. Present: the certified count with its qualifier, confidence level, source tier and as-of date, the
-   source excerpt with its link, and any flags or footnotes. Say plainly when confidence is low and why.
+4. The result renders as an interactive company card where the host supports MCP Apps; it is also saved
+   as an HTML file (card_path). Present: the certified count with its qualifier, confidence level and
+   score breakdown, the primary source excerpt with its link and date, and any red or yellow findings.
+   Say plainly when confidence is low and why.
 A lookup takes about 30-90 seconds."""
 
-server = MCPServer("Employee Count Certifier", instructions=INSTRUCTIONS)
+# MCP Apps: certify_employee_count renders as an interactive card (DECISIONS.md D1-D3).
+apps = Apps()
+apps.add_html_resource(APP_URI, app_html(), name="Company card", title="Employee count certification",
+                       description="Certified employee count with confidence, findings and sources")
 
 
 def _summary(cert: Certification) -> str:
@@ -46,14 +54,10 @@ def _summary(cert: Certification) -> str:
             f"({cert.count_type}); confidence {cert.confidence_score} ({cert.confidence_level}); {source}.")
 
 
-def _result(r: LookupResult) -> dict[str, Any]:
-    cert = r.certification
-    return {"summary": _summary(cert), "footnotes": cert.flags + r.notes, "rationale": cert.rationale,
-            "cost_usd": r.cost_usd, "web_searches": r.web_searches,
-            "certification": cert.model_dump(mode="json")}
+def _result(r: LookupResult, record) -> dict[str, Any]:
+    return {"summary": _summary(r.certification), "record": record.model_dump(mode="json")}
 
 
-@server.tool()
 async def find_entity(name: str, website: str | None = None) -> dict[str, Any]:
     """Find the organization(s) matching a name, for the user to confirm before certifying.
 
@@ -69,7 +73,7 @@ async def find_entity(name: str, website: str | None = None) -> dict[str, Any]:
                          "before calling certify_employee_count."}
 
 
-@server.tool()
+@apps.tool(resource_uri=APP_URI)
 async def certify_employee_count(name: str, website: str | None = None, hq: str | None = None,
                                  cik: int | None = None, ticker: str | None = None, legal_parent: str | None = None,
                                  parent_website: str | None = None, parent_cik: int | None = None,
@@ -104,11 +108,21 @@ async def certify_employee_count(name: str, website: str | None = None, hq: str 
             return list(pool.map(lambda job: job(), jobs))
 
     results = await anyio.to_thread.run_sync(run_all)
-    out = {"entity": _result(results[0])}
+    records = [record_from_lookup(r) for r in results]
+    out: dict[str, Any] = {"entity": _result(results[0], records[0])}
     if len(results) > 1:
-        out["parent"] = _result(results[1])
+        out["parent"] = _result(results[1], records[1])
+    try:
+        out["card_path"] = str(save_card(records))
+    except OSError as e:  # the card file is a convenience; never fail the lookup over it
+        out["card_path"] = None
+        out["card_error"] = str(e)
     out["policy_version"] = default_policy().policy_version
     return out
+
+
+server = MCPServer("Employee Count Certifier", instructions=INSTRUCTIONS, extensions=[apps])
+server.tool()(find_entity)
 
 
 def _cik_for_ticker(ticker: str) -> int | None:

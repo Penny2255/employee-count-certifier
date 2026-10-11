@@ -1,0 +1,286 @@
+{
+  "certification": {
+    "entity": {
+      "name": "University of California-Davis",
+      "website": "https://www.ucdavis.edu",
+      "hq": "Davis, CA, USA",
+      "legal_parent": "University of California",
+      "relationship_to_parent": "Campus"
+    },
+    "certified_count": 21000,
+    "count_type": "reported",
+    "qualifier": "more_than",
+    "count_basis": "headcount",
+    "range": [
+      21000,
+      23100
+    ],
+    "confidence_score": 1,
+    "confidence_level": "Unverified",
+    "confidence_breakdown": [
+      {
+        "points": 2,
+        "reason": "base 2: tier 5 without corroboration"
+      },
+      {
+        "points": -1,
+        "reason": "Complexity: UC Davis's own text says more than 24,000 employees across Davis and Sacramento (including UC Davis Health), while IPEDS-derived data (~17,700) and LinkedIn (17,847) are much lower; the IPEDS campus figure may exclude the affiliated health system and graduate assistants, and the gap is unresolved."
+      },
+      {
+        "points": 0,
+        "reason": "Complexity: The UC Davis HR dashboard (headcount and FTE for campus and Health) and UC systemwide workforce reports were not read and could resolve scope. (no change: minimum of 1 reached)"
+      }
+    ],
+    "policy_tier": 5,
+    "as_of_date": null,
+    "sources": [
+      {
+        "url": "https://www.univstats.com/staffs/university-of-california-davis/",
+        "tier": 8,
+        "value": 17736,
+        "qualifier": "exact",
+        "excerpt": "Check out 3,168 faculty and 14,568 staffs by position, gender, and employment type working at University of California-Davis.",
+        "as_of_date": null,
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": true,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Not counted as corroboration: restates another source's figure.",
+        "notes": [
+          "Aggregator of IPEDS Human Resources data, not the NCES filing. Value is the sum of 3,168 instructional and 14,568 non-instructional staff; the page does not state a total. As-of probably Fall 2023 but unconfirmed. Likely excludes health system and graduate assistants. The IPEDS 'Total all staff' figure for unitId 110644 was not retrieved.",
+          "Undated source.",
+          "Not counted as corroboration: restates another source's figure."
+        ]
+      },
+      {
+        "url": "https://www.linkedin.com/school/uc-davis/",
+        "tier": 5,
+        "value": 21000,
+        "qualifier": "more_than",
+        "excerpt": "UC Davis has more than 33,000 students, more than 2,500 faculty and more than 21,000 staff",
+        "as_of_date": null,
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": {
+          "faculty": 2500
+        },
+        "restates": false,
+        "corroboration_only": false,
+        "role": "selected",
+        "role_reason": "Highest-ranked eligible source: tier 5, undated.",
+        "notes": [
+          "Staff figure only; about 23,500 faculty plus staff is an implied sum, not a stated total. Undated and outdated (student count is old). Probably includes the health system.",
+          "Undated source."
+        ]
+      },
+      {
+        "url": "https://www.reveliolabs.com/companies/university-of-california-davis/employees/",
+        "tier": 7,
+        "value": 19967,
+        "qualifier": "exact",
+        "excerpt": "University of California, Davis has 19,967 employees as of December 2025.",
+        "as_of_date": "2025-12-01",
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
+        "notes": [
+          "Modeled estimate, not a company count. Page also gives 19,964 for 2025 (4.7% decline), 20,918 for 2024, 21,087 for 2023. Scope likely includes the health system (unconfirmed).",
+          "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
+        ]
+      },
+      {
+        "url": "https://leadiq.com/c/university-of-california-davis/5a1d88f924000024006288a2",
+        "tier": 9,
+        "value": 24000,
+        "qualifier": "more_than",
+        "excerpt": "the second-largest employer in the region, hosting more than 24,000 employees and more than 40,000 students",
+        "as_of_date": null,
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": true,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Not counted as corroboration: restates another source's figure.",
+        "notes": [
+          "Appears copied from UC Davis's own description, original page not found. Covers Davis and Sacramento campuses, apparently including the health system. Same page gives a modeled 'approximately 21K employees' as of August 2026.",
+          "Undated source.",
+          "Not counted as corroboration: restates another source's figure."
+        ]
+      },
+      {
+        "url": "https://health.ucdavis.edu/about/facts-figures",
+        "tier": 3,
+        "value": 15319,
+        "qualifier": "exact",
+        "excerpt": "Staff 15,319",
+        "as_of_date": null,
+        "published_date": null,
+        "modified_date": null,
+        "scope": "partial",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": {
+          "faculty": 1325
+        },
+        "restates": false,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Covers only part of the organization (a region, segment or subsidiary); context only.",
+        "notes": [
+          "UC Davis Health only; supporting evidence, not a campus total. Snapshot approximate, likely calendar 2025 or AY 2024-25. Page also lists 4,240 nurses, 1,356 physicians, 1,346 residents and fellows; overlap with the staff figure unclear.",
+          "Undated source.",
+          "Partial or regional scope; supporting evidence only."
+        ]
+      },
+      {
+        "url": "https://tracxn.com/d/companies/uc-davis/__Wa_Ku4RauUPOolucf6GnqQ36m2rueIxZEeb7KGwgDE4",
+        "tier": 9,
+        "value": 9648,
+        "qualifier": "exact",
+        "excerpt": "As of May 31, 2026, the latest employee count at UC Davis is 9648.",
+        "as_of_date": "2026-05-31",
+        "published_date": null,
+        "modified_date": null,
+        "scope": "partial",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Covers only part of the organization (a region, segment or subsidiary); context only.",
+        "notes": [
+          "Outlier, likely profile-based and an undercount.",
+          "Partial or regional scope; supporting evidence only."
+        ]
+      },
+      {
+        "url": "https://www.zoominfo.com/c/university-of-california-davis/20334974",
+        "tier": 7,
+        "value": 10000,
+        "qualifier": "more_than",
+        "excerpt": "University of California, Davis has 10K+ employees",
+        "as_of_date": null,
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "corroboration_only": false,
+        "role": "conflicts",
+        "role_reason": "Disagrees by 52%, but a tier 7 or stale source never lowers confidence; recorded only.",
+        "notes": [
+          "Range only; likely contact-based and low. Another snippet gives 10,000-15,000.",
+          "Undated source.",
+          "Not counted as corroboration: undated, so not near the certified figure's as-of date."
+        ]
+      },
+      {
+        "url": "https://datausa.io/profile/university/university-of-california-davis",
+        "tier": 8,
+        "value": 1751,
+        "qualifier": "exact",
+        "excerpt": "paid a total of $312M to 1,751 employees working as instructors",
+        "as_of_date": "2024-01-01",
+        "published_date": null,
+        "modified_date": null,
+        "scope": "partial",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": true,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Covers only part of the organization (a region, segment or subsidiary); context only.",
+        "notes": [
+          "Instructional staff only (apparently full-time non-medical); IPEDS-derived. As-of year 2024, exact date unknown.",
+          "Older than 24 months.",
+          "Partial or regional scope; supporting evidence only."
+        ]
+      }
+    ],
+    "linkedin_check": {
+      "member_count": 17847,
+      "size_range": null,
+      "workforce_profile": "mixed",
+      "implied_range": [
+        19830,
+        35694
+      ],
+      "size_range_agrees": null,
+      "status": "pass",
+      "note": "Pass: certified 21,000 is within the range 19,830-35,694 implied by 17,847 LinkedIn members for a mixed workforce."
+    },
+    "adjustments": [
+      {
+        "source_url": "https://www.linkedin.com/school/uc-davis/",
+        "source_figure": 21000,
+        "change": 0,
+        "reason": "Noted, not added: faculty (2,500) reported separately from the formal total, whose definition is accepted as stated",
+        "result": 21000
+      },
+      {
+        "source_url": "https://health.ucdavis.edu/about/facts-figures",
+        "source_figure": 15319,
+        "change": 0,
+        "reason": "Noted, not added: faculty (1,325) reported separately from the formal total, whose definition is accepted as stated",
+        "result": 15319
+      }
+    ],
+    "flags": [
+      "Complexity: UC Davis's own text says more than 24,000 employees across Davis and Sacramento (including UC Davis Health), while IPEDS-derived data (~17,700) and LinkedIn (17,847) are much lower; the IPEDS campus figure may exclude the affiliated health system and graduate assistants, and the gap is unresolved.",
+      "Complexity: The UC Davis HR dashboard (headcount and FTE for campus and Health) and UC systemwide workforce reports were not read and could resolve scope."
+    ],
+    "events": [],
+    "rationale": "Highest-ranked available source is tier 5 (LinkedIn company description), undated, reporting 21,000. 3 partial-scope source(s) used as supporting evidence only. 0 independent corroborating source(s) within 15%. Complexity: UC Davis's own text says more than 24,000 employees across Davis and Sacramento (including UC Davis Health), while IPEDS-derived data (~17,700) and LinkedIn (17,847) are much lower; the IPEDS campus figure may exclude the affiliated health system and graduate assistants, and the gap is unresolved. Complexity: The UC Davis HR dashboard (headcount and FTE for campus and Health) and UC systemwide workforce reports were not read and could resolve scope. Confidence 1 (Unverified).",
+    "trend": [],
+    "forecast": null,
+    "policy_version": "0.2"
+  },
+  "cost_usd": 0.1066,
+  "web_searches": 2,
+  "web_fetches": 0,
+  "method": "research",
+  "notes": [
+    "No tier 1-2 document was retrieved. The IPEDS figure came only via the UnivStats aggregator, and the NCES IPEDS 'Total all staff' for unitId 110644 was not opened. The website '2,200 People' is a 1909 Picnic Day attendance figure, not a headcount, and is excluded. The legal parent (University of California) is a separate certification. No mergers, acquisitions or spinoffs confirmed."
+  ],
+  "queries": [
+    "web_search: UC Davis number of employees 2025 faculty staff total",
+    "web_search: UC Davis IPEDS human resources total all staff fall 2024"
+  ],
+  "run_at": "2026-10-11T20:03:21.633348Z",
+  "duration_s": 36.5,
+  "models": {
+    "research": "claude-sonnet-5-5",
+    "extraction": "claude-sonnet-5-5"
+  }
+}

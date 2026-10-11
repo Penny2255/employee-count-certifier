@@ -1,0 +1,228 @@
+{
+  "certification": {
+    "entity": {
+      "name": "Salesforce, Inc.",
+      "website": "https://www.salesforce.com",
+      "hq": "San Francisco, CA, USA",
+      "legal_parent": null,
+      "relationship_to_parent": null
+    },
+    "certified_count": 83334,
+    "count_type": "reported",
+    "qualifier": "exact",
+    "count_basis": "headcount",
+    "range": [
+      83334,
+      83334
+    ],
+    "confidence_score": 4,
+    "confidence_level": "Certified",
+    "confidence_breakdown": [
+      {
+        "points": 4,
+        "reason": "base 4: tier 1, as-of within 18 months"
+      },
+      {
+        "points": 1,
+        "reason": "corroborated by reveliolabs.com 'Salesforce (CRM) had 87,829 employees as of March 2026'"
+      },
+      {
+        "points": -1,
+        "reason": "Complexity: Unclear whether Informatica employees (about 5,200) are included in the 83,334 10-K count; depends on the acquisition closing date relative to 2026-01-31."
+      }
+    ],
+    "policy_tier": 1,
+    "as_of_date": "2026-01-31",
+    "sources": [
+      {
+        "url": "https://www.sec.gov/Archives/edgar/data/1108524/000110852426000060/crm-20260131.htm",
+        "tier": 1,
+        "value": 83334,
+        "qualifier": "exact",
+        "excerpt": "As of January 31, 2026, we had 83,334 employees.",
+        "as_of_date": "2026-01-31",
+        "published_date": "2026-03-02",
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "corroboration_only": false,
+        "role": "selected",
+        "role_reason": "Highest-ranked eligible source: tier 1, as of 2026-01-31.",
+        "notes": [
+          "FY2026 10-K, Human Capital Management section. Plain employee count; no contractors or FTE basis mentioned."
+        ]
+      },
+      {
+        "url": "https://www.sec.gov/Archives/edgar/data/1108524/000110852425000006/crm-20250131.htm",
+        "tier": 1,
+        "value": 76453,
+        "qualifier": "exact",
+        "excerpt": "As of January 31, 2025, we had 76,453 employees.",
+        "as_of_date": "2025-01-31",
+        "published_date": "2025-03-05",
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
+        "notes": [
+          "Prior-year 10-K figure; feeds the trend, not corroboration.",
+          "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
+        ]
+      },
+      {
+        "url": "https://www.sec.gov/Archives/edgar/data/1108524/000110852424000005/crm-20240131.htm",
+        "tier": 1,
+        "value": 72682,
+        "qualifier": "exact",
+        "excerpt": "As of January 31, 2024, we had 72,682 employees, of which approximately 51 percent were located in the United States and 49 percent were located internationally and approximately 36 percent identified as women, 64 percent identified as men and less than one percent identified as non-binary or other.",
+        "as_of_date": "2024-01-31",
+        "published_date": "2024-03-06",
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
+        "notes": [
+          "Two years prior; trend only.",
+          "Older than 24 months.",
+          "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
+        ]
+      },
+      {
+        "url": "https://www.reveliolabs.com/companies/salesforce/employees",
+        "tier": 7,
+        "value": 87829,
+        "qualifier": "exact",
+        "excerpt": "Salesforce (CRM) had 87,829 employees as of March 2026",
+        "as_of_date": "2026-03-01",
+        "published_date": "2026-08-01",
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "corroboration_only": false,
+        "role": "corroborates",
+        "role_reason": "Independent source near the same date, within 5% of the certified value (threshold 15%).",
+        "notes": [
+          "Modeled estimate from workforce data, not a company count. Year-over-year text on the page is self-contradictory (up 9,809 but -0.6%), so its growth figure is unreliable."
+        ]
+      },
+      {
+        "url": "https://finance.yahoo.com/markets/stocks/articles/many-employees-does-salesforce-2026-010629767.html",
+        "tier": 9,
+        "value": 83334,
+        "qualifier": "exact",
+        "excerpt": "According to Salesforce's latest Annual Report, the company had 83,334 employees as of January 31, 2026.",
+        "as_of_date": "2026-01-31",
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": true,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Not counted as corroboration: restates another source's figure.",
+        "notes": [
+          "Repeats the 10-K figure; not independent. Published about March 2026.",
+          "Not counted as corroboration: restates another source's figure."
+        ]
+      }
+    ],
+    "linkedin_check": {
+      "member_count": 87523,
+      "size_range": null,
+      "workforce_profile": "white_collar",
+      "implied_range": [
+        76107,
+        97248
+      ],
+      "size_range_agrees": null,
+      "status": "pass",
+      "note": "Pass: LinkedIn shows 87,523 members, 5% above the certified 83,334, within the 15% tolerance for a white-collar workforce."
+    },
+    "adjustments": [],
+    "flags": [
+      "Complexity: Unclear whether Informatica employees (about 5,200) are included in the 83,334 10-K count; depends on the acquisition closing date relative to 2026-01-31."
+    ],
+    "events": [
+      {
+        "description": "Restructuring: the 10-Q for the quarter ended April 30, 2026 expects about $130-150 million in future cash payments, mainly workforce costs such as severance; no headcount given.",
+        "url": "https://www.sec.gov/Archives/edgar/data/0001108524/000110852426000127/crm-20260430.htm",
+        "close_date": null,
+        "penalized": false,
+        "reason": "The close date or the as-of date is unknown, so it cannot be shown to postdate the figure; noted, not penalized."
+      },
+      {
+        "description": "Acquisition of Informatica (about 5,200 employees in 2024 per Wikipedia). Closing date not confirmed, and it is unclear whether Informatica staff are in the 83,334 count; if closed after 2026-01-31, impact could be up to about +5,200.",
+        "url": "https://en.wikipedia.org/wiki/Informatica",
+        "close_date": null,
+        "penalized": false,
+        "reason": "The close date or the as-of date is unknown, so it cannot be shown to postdate the figure; noted, not penalized."
+      }
+    ],
+    "rationale": "Highest-ranked available source is tier 1 (10-K, 20-F, 40-F or annual financial report), as of 2026-01-31, reporting 83,334. Event noted, not penalized (close date or as-of date unknown): Restructuring: the 10-Q for the quarter ended April 30, 2026 expects about $130-150 million in future cash payments, mainly workforce costs such as severance; no headcount given. (https://www.sec.gov/Archives/edgar/data/0001108524/000110852426000127/crm-20260430.htm). Event noted, not penalized (close date or as-of date unknown): Acquisition of Informatica (about 5,200 employees in 2024 per Wikipedia). Closing date not confirmed, and it is unclear whether Informatica staff are in the 83,334 count; if closed after 2026-01-31, impact could be up to about +5,200. (https://en.wikipedia.org/wiki/Informatica). 1 independent corroborating source(s) within 15%. Complexity: Unclear whether Informatica employees (about 5,200) are included in the 83,334 10-K count; depends on the acquisition closing date relative to 2026-01-31. Confidence 4 (Certified).",
+    "trend": [
+      {
+        "as_of_date": "2024-01-31",
+        "value": 72682,
+        "tier": 1,
+        "url": "https://www.sec.gov/Archives/edgar/data/1108524/000110852424000005/crm-20240131.htm"
+      },
+      {
+        "as_of_date": "2025-01-31",
+        "value": 76453,
+        "tier": 1,
+        "url": "https://www.sec.gov/Archives/edgar/data/1108524/000110852425000006/crm-20250131.htm"
+      },
+      {
+        "as_of_date": "2026-01-31",
+        "value": 83334,
+        "tier": 1,
+        "url": "https://www.sec.gov/Archives/edgar/data/1108524/000110852426000060/crm-20260131.htm"
+      }
+    ],
+    "forecast": null,
+    "policy_version": "0.2"
+  },
+  "cost_usd": 0.1571,
+  "web_searches": 3,
+  "web_fetches": 1,
+  "method": "edgar+research",
+  "notes": [
+    "SEC CIK 1108524 resolved from the name.",
+    "One tier 1 figure (83,334, FY2026 10-K); no independent corroborating company source found. Trend: FY22 73,541, FY23 79,390, FY24 72,682, FY25 76,453, FY26 83,334. LinkedIn member count 87,523 (about 2026-07; another snippet showed 89,783, undated) is about 5% above the 10-K and may include contractors or former employees. Not treated as sources: Wikipedia, Enway and Bullfincher (restate the 10-K), Notta (wrongly dates 76,453 to 2026-01-31), MarketScreener (probable widget). Salesforce About page was not readable, and no Stakeholder Impact Report figure was found. Event noted, not flagged (immaterial): Layoff of about 1,000 employees in February 2026 with 'strategic' cuts across marketing and data analytics, after the 2026-01-31 as-of date (about 1% of headcount)."
+  ],
+  "queries": [
+    "web_fetch: https://www.salesforce.com/company/about-us/",
+    "web_search: Salesforce number of employees 2026",
+    "web_search: Salesforce LinkedIn company page employees",
+    "web_search: Salesforce Stakeholder Impact Report employees total workforce"
+  ],
+  "run_at": "2026-10-11T20:01:18.812634Z",
+  "duration_s": 52.9,
+  "models": {
+    "research": "claude-sonnet-5-5",
+    "extraction": "claude-sonnet-5-5"
+  }
+}

@@ -148,7 +148,7 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
                     continue
             if diff <= policy.agreement.corroborates_within:
                 s.role = "corroborates"
-                s.role_reason = (f"Independent source near the same date, within {diff:.0%} of the certified value "
+                s.role_reason = (f"Independent source near the same date, within {_pct(diff)} of the certified value "
                                  f"(threshold {policy.agreement.corroborates_within:.0%}).")
                 corroborators.append(s)
             elif diff > policy.agreement.conflict_above:
@@ -194,6 +194,11 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
         trend=rules.trend_points(selected, sources, effective) if selected is not None and growth is None else [],
         policy_version=policy.policy_version,
     )
+
+
+def _pct(x: float) -> str:
+    """Percent with a decimal below 1% (0.4%, not 0%)."""
+    return f"{x:.1%}" if x < 0.01 else f"{x:.0%}"
 
 
 def _explain_unassigned(sources: list[Source], value: int | None) -> list[Source]:

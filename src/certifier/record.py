@@ -389,7 +389,7 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
         body = flag.split(":", 1)[1].strip() if flag.split(":", 1)[0] in ("Conflict", "LinkedIn", "Event-driven", "Complexity") else flag
         evidence = [sid for url, sid in by_url.items() if url in flag]
         flag_ids[flag] = findings.add(
-            category, "red", _first_sentence(body),
+            category, "red", _first_sentence(body, limit=72),
             f"{_sentence(body)} Policy lowers confidence one level for this"
             + (", but the score was already at its minimum of 1." if impact == 0 else ".")
             + " A reviewer should check it before relying on the figure.", evidence, impact)
@@ -416,7 +416,8 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
     for e in cert.events:
         if not e.penalized:
             findings.add("event", "yellow", _first_sentence(f"Event noted: {e.description}"),
-                         f"{_sentence(e.description)} {e.reason}", [by_url[e.url]] if e.url in by_url else [])
+                         f"{e.reason} Policy lowers confidence only for events that close after the as-of date.",
+                         [by_url[e.url]] if e.url in by_url else [])
 
     # Scope.
     partial = [s for s in cert.sources if s.scope == "partial"]
@@ -489,7 +490,8 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
         used=s.role in ("selected", "corroborates", "derived_input"),
         tier_rationale=tier_rationale(s, cert.entity, policy),
         use_rationale=s.role_reason or "Recorded as context; not compared against the certified value.",
-        notes=s.notes) for s in cert.sources]
+        notes=[n for n in s.notes if n not in s.role_reason and not n.startswith(("Not counted", "Mirror of"))])
+        for s in cert.sources]
 
     # Primary source.
     if selected is not None:

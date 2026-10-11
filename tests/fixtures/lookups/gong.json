@@ -1,0 +1,219 @@
+{
+  "certification": {
+    "entity": {
+      "name": "Gong",
+      "website": "https://www.gong.io",
+      "hq": "San Francisco, CA, USA",
+      "legal_parent": null,
+      "relationship_to_parent": null
+    },
+    "certified_count": 2200,
+    "count_type": "estimated",
+    "qualifier": "approximately",
+    "count_basis": "headcount",
+    "range": [
+      1500,
+      2700
+    ],
+    "confidence_score": 3,
+    "confidence_level": "Supported",
+    "confidence_breakdown": [
+      {
+        "points": 3,
+        "reason": "base 3: growth-adjusted estimate from a tier 4 figure and a current signal"
+      },
+      {
+        "points": 0,
+        "reason": "no deductions"
+      }
+    ],
+    "policy_tier": 4,
+    "as_of_date": null,
+    "sources": [
+      {
+        "url": "https://www.gong.io/about",
+        "tier": 4,
+        "value": 1500,
+        "qualifier": "exact",
+        "excerpt": "1,500 Employees",
+        "as_of_date": null,
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "corroboration_only": false,
+        "role": "selected",
+        "role_reason": "Highest-ranked eligible source: tier 4, undated.",
+        "notes": [
+          "Website stat tile supplied in page context, not fetched by the researcher. Undated and probably stale against the LinkedIn member count and 2026 data-provider figures. The same tile group lists 5,000 customers.",
+          "Undated source."
+        ]
+      },
+      {
+        "url": "https://tracxn.com/d/companies/gong/__mjeQDnUWFkOeqhLP0hTeCWKtGTQFGZ2jMcWDrks5qZ8",
+        "tier": 9,
+        "value": 2672,
+        "qualifier": "exact",
+        "excerpt": "As of Aug 31, 2026, the latest employee count at Gong is 2672.",
+        "as_of_date": "2026-08-31",
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Within 21% of the certified value: closer than a conflict, not close enough to corroborate; context only.",
+        "notes": [
+          "The legal-entity table lists GONG.IO INC. at 645 as of Dec 31, 2024. That is a single-entity, partial-scope figure and is not used as the total."
+        ]
+      },
+      {
+        "url": "https://leadiq.com/c/gong/5a1d8a6f240000240063d770",
+        "tier": 9,
+        "value": 2600,
+        "qualifier": "approximately",
+        "excerpt": "As of August 2026, Gong has approximately 2.6K employees across 6 continents, including North America, Asia and Europe.",
+        "as_of_date": "2026-08-01",
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Within 18% of the certified value: closer than a conflict, not close enough to corroborate; context only.",
+        "notes": [
+          "Directory page also lists about 1.6K employees in the USA (partial). Size range 1001-5000. As-of date is given only as August 2026, so day is set to the 1st."
+        ]
+      },
+      {
+        "url": "https://www.reveliolabs.com/companies/gong-io/employees",
+        "tier": 7,
+        "value": 2101,
+        "qualifier": "exact",
+        "excerpt": "Gong io had 2,101 employees as of March 2026, up 509 (+4.8%) from the prior year.",
+        "as_of_date": "2026-03-01",
+        "published_date": "2026-08-01",
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "corroboration_only": false,
+        "role": "corroborates",
+        "role_reason": "Independent source near the same date, within 4% of the certified value (threshold 15%).",
+        "notes": [
+          "Modeled workforce data. Page year-end series: 1,464 (2023), 1,557 (2024), 1,978 (2025), 2,101 (Q1 2026); low of 1,437 in 2024 Q1. The page's growth percentages do not match its counts, so treat as directional. Published date is given only as August 2026, so day is set to the 1st; as-of day is set to the 1st."
+        ]
+      },
+      {
+        "url": "https://www.zoominfo.com/c/gong-io-ltd/442174786",
+        "tier": 9,
+        "value": 5000,
+        "qualifier": "up_to",
+        "excerpt": "Gong has 1K - 5K employees",
+        "as_of_date": null,
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "corroboration_only": false,
+        "role": "conflicts",
+        "role_reason": "Disagrees by 127%, but a tier 9 or stale source never lowers confidence; recorded only.",
+        "notes": [
+          "Range only (1,000-5,000), not a point estimate. The 1,421 total contact count in the management breakdown is a contact-database count, not a headcount.",
+          "Undated source.",
+          "Not counted as corroboration: undated, so not near the certified figure's as-of date."
+        ]
+      },
+      {
+        "url": "https://websets.exa.ai/websets/directory/gong-io-executives",
+        "tier": 9,
+        "value": 1781,
+        "qualifier": "approximately",
+        "excerpt": "The company has approximately 1781 employees as per the latest data.",
+        "as_of_date": null,
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Not counted as corroboration: undated, so not near the certified figure's as-of date.",
+        "notes": [
+          "Undated and low quality. Use only as a loose trend point.",
+          "Undated source.",
+          "Not counted as corroboration: undated, so not near the certified figure's as-of date."
+        ]
+      }
+    ],
+    "linkedin_check": {
+      "member_count": 2592,
+      "size_range": [
+        1001,
+        5000
+      ],
+      "workforce_profile": "white_collar",
+      "implied_range": [
+        2254,
+        2880
+      ],
+      "size_range_agrees": true,
+      "status": "flag",
+      "note": "Flag: LinkedIn shows 2,592 members, 18% above the certified 2,200; more than the 15% tolerance for a white-collar workforce."
+    },
+    "adjustments": [
+      {
+        "source_url": "https://www.gong.io/about",
+        "source_figure": 1500,
+        "change": 700,
+        "reason": "Stated 1,500 (undated) is outdated: 3 recent data-provider figures (2,101, 2,600, 2,672) and the LinkedIn member count (2,592) agree and exceed it. Moved 75% toward their mean (2,491) and rounded to 2 significant digits; range runs from the stated figure to the highest of these figures.",
+        "result": 2200
+      }
+    ],
+    "flags": [],
+    "events": [],
+    "rationale": "Highest-ranked available source is tier 4 (Company website description), undated, reporting 1,500. Growth-adjusted from 1,500 to 2,200. LinkedIn check not applied as a penalty because LinkedIn was an input. Flag: LinkedIn shows 2,592 members, 18% above the certified 2,200; more than the 15% tolerance for a white-collar workforce. 1 independent corroborating source(s) within 15%. Confidence 3 (Supported).",
+    "trend": [],
+    "forecast": null,
+    "policy_version": "0.2"
+  },
+  "cost_usd": 0.0988,
+  "web_searches": 2,
+  "web_fetches": 0,
+  "method": "research",
+  "notes": [
+    "Gong is private with no SEC filings, annual report, press release or executive quote giving a headcount. The LinkedIn member count of 2,592 (about late June 2026; size range 1,001-5,000; 338,884 followers) is recorded in the linkedin field, not as a source. An older LinkedIn jobs-page snippet showing 3,572 members was treated as unreliable because its age tag was inconsistent. An earlier LinkedIn snapshot showed 1,449 members and is useful only for trend. No LinkedIn growth percentages were visible. The website's 1,500 is undated and well below 2026 data-provider figures (Tracxn 2,672 and LeadIQ ~2,600), consistent with a stale tile. Revelio's modeled 2,101 (March 2026) is lower and directional. Discarded as stale or unreliable: Built In (1,100, founding year listed as 2023) and Himalayas (201-500). No mergers, acquisitions or spinoffs were found."
+  ],
+  "queries": [
+    "web_search: Gong number of employees 2026",
+    "web_search: Gong.io LinkedIn company employees"
+  ],
+  "run_at": "2026-10-11T20:02:11.700649Z",
+  "duration_s": 29.6,
+  "models": {
+    "research": "claude-sonnet-5-5",
+    "extraction": "claude-sonnet-5-5"
+  }
+}

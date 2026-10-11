@@ -1,0 +1,13 @@
+case: White-collar company with an exact 10-K figure
+entity: {name: Adobe Inc., website: "https://www.adobe.com", hq: "San Jose, CA, USA"}
+lookup_date: 2026-10-11
+tags: [golden, tier-1, 10-K, white-collar]
+sources:
+  - tier: 1
+    url: https://www.sec.gov/Archives/edgar/data/796343/000079634326000003/adbe-20251128.htm
+    as_of_date: 2025-11-28
+    excerpt: "As of November 28, 2025, we employed 31,360 people, of which 50% were in the United States and 50% were in our international locations."
+expected: {certified_count: 31360, qualifier: exact, count_type: reported, policy_tier: 1, confidence_score: 4}
+lesson: >
+  The simplest case. One recent 10-K with an exact global figure is Certified (4).
+  A second agreeing source would make it 5.

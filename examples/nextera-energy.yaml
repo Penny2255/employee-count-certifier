@@ -1,0 +1,19 @@
+case: Parent of a subsidiary lookup
+entity: {name: "NextEra Energy, Inc.", website: "https://www.nexteraenergy.com", hq: "Juno Beach, FL, USA"}
+lookup_date: 2026-10-11
+tags: [golden, tier-1, 10-K, parent]
+sources:
+  - tier: 1
+    url: https://www.sec.gov/Archives/edgar/data/753308/000075330826000015/nee-20251231.htm
+    as_of_date: 2025-12-31
+    excerpt: "NEE and its subsidiaries, with employees totaling approximately 17,400 as of December 31, 2025"
+  - tier: 1
+    url: https://www.sec.gov/Archives/edgar/data/753308/000075330826000015/nee-20251231.htm#fpl
+    as_of_date: 2025-12-31
+    scope: partial
+    excerpt: "FPL had approximately 9,400 employees as of December 31, 2025"
+expected: {certified_count: 17400, qualifier: approximately, count_type: reported, policy_tier: 1, confidence_score: 4}
+lesson: >
+  The group figure covers all wholly controlled subsidiaries. Segment figures in the same
+  filing (FPL 9,400, NEER 7,900) are partial scope: supporting evidence, never the value
+  and never corroboration.

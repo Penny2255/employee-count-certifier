@@ -1,0 +1,33 @@
+case: Nonprofit with a lagging Form 990 (tier 2)
+entity: {name: Donor Network West, website: "https://www.donornetworkwest.org", hq: "San Ramon, CA, USA"}
+lookup_date: 2026-10-11
+tags: [tier-2, form-990, nonprofit, lagging-filing, trend]
+sources:
+  - tier: 2
+    url: https://projects.propublica.org/nonprofits/organizations/943062436/202513119349302446/full
+    as_of_date: 2024-12-31
+    published_date: 2025-11-06
+    value: 513
+    excerpt: "5 Total number of individuals employed in calendar year 2024 (Part V, line 2a) ...... 5 513"
+  - tier: 2
+    url: https://projects.propublica.org/nonprofits/organizations/943062436/202422749349300142/full
+    as_of_date: 2023-12-31
+    value: 518
+    excerpt: "Total number of individuals employed in calendar year 2023 (Part V, line 2a) ...... 5 518"
+expected:
+  certified_count: 513
+  qualifier: exact
+  count_type: reported
+  policy_tier: 2
+  confidence_score: 3
+  selected_url: https://projects.propublica.org/nonprofits/organizations/943062436/202513119349302446/full
+lesson: >
+  Form 990 Part I line 5 is tier 2: dated, exact and company-filed, but it lags. The 2024
+  return was signed 2025-11-06, so at this lookup the newest figure is 21 months old: Supported
+  (3), not Certified, even though the 2023 return (518) agrees. Line 5 counts everyone issued a
+  W-2 during the calendar year, including people who left, so it can run above point-in-time
+  headcount in high-turnover organizations; log that as a nuance. The multi-year line 5 trend
+  (404, 438, 449, 475, 518, 513 for 2019-2024) is directional evidence: steady growth that
+  flattened in 2024. When a sound current signal exists (LinkedIn growth past the member-gap
+  threshold), the growth adjustment may move a 990 figure that is over 18 months old toward
+  it; here no such signal is recorded, so 513 stands.

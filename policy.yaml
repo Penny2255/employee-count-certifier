@@ -1,0 +1,101 @@
+# Employee Count Certifier policy. Every tunable value lives here; see SPEC.md.
+policy_version: "0.2"
+
+models:
+  research: claude-sonnet-5-5
+  extraction: claude-sonnet-5-5
+
+budget:
+  max_cost_usd_per_lookup: 0.50
+  max_web_searches_per_entity: 8
+
+# Tier number -> class. Lower tier number = higher rank.
+tiers:
+  1: {class: primary, name: "10-K, 20-F, 40-F or annual financial report"}
+  2: {class: primary, name: "Non-financial annual or regulatory report"}
+  3: {class: secondary, name: "Formal press release or company-published document"}
+  4: {class: secondary, name: "Company website description"}
+  5: {class: secondary, name: "LinkedIn company description"}
+  6: {class: secondary, name: "Reputable third-party article quoting an executive"}
+  7: {class: tertiary, name: "Best-of-breed data enrichment provider"}
+  8: {class: tertiary, name: "Specialty source"}
+  9: {class: unranked, name: "Other data provider or non-reputable news"}
+
+recency:
+  certified_max_age_months: 18   # tier 1-2 as-of date must be within this for Certified (4)
+  stale_after_months: 24         # older dated sources are supporting evidence only
+
+agreement:
+  corroborates_within: 0.15      # relative difference counted as agreeing
+  conflict_above: 0.30           # relative difference counted as disagreeing
+
+confidence_levels:
+  5: "Certified, corroborated"
+  4: "Certified"
+  3: "Supported"
+  2: "Estimated"
+  1: "Unverified"
+  0: "Unattained"
+
+# Range band around the certified value, as fractions [low, high] of the value.
+range_bands:
+  exact: [0.0, 0.0]
+  approximately: [-0.05, 0.05]
+  more_than: [0.0, 0.10]
+  up_to: [-0.10, 0.0]
+
+# Qualifier phrases recognized in source excerpts.
+qualifier_phrases:
+  more_than: ["more than", "over", "in excess of", "upwards of", "greater than"]
+  approximately: ["approximately", "approx.", "about", "around", "roughly", "nearly", "almost", "some", "close to", "~"]
+  up_to: ["up to", "fewer than", "less than", "under", "no more than"]
+
+# Growth adjustment (examples: Gong, Donor Network West). An undated or old figure that LinkedIn
+# shows the organization has outgrown is moved conservatively toward the LinkedIn member count.
+# Tier 2 qualifies because filings like Form 990 lag 12-24 months; tier 1 (10-K, 20-F) never does.
+growth_adjustment:
+  applies_to_tiers: [2, 3, 4, 5, 6]
+  min_age_months:               # dated sources newer than this are left alone; undated always qualify
+    primary: 18                 # i.e., only once no longer Certified
+    secondary: 12
+  min_member_gap: 0.15          # member count must exceed the stated value by at least this
+  min_growth: 0.10              # LinkedIn 1-year growth (else 2-year) must be at least this
+  weight_toward_members: 0.75   # estimate = stated + weight x (members - stated)
+  round_to_significant: 2       # 1,978 -> 2,000
+  confidence: 3                 # Supported: secondary source plus a consistent LinkedIn trend
+
+# Guidance for the research step (build step 3). Grows with reviewed cases in examples/.
+research_guidelines:
+  - >-
+    For tier 1, find both the regulatory filing (10-K, 20-F, 40-F) and the company's full annual
+    or integrated report. The filing often rounds ("more than 110,000") while the full report has
+    a detailed statement or table with the exact figure (SAP: 112,234).
+  - >-
+    Read the whole filing, not just the overview: the employee or human capital section often
+    states a more specific figure than the business overview (Novo Nordisk: 69,505 vs. "more than 69,500").
+  - >-
+    Website stat tiles ("1,500 Employees") are usually undated and can be years old. Check them
+    against the LinkedIn member count and Insights growth (Gong: 1,500 on the site vs. 2,137
+    members and 27% one-year growth).
+  - >-
+    Nonprofits: use the latest Form 990 Part I line 5 (ProPublica Nonprofit Explorer), and collect
+    prior years' line 5 for the trend. Expect a 12-24 month lag.
+  - >-
+    U.S. universities: use IPEDS Human Resources "Total all staff" (as of November 1 of the fall
+    collection, about a year behind), certified as stated. Record graduate assistants and any
+    affiliated health system as notes; don't add them.
+  - >-
+    Cities, counties and states: use the Annual Comprehensive Financial Report (ACFR), then the
+    adopted budget. Record whether the figure is FTE or headcount, and whether it includes school
+    systems. Look for a figure for the government's own workers without schools.
+  - >-
+    Capture each figure's verbatim excerpt and its as-of date, and record segment or regional
+    figures as partial scope.
+
+# LinkedIn members as a fraction of true headcount, by workforce profile.
+linkedin:
+  default_profile: mixed
+  profiles:
+    white_collar: {members_per_employee: [0.90, 0.95]}
+    mixed: {members_per_employee: [0.50, 0.90]}
+    blue_collar: {members_per_employee: [0.25, 0.50]}

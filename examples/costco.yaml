@@ -1,0 +1,18 @@
+case: Mixed workforce with part-time employees included
+entity: {name: Costco Wholesale Corporation, website: "https://www.costco.com", hq: "Issaquah, WA, USA"}
+lookup_date: 2026-10-11
+tags: [golden, tier-1, 10-K, mixed-workforce, part-time]
+sources:
+  - tier: 1
+    url: https://www.sec.gov/Archives/edgar/data/909832/000090983226000093/cost-20260830.htm
+    as_of_date: 2026-08-30
+    excerpt: "At the end of 2026, we employed 355,000 employees worldwide."
+  - tier: 1
+    url: https://www.sec.gov/Archives/edgar/data/909832/000090983226000093/cost-20260830.htm#prior-year
+    as_of_date: 2025-08-31
+    value: 341000
+    excerpt: "Total employees 355,000 341,000 333,000"
+expected: {certified_count: 355000, qualifier: exact, count_type: reported, policy_tier: 1, confidence_score: 5}
+lesson: >
+  The worldwide total includes part-time employees, which the policy counts. The prior-year
+  figure from the same table (341,000) is within 15% and corroborates, giving 5.

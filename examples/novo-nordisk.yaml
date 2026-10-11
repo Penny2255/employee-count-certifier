@@ -1,0 +1,25 @@
+case: 20-F with both a rounded and an exact figure for the same date
+entity: {name: Novo Nordisk A/S, website: "https://www.novonordisk.com", hq: "Bagsvaerd, Denmark"}
+lookup_date: 2026-10-11
+tags: [golden, tier-1, 20-F, qualified-figure, specificity]
+sources:
+  - tier: 1
+    url: https://www.sec.gov/Archives/edgar/data/353278/000035327826000012/nvo-20251231.htm#overview
+    as_of_date: 2025-12-31
+    excerpt: "Headquartered in Denmark, Novo Nordisk employs more than 69,500 employees in around 80 countries"
+  - tier: 1
+    url: https://www.sec.gov/Archives/edgar/data/353278/000035327826000012/nvo-20251231.htm#employees
+    as_of_date: 2025-12-31
+    excerpt: "Novo Nordisk underwent a company-wide transformation in 2025 as described in Item 4, reducing the number of employees to 69,505 by year-end equal to 10% reduction when comparing to year-end 2024."
+expected:
+  certified_count: 69505
+  qualifier: exact
+  count_type: reported
+  policy_tier: 1
+  confidence_score: 5
+  selected_url: https://www.sec.gov/Archives/edgar/data/353278/000035327826000012/nvo-20251231.htm#employees
+lesson: >
+  The same filing gives "more than 69,500" in the overview and 69,505 in the employee
+  section. The difference is immaterial, but the same specificity rule applies: the exact
+  figure is in line with the headline, so it wins and the headline corroborates. The 10%
+  reduction in 2025 is a nuance worth logging, not an event-driven exception.

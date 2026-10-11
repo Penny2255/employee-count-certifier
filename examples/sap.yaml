@@ -1,0 +1,29 @@
+case: 20-F filer whose full annual report is more specific than the 20-F
+entity: {name: SAP SE, website: "https://www.sap.com", hq: "Walldorf, Germany"}
+lookup_date: 2026-10-11
+tags: [golden, tier-1, 20-F, integrated-report, qualified-figure, specificity]
+sources:
+  - tier: 1
+    url: https://www.sap.com/integrated-reports/2025/en.html?pdf-asset=826c41e3-3f7f-0010-bca6-c68f7e60039b&page=38
+    as_of_date: 2025-12-31
+    value: 112234
+    qualifier: exact
+    excerpt: ""  # TODO: capture verbatim text from page 38 (sap.com blocks scripted fetches)
+  - tier: 1
+    url: https://www.sec.gov/Archives/edgar/data/1000184/000110465926020058/sap-20251231x20f.htm
+    as_of_date: 2025-12-31
+    excerpt: "The SAP Group has a global presence and employed more than 110,000 people as at December 31, 2025."
+expected:
+  certified_count: 112234
+  qualifier: exact
+  count_type: reported
+  policy_tier: 1
+  confidence_score: 5
+  selected_url: https://www.sap.com/integrated-reports/2025/en.html?pdf-asset=826c41e3-3f7f-0010-bca6-c68f7e60039b&page=38
+lesson: >
+  A 20-F is tier 1, equal to a 10-K, and will be common for international companies.
+  But the 20-F only says "more than 110,000"; SAP's Integrated Report 2025 (its full annual
+  report, also tier 1, same as-of date) reports 112,234 on page 38. Always look for the full
+  annual or integrated report alongside the regulatory filing. When a headline statement is
+  rounded or qualified and a detailed statement or table for the same date is in line with
+  it, the detailed figure wins and the headline corroborates it.

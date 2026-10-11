@@ -1,0 +1,31 @@
+case: University reporting staff to IPEDS (tier 2), a year behind
+entity:
+  name: University of California-Davis
+  website: "https://www.ucdavis.edu"
+  hq: "Davis, CA, USA"
+  legal_parent: University of California (The Regents)
+  relationship_to_parent: campus of the University of California system
+lookup_date: 2026-10-11
+tags: [tier-2, ipeds, university, lagging-filing, worker-types]
+sources:
+  - tier: 2
+    url: https://nces.ed.gov/ipeds/institution-profile/110644
+    as_of_date: 2024-11-01   # IPEDS HR counts staff as of November 1 of the fall collection
+    value: 15029
+    qualifier: exact
+    excerpt: "Total All staff (excludes graduate assistants) 15,029 (Fall 2024)"  # per user; IPEDS HR API returned 500 when checked
+expected:
+  certified_count: 15029
+  qualifier: exact
+  count_type: reported
+  policy_tier: 2
+  confidence_score: 3
+lesson: >
+  IPEDS Human Resources is the tier 2 source for U.S. universities: dated, exact and filed by
+  the institution, but it runs about a year behind (Fall 2024 is the latest at an October 2026
+  lookup), so it is 23 months old and scores Supported (3). Certify "Total all staff" as stated:
+  it is a formally reported total under a definition all institutions follow, so graduate
+  assistants reported separately are noted, not added (an institution that relies heavily on
+  them would usually include them in its total). IPEDS generally covers the institution's own
+  staff, so an affiliated health system may sit outside it; note it when found. The legal
+  parent (the University of California system) is a separate certification.

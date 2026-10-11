@@ -1,0 +1,24 @@
+case: City government reporting full-time equivalents in its annual financial report
+entity: {name: City of Livermore, website: "https://www.livermoreca.gov", hq: "Livermore, CA, USA"}
+lookup_date: 2026-10-11
+tags: [tier-1, acfr, government, city, fte]
+sources:
+  - tier: 1
+    url: https://www.livermoreca.gov/departments/administrative-services/finance/annual-financial-reports#docaccess-537d7c95907ea6afb50c65c72a34e183
+    as_of_date: 2025-06-30   # ACFR for the Fiscal Year Ended June 30, 2025 (confirmed by user)
+    excerpt: "The City, with 499 full-time equivalent employees, provides a wide range of services to a residential population of 85,899"
+expected:
+  certified_count: 499
+  qualifier: exact
+  count_type: reported
+  policy_tier: 1
+  confidence_score: 4
+lesson: >
+  A city's Annual Comprehensive Financial Report is its annual financial report: tier 1. When
+  it states full-time equivalents rather than total workers, certify the FTE figure as stated
+  (count_basis fte) and do not estimate upward; only a headcount from the same tier and date
+  that is in line with it (at or above, within 15%) replaces it. Cities, counties and states
+  report staff in varying ways and sometimes include school systems, which can be far larger
+  than the government itself. Certify the government's own workers without schools, and log
+  any figure that includes schools as notable, with its variance. Livermore's schools are a
+  separate district, so none is included here.

@@ -1,0 +1,14 @@
+case: Blue-collar company with an approximate 10-K figure
+entity: {name: "Tyson Foods, Inc.", website: "https://www.tysonfoods.com", hq: "Springdale, AR, USA"}
+lookup_date: 2026-10-11
+tags: [golden, tier-1, 10-K, blue-collar, qualified-figure]
+sources:
+  - tier: 1
+    url: https://www.sec.gov/Archives/edgar/data/100493/000010049325000095/tsn-20250927.htm
+    as_of_date: 2025-09-27
+    excerpt: "As of September 27, 2025, we employed approximately 133,000 team members globally."
+expected: {certified_count: 133000, qualifier: approximately, count_type: reported, policy_tier: 1, confidence_score: 4}
+lesson: >
+  "Approximately" is stored as a qualifier, not adjusted. The global figure is used even
+  though the filing also breaks out U.S. (116,000) and international (17,000) team members.
+  Blue-collar: expect a large gap to the LinkedIn member count, which is normal.

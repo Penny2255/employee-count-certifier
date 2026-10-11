@@ -1,0 +1,85 @@
+"""Load policy.yaml into a typed Policy object."""
+
+from __future__ import annotations
+
+import os
+from functools import lru_cache
+from pathlib import Path
+
+import yaml
+from pydantic import BaseModel, Field
+
+DEFAULT_POLICY_PATH = Path(__file__).resolve().parents[2] / "policy.yaml"
+
+
+class TierInfo(BaseModel):
+    cls: str = Field(alias="class")
+    name: str
+
+
+class Models(BaseModel):
+    research: str
+    extraction: str
+
+
+class Budget(BaseModel):
+    max_cost_usd_per_lookup: float
+    max_web_searches_per_entity: int
+
+
+class Recency(BaseModel):
+    certified_max_age_months: int
+    stale_after_months: int
+
+
+class Agreement(BaseModel):
+    corroborates_within: float
+    conflict_above: float
+
+
+class LinkedInProfile(BaseModel):
+    members_per_employee: tuple[float, float]
+
+
+class LinkedInPolicy(BaseModel):
+    default_profile: str
+    profiles: dict[str, LinkedInProfile]
+
+
+class GrowthAdjustment(BaseModel):
+    applies_to_tiers: list[int]
+    min_age_months: dict[str, int]  # by tier class
+    min_member_gap: float
+    min_growth: float
+    weight_toward_members: float
+    round_to_significant: int
+    confidence: int
+
+
+class Policy(BaseModel):
+    policy_version: str
+    models: Models
+    budget: Budget
+    tiers: dict[int, TierInfo]
+    recency: Recency
+    agreement: Agreement
+    confidence_levels: dict[int, str]
+    range_bands: dict[str, tuple[float, float]]
+    qualifier_phrases: dict[str, list[str]]
+    growth_adjustment: GrowthAdjustment
+    research_guidelines: list[str] = []
+    linkedin: LinkedInPolicy
+
+    def tier_class(self, tier: int) -> str:
+        return self.tiers[tier].cls
+
+
+def load_policy(path: str | os.PathLike | None = None) -> Policy:
+    path = Path(path or os.environ.get("CERTIFIER_POLICY") or DEFAULT_POLICY_PATH)
+    with open(path, encoding="utf-8") as f:
+        return Policy.model_validate(yaml.safe_load(f))
+
+
+@lru_cache(maxsize=1)
+def default_policy() -> Policy:
+    return load_policy()

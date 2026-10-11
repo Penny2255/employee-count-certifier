@@ -32,7 +32,8 @@ def test_rule1_research_estimate_is_kept():
     from certifier.research import XSource, to_source
     x = XSource(url=ARTICLE, tier=6, value=8_500, qualifier="approximately", basis="headcount", scope="global",
                 as_of_date=None, as_of_estimate=date(2025, 2, 15), as_of_estimate_basis="says 'as of early 2025'",
-                published_date=date(2025, 3, 1), modified_date=None, restates=False, excerpt="about 8,500 employees",
+                published_date=date(2025, 3, 1), modified_date=None, restates=False, predates_change=False,
+                excerpt="about 8,500 employees",
                 context="about 8,500 employees", section=None, page_number=None, contractors_included=None,
                 separately_reported=[], note="")
     s = to_source(x)
@@ -85,11 +86,11 @@ def test_rule4_known_change_after_as_of_labels_pre_adjustment():
     assert r.headline.known_changes == ["Stripe cut about 300 jobs (2025-03-01, -300)"]
 
 
-def test_rule4_material_change_after_as_of_also_lowers_confidence(entity):
+def test_rule4_material_change_after_as_of_lowers_confidence_for_secondary_anchor(entity):
     deal = Event(description="Merger with Target Co", url="https://news.example.com/deal", close_date=date(2026, 5, 1),
                  kind="merger", material=True)
-    cert = certify(entity, [src(1, 10_000, as_of=date(2026, 1, 31))], lookup_date=LOOKUP, events=[deal])
-    assert cert.pre_adjustment and cert.confidence_score == 3
+    cert = certify(entity, [src(3, 10_000, as_of=date(2026, 1, 31))], lookup_date=LOOKUP, events=[deal])
+    assert cert.pre_adjustment and cert.confidence_score == 2
 
 
 def test_rule4_change_before_as_of_is_not_pre_adjustment():
@@ -134,7 +135,10 @@ def test_stated_small_change_is_not_material(entity):
     layoffs = Event(description="February 2026 layoffs", url="https://news.example.com/l", close_date=date(2026, 2, 1),
                     kind="layoff", headcount_change=-1_000, material=True)
     cert = certify(entity, [src(1, 83_334, as_of=date(2026, 1, 31))], lookup_date=LOOKUP, events=[layoffs])
-    assert cert.pre_adjustment and cert.confidence_score == 4 and cert.flags == []
+    # A tier 1 figure stands: no relabel, no penalty; the change only feeds the directional guidance.
+    assert not cert.pre_adjustment and cert.confidence_score == 4 and cert.flags == []
+    assert cert.direction.direction == "lower"
+    assert cert.direction.reason == "Likely somewhat lower than reported because of February 2026 layoffs (2026-02-01, -1,000)."
 
 
 def test_indicated_range_leaves_out_outliers():

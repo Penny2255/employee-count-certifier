@@ -102,7 +102,8 @@ def _lookup(entity: Entity, cik: int | None, lookup_date: date | None, policy: P
         sources += heuristic.best_per_filing(snippets, policy)
         notes.append("Claude extraction returned nothing; fell back to rule-based extraction of SEC filings.")
     cert = certify(entity, sources, linkedin=found.linkedin, lookup_date=lookup_date,
-                   events=found.events, review_flags=found.complexities, policy=policy)
+                   events=found.events, review_flags=found.complexities, scope_notes=found.scope_notes,
+                   policy=policy)
     notes.extend(spend.notes)
     if found.notes:
         notes.append(found.notes)

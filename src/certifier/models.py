@@ -43,6 +43,8 @@ class Source(BaseModel):
     as_of_date: date | None = None
     as_of_estimated: bool = False  # as_of_date was estimated from context, not stated
     as_of_basis: str | None = None  # how it was estimated, e.g. "article published 2025-01-22"
+    as_of_from_url: bool = False  # the estimate came from a date in the URL path (lowest priority)
+    predates_change: bool = False  # the source itself says the figure is from before a known change
     published_date: date | None = None
     modified_date: date | None = None  # last-updated date, when the page shows one
     scope: Scope = "global"
@@ -128,6 +130,13 @@ class EventOutcome(BaseModel):
     reason: str
 
 
+class Direction(BaseModel):
+    """Plain-English guidance on whether the true current figure is likely higher, lower or in line."""
+
+    direction: Literal["higher", "lower", "in_line", "unknown"]
+    reason: str
+
+
 class IndicatedRange(BaseModel):
     """Newer tier 7-9 data that diverges from an old certified figure. Shown alongside it; never
     replaces it."""
@@ -173,7 +182,10 @@ class Certification(BaseModel):
     policy_tier: int | None
     as_of_date: date | None
     as_of_estimated: bool = False
-    pre_adjustment: bool = False  # a known change took effect after the as-of date
+    as_of_from_url: bool = False
+    pre_adjustment: bool = False  # a known change took effect after the as-of date (tier 3+ anchors only)
+    direction: Direction | None = None
+    scope_notes: list[str] = Field(default_factory=list)  # scope remarks that can't change the entity counted
     indicated_range: IndicatedRange | None = None
     sources: list[Source]
     linkedin_check: LinkedInCheck

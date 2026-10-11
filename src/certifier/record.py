@@ -84,9 +84,12 @@ class Headline(BaseModel):
     count_basis: Basis | None
     as_of_date: date | None
     as_of_estimated: bool = False
+    as_of_estimated_from: Literal["context", "url"] | None = None
     adjustment_status: Literal["current", "pre-adjustment"] = "current"
     known_changes: list[str] = []  # changes that took effect after the as-of date
     indicated_current_range: IndicatedRangeRow | None = None
+    direction: Literal["higher", "lower", "in_line", "unknown"] | None = None
+    direction_reason: str | None = None
     none_reason: str | None = None
 
     @model_validator(mode="after")
@@ -495,10 +498,18 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
 
     # Recency: an estimated as-of date, and the recency deduction.
     recency_id = None
-    if selected is not None and selected.as_of_estimated:
+    if selected is not None and selected.as_of_from_url:
+        findings.add("recency", "yellow", f"As-of date estimated from the URL: {selected.as_of_date.isoformat()}",
+                     f"The source states no date, so the as-of date comes from {selected.as_of_basis}. It is the "
+                     "weakest kind of estimate; every recency rule uses it.", [ids[id(selected)]])
+    elif selected is not None and selected.as_of_estimated:
         findings.add("recency", "yellow", f"As-of date estimated: {selected.as_of_date.isoformat()}",
                      f"The source gives no as-of date, so it was estimated from {selected.as_of_basis or 'context'}. "
                      "Every recency rule uses the estimated date.", [ids[id(selected)]])
+    for note in cert.scope_notes:
+        findings.add("scope", "yellow", _first_sentence(note, limit=72),
+                     f"{_sentence(note)} It cannot change which entity is counted, so it is noted without a score "
+                     "change.")
     recency_step = next((st for st in cert.confidence_breakdown if st.reason.startswith("recency:")), None)
     if recency_step is not None:
         recency_id = findings.add(
@@ -636,6 +647,10 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
         headline=Headline(count=cert.certified_count, qualifier=cert.qualifier, range=cert.range,
                           count_type=cert.count_type, count_basis=cert.count_basis, as_of_date=cert.as_of_date,
                           as_of_estimated=cert.as_of_estimated,
+                          as_of_estimated_from=("url" if cert.as_of_from_url else "context") if cert.as_of_estimated
+                          else None,
+                          direction=cert.direction.direction if cert.direction else None,
+                          direction_reason=cert.direction.reason if cert.direction else None,
                           adjustment_status="pre-adjustment" if cert.pre_adjustment else "current",
                           known_changes=[f"{e.description} ({e.close_date.isoformat()}"
                                          + (f", {e.headcount_change:+,}" if e.headcount_change is not None else "") + ")"

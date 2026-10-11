@@ -30,9 +30,16 @@ def test_undated_website_figure_is_growth_adjusted(entity):
     assert "27% growth" in cert.adjustments[-1].reason
 
 
-def test_linkedin_flag_not_penalized_when_linkedin_was_an_input(entity):
+def test_linkedin_within_tolerance_after_adjustment(entity):
     cert = run(entity, src(4, 1_500, as_of=None))
-    assert cert.linkedin_check.status == "flag"  # 2,000 is below 2,137 members: still reported
+    assert cert.linkedin_check.status == "pass"  # 2,137 members is 7% above 2,000: within tolerance
+    assert cert.flags == []
+
+
+def test_linkedin_flag_not_penalized_when_linkedin_was_an_input(entity):
+    far = GROWING.model_copy(update={"member_count": 5_000})  # adjusts to 4,100; members 22% above
+    cert = run(entity, src(4, 1_500, as_of=None), far)
+    assert cert.linkedin_check.status == "flag"
     assert cert.flags == []
     assert "LinkedIn was an input" in cert.rationale
 

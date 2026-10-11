@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import calendar
 import math
+import re
 from datetime import date
 from typing import NamedTuple
+from urllib.parse import urlsplit
 
-from .models import Adjustment, LinkedInCheck, LinkedInEvidence, Qualifier, Source
+from .models import Adjustment, LinkedInCheck, LinkedInEvidence, Qualifier, ScoreStep, Source, TrendPoint
 from .policy import Policy
 
 # --- Recency -----------------------------------------------------------------
@@ -143,7 +145,10 @@ class Selection(NamedTuple):
 def select_source(sources: list[Source], lookup_date: date, policy: Policy) -> Selection:
     """Pick the source that sets the certified value, applying the exception and recency rules."""
     notes: list[str] = []
-    eligible = [s for s in sources if s.scope == "global"]
+    eligible = [s for s in sources if s.scope == "global" and not s.corroboration_only]
+    mirrors = sum(s.corroboration_only for s in sources)
+    if mirrors:
+        notes.append(f"{mirrors} mirror(s) of tier 1 documents used as corroboration only.")
     for scope in ("partial", "broader"):
         n = sum(s.scope == scope for s in sources)
         if n:
@@ -206,18 +211,33 @@ def linkedin_check(value: int | None, evidence: LinkedInEvidence | None, policy:
     if evidence.member_count is None:
         return LinkedInCheck(**base, implied_range=None, status="not_available",
                              note="No LinkedIn member count found.")
-    implied = implied_headcount(evidence.member_count, profile, policy)
+    members = evidence.member_count
+    implied = implied_headcount(members, profile, policy)
     if value is None:
         return LinkedInCheck(**base, implied_range=implied, status="not_available",
                              note="No certified value to check.")
-    if value < evidence.member_count:
-        status, note = "flag", f"Certified value {value:,} is below the LinkedIn member count {evidence.member_count:,}."
-    elif not implied[0] <= value <= implied[1]:
-        status, note = "flag", (f"Certified value {value:,} is outside the implied range "
-                                f"{implied[0]:,}-{implied[1]:,} for a {profile} workforce.")
+    # The member count is a flag, not a floor: members may exceed the count by the profile's
+    # tolerance (lingering profiles of former employees and contractors).
+    tolerance = policy.linkedin.member_overage_tolerance.get(profile, 0.0)
+    low = math.ceil(members / (1 + tolerance)) if tolerance > 0 else implied[0]
+    pass_range = (min(low, implied[0]), implied[1])
+    over = members / value - 1 if value else math.inf
+    if pass_range[0] <= value <= pass_range[1]:
+        status = "pass"
+        note = (f"Pass: LinkedIn shows {members:,} members, {over:.0%} above the certified {value:,}, within the "
+                f"{tolerance:.0%} tolerance for a {profile.replace('_', '-')} workforce." if value < members else
+                f"Pass: certified {value:,} is within the range {pass_range[0]:,}-{pass_range[1]:,} implied by "
+                f"{members:,} LinkedIn members for a {profile.replace('_', '-')} workforce.")
+    elif value < members:
+        status = "flag"
+        note = (f"Flag: LinkedIn shows {members:,} members, {over:.0%} above the certified {value:,}; more than "
+                f"the {tolerance:.0%} tolerance for a {profile.replace('_', '-')} workforce.")
     else:
-        status, note = "pass", f"Certified value is within the implied range {implied[0]:,}-{implied[1]:,}."
-    return LinkedInCheck(**base, implied_range=implied, status=status, note=note)
+        status = "flag"
+        side = "below" if value < pass_range[0] else "above"
+        note = (f"Flag: certified {value:,} is {side} the range {pass_range[0]:,}-{pass_range[1]:,} implied by "
+                f"{members:,} LinkedIn members for a {profile.replace('_', '-')} workforce.")
+    return LinkedInCheck(**base, implied_range=pass_range, status=status, note=note)
 
 
 # --- Growth adjustment -------------------------------------------------------
@@ -317,26 +337,114 @@ def derive_value(values: list[tuple[str, int]], policy: Policy) -> Derivation:
 # --- Confidence --------------------------------------------------------------
 
 
-def base_confidence(selected: Source | None, derivation: Derivation | None, corroborations: int,
-                    lookup_date: date, policy: Policy) -> int:
+def source_label(source: Source) -> str:
+    """Short human label: host plus a snippet of the quote."""
+    host = (urlsplit(source.url).hostname or source.url).removeprefix("www.")
+    quote = " ".join(source.excerpt.split())[:60]
+    return f"{host} '{quote}'" if quote else host
+
+
+def confidence_steps(selected: Source | None, derivation: Derivation | None, corroborators: list[Source],
+                     lookup_date: date, policy: Policy) -> list[ScoreStep]:
+    """The base score and the corroboration bonus, each with its reason (SPEC.md confidence table)."""
     if selected is None:
         if derivation is None:
-            return 0
-        return 2 if derivation.count_type == "calculated" else 1
+            return [ScoreStep(points=0, reason="base 0: no usable source")]
+        if derivation.count_type == "calculated":
+            return [ScoreStep(points=2, reason="base 2: calculated from agreeing tier 7-9 inputs")]
+        return [ScoreStep(points=1, reason="base 1: estimated from a single or disagreeing tier 7-9 input")]
+    bonus = ([ScoreStep(points=1, reason="corroborated by " + "; ".join(source_label(s) for s in corroborators))]
+             if corroborators else [])
     cls = policy.tier_class(selected.tier)
     if cls == "primary":
-        recent = (selected.as_of_date is not None and
-                  within_months(selected.as_of_date, lookup_date, policy.recency.certified_max_age_months))
-        if not recent:
-            return 3
-        return 5 if corroborations >= 1 else 4
+        months = policy.recency.certified_max_age_months
+        if selected.as_of_date is None:
+            return [ScoreStep(points=3, reason=f"base 3: tier {selected.tier}, undated")]
+        if not within_months(selected.as_of_date, lookup_date, months):
+            return [ScoreStep(points=3, reason=f"base 3: tier {selected.tier}, as-of older than {months} months")]
+        return [ScoreStep(points=4, reason=f"base 4: tier {selected.tier}, as-of within {months} months")] + bonus
     if selected.tier == 3:
-        return 3
-    return 3 if corroborations >= 1 else 2
+        return [ScoreStep(points=3, reason="base 3: tier 3 company-published document")]
+    if corroborators:
+        return [ScoreStep(points=2, reason=f"base 2: tier {selected.tier}")] + bonus
+    return [ScoreStep(points=2, reason=f"base 2: tier {selected.tier} without corroboration")]
 
 
-def apply_flags(score: int, flag_count: int) -> int:
+def flag_steps(score: int, flags: list[str]) -> list[ScoreStep]:
     """Each flag lowers confidence one level, never below 1 (and never raises 0)."""
     if score == 0:
-        return 0
-    return max(1, score - flag_count)
+        return []
+    steps = []
+    for flag in flags:
+        if score > 1:
+            steps.append(ScoreStep(points=-1, reason=flag))
+            score -= 1
+        else:
+            steps.append(ScoreStep(points=0, reason=f"{flag} (no change: minimum of 1 reached)"))
+    return steps or [ScoreStep(points=0, reason="no deductions")]
+
+
+def is_tier1_provenance(source: Source, entity_website: str | None, policy: Policy) -> bool:
+    """Tier 1 needs the filing itself: sec.gov with an accession number in the URL, or the
+    organization's own website. Copies on other sites are mirrors."""
+    host = (urlsplit(source.url).hostname or "").lower()
+    if any(host == h or host.endswith("." + h) for h in policy.provenance.sec_hosts):
+        return bool(_ACCESSION.search(source.url))
+    own = _site(urlsplit(entity_website if entity_website and "://" in entity_website
+                         else f"https://{entity_website or ''}").hostname or "")
+    return bool(own) and _site(host) == own
+
+
+_ACCESSION = re.compile(r"/(\d{18}|\d{10}-\d{2}-\d{6})(?:/|$|[?#])")
+
+
+def _site(host: str) -> str:
+    """Registrable domain: last two labels, or three for country second-levels (example.co.uk)."""
+    labels = host.lower().removeprefix("www.").split(".")
+    if len(labels) >= 3 and len(labels[-1]) == 2 and labels[-2] in {"co", "com", "gov", "ac", "org", "net", "edu"}:
+        return ".".join(labels[-3:])
+    return ".".join(labels[-2:]) if len(labels) >= 2 else ""
+
+
+def same_document(a: Source, b: Source) -> bool:
+    return a.url.split("#")[0] == b.url.split("#")[0]
+
+
+class Dependence(NamedTuple):
+    kind: str  # "dependent" (same evidence), "undated", or "far" (a different point in time)
+    reason: str
+
+
+def independence(candidate: Source, selected: Source, candidate_value: int, selected_value: int,
+                 lookup_date: date, policy: Policy) -> Dependence | None:
+    """Why `candidate` can't corroborate `selected`, or None if it is independent evidence near
+    the same as-of date. An undated selected source (e.g. a website tile) is presumed current."""
+    if same_document(candidate, selected):
+        return Dependence("dependent", "same document")
+    if candidate.restates:
+        return Dependence("dependent", "restates another source's figure")
+    if candidate_value == selected_value and candidate.as_of_date in (None, selected.as_of_date):
+        return Dependence("dependent", "repeats the same figure (restatement)")
+    ref, sel_ref = candidate.recency_date, selected.recency_date or lookup_date
+    if ref is None:
+        return Dependence("undated", "undated, so not near the certified figure's as-of date")
+    window = policy.agreement.corroboration_window_months
+    if not (within_months(ref, sel_ref, window) and within_months(sel_ref, ref, window)):
+        return Dependence("far", f"dated more than {window} months from the certified figure's as-of date")
+    return None
+
+
+def trend_points(selected: Source, sources: list[Source], effective: dict[int, int], limit: int = 5) -> list[TrendPoint]:
+    """Same-tier, same-basis dated figures (e.g. consecutive 10-Ks), oldest to newest, ending at
+    the selected figure."""
+    if selected.as_of_date is None:
+        return []
+    by_date: dict[date, Source] = {}
+    for s in sources:
+        if (s.tier == selected.tier and s.basis == selected.basis and s.scope == "global"
+                and not s.corroboration_only and s.as_of_date and s.as_of_date <= selected.as_of_date):
+            current = by_date.get(s.as_of_date)
+            if s is selected or current is None or (current is not selected and specificity(s) > specificity(current)):
+                by_date[s.as_of_date] = s
+    points = [TrendPoint(as_of_date=d, value=effective[id(s)], tier=s.tier, url=s.url) for d, s in sorted(by_date.items())]
+    return points[-limit:]

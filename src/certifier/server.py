@@ -16,6 +16,7 @@ from .llm import Claude, Spend
 from .models import Certification, Entity
 from .policy import default_policy
 from .service import LookupResult, lookup
+from .sources.edgar import Edgar
 
 INSTRUCTIONS = """Employee Count Certifier returns a certified global employee count for an organization,
 following a documented source policy (tiers 1-9, recency, corroboration, confidence 0-5).
@@ -70,7 +71,7 @@ async def find_entity(name: str, website: str | None = None) -> dict[str, Any]:
 
 @server.tool()
 async def certify_employee_count(name: str, website: str | None = None, hq: str | None = None,
-                                 cik: int | None = None, legal_parent: str | None = None,
+                                 cik: int | None = None, ticker: str | None = None, legal_parent: str | None = None,
                                  parent_website: str | None = None, parent_cik: int | None = None,
                                  relationship_to_parent: str | None = None,
                                  include_parent: bool = True) -> dict[str, Any]:
@@ -80,7 +81,9 @@ async def certify_employee_count(name: str, website: str | None = None, hq: str 
         name: Confirmed organization name.
         website: Organization website.
         hq: Headquarters location.
-        cik: SEC CIK if the organization files with the SEC (from find_entity).
+        cik: SEC CIK if the organization files with the SEC (from find_entity). Always pass it when
+            known: tier 1 filings are then read from SEC EDGAR directly.
+        ticker: U.S. stock ticker, used to find the CIK when `cik` is not given.
         legal_parent: Ultimate global parent, if the organization is a subsidiary, campus or affiliate.
         parent_website: Parent's website.
         parent_cik: Parent's SEC CIK, if any.
@@ -89,6 +92,8 @@ async def certify_employee_count(name: str, website: str | None = None, hq: str 
     """
     entity = Entity(name=name, website=website, hq=hq, legal_parent=legal_parent,
                     relationship_to_parent=relationship_to_parent)
+    if cik is None and ticker:
+        cik = _cik_for_ticker(ticker)
     jobs = [lambda: lookup(entity, cik=cik, parent_cik=parent_cik)]
     if include_parent and legal_parent:
         parent = Entity(name=legal_parent, website=parent_website)
@@ -104,6 +109,13 @@ async def certify_employee_count(name: str, website: str | None = None, hq: str 
         out["parent"] = _result(results[1])
     out["policy_version"] = default_policy().policy_version
     return out
+
+
+def _cik_for_ticker(ticker: str) -> int | None:
+    try:
+        return next((c.cik for c in Edgar().find_companies(ticker, limit=1) if c.ticker == ticker.upper()), None)
+    except Exception:
+        return None
 
 
 def main() -> None:

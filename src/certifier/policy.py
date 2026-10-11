@@ -53,6 +53,11 @@ class Recency(BaseModel):
 class Agreement(BaseModel):
     corroborates_within: float
     conflict_above: float
+    corroboration_window_months: int = 9
+
+
+class Provenance(BaseModel):
+    sec_hosts: list[str] = ["sec.gov"]
 
 
 class LinkedInProfile(BaseModel):
@@ -62,6 +67,7 @@ class LinkedInProfile(BaseModel):
 class LinkedInPolicy(BaseModel):
     default_profile: str
     profiles: dict[str, LinkedInProfile]
+    member_overage_tolerance: dict[str, float] = {}
 
 
 class GrowthAdjustment(BaseModel):
@@ -84,6 +90,7 @@ class Policy(BaseModel):
     tiers: dict[int, TierInfo]
     recency: Recency
     agreement: Agreement
+    provenance: Provenance = Provenance()
     confidence_levels: dict[int, str]
     range_bands: dict[str, tuple[float, float]]
     qualifier_phrases: dict[str, list[str]]

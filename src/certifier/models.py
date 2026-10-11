@@ -27,6 +27,7 @@ class Source(BaseModel):
     excerpt: str = ""
     as_of_date: date | None = None
     published_date: date | None = None
+    modified_date: date | None = None  # last-updated date, when the page shows one
     scope: Scope = "global"
     basis: Basis = "headcount"  # fte = full-time equivalents, kept as stated
     # Counting-rule inputs: contractors included in `value`, or a per-worker-type breakdown.
@@ -35,7 +36,11 @@ class Source(BaseModel):
     # Categories a formal report lists outside its stated total (e.g., IPEDS graduate assistants):
     # logged, never added.
     separately_reported: dict[str, int] | None = None
+    # True when the source repeats another source's figure (Wikipedia or an aggregator quoting the
+    # 10-K): it is not independent evidence and never corroborates.
+    restates: bool = False
     # Set by the engine.
+    corroboration_only: bool = False  # e.g. a mirror of a tier 1 filing: may corroborate, never selected
     role: SourceRole | None = None
     notes: list[str] = Field(default_factory=list)
 
@@ -44,8 +49,14 @@ class Source(BaseModel):
         return self.as_of_date is None
 
     @property
+    def latest_published(self) -> date | None:
+        """Publish date, or the modified date when the page was updated later."""
+        dates = [d for d in (self.published_date, self.modified_date) if d is not None]
+        return max(dates) if dates else None
+
+    @property
     def recency_date(self) -> date | None:
-        return self.as_of_date or self.published_date
+        return self.as_of_date or self.latest_published
 
 
 class Adjustment(BaseModel):
@@ -76,6 +87,27 @@ class LinkedInCheck(BaseModel):
     note: str
 
 
+class Event(BaseModel):
+    """A merger, acquisition or spinoff. It lowers confidence only when it closed after the
+    selected source's as-of date, so the figure can't include it."""
+
+    description: str
+    url: str | None = None
+    close_date: date | None = None
+
+
+class ScoreStep(BaseModel):
+    points: int  # the base score for the first step, then +/- adjustments
+    reason: str
+
+
+class TrendPoint(BaseModel):
+    as_of_date: date
+    value: int
+    tier: int
+    url: str
+
+
 class Entity(BaseModel):
     name: str
     website: str | None = None
@@ -93,6 +125,7 @@ class Certification(BaseModel):
     range: tuple[int, int] | None
     confidence_score: int = Field(ge=0, le=5)
     confidence_level: str
+    confidence_breakdown: list[ScoreStep] = Field(default_factory=list)
     policy_tier: int | None
     as_of_date: date | None
     sources: list[Source]
@@ -100,6 +133,6 @@ class Certification(BaseModel):
     adjustments: list[Adjustment]
     flags: list[str]
     rationale: str
-    trend: list[dict] = Field(default_factory=list)
+    trend: list[TrendPoint] = Field(default_factory=list)  # oldest to newest, same tier and basis
     forecast: dict | None = None
     policy_version: str

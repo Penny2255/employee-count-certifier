@@ -75,8 +75,11 @@ def test_best_per_filing_picks_group_total():
     assert (best.value, best.qualifier) == (17_400, "approximately")
 
 
-def snip(text, period=date(2025, 12, 31), company=Company(1, "NOVO NORDISK A S", "NVO")):
-    return Snippet(Filing(company, "20-F", date(2026, 2, 4), period, "https://www.sec.gov/nvo-20f"), text)
+NVO_URL = "https://www.sec.gov/Archives/edgar/data/353278/000035327826000012/nvo-20251231.htm"
+
+
+def snip(text, period=date(2025, 12, 31), company=Company(1, "NOVO NORDISK A S", "NVO"), url=NVO_URL):
+    return Snippet(Filing(company, "20-F", date(2026, 2, 4), period, url), text)
 
 
 def test_novo_exact_figure_beats_rounded_and_ignores_layoffs():
@@ -104,9 +107,36 @@ def test_as_of_from_text_else_period():
     assert b.as_of_date == date(2026, 8, 30)
 
 
-def test_prior_filings_corroborate():
-    snippets = [snip("we employed 31,360 people.", period=date(2025, 11, 28)),
-                Snippet(Filing(Company(1, "ADOBE INC.", "ADBE"), "10-K", date(2025, 1, 15), date(2024, 11, 29),
-                               "https://www.sec.gov/adbe-2024"), "we employed 30,709 people.")]
+def test_prior_filings_form_the_trend_but_do_not_corroborate():
+    adobe = Company(796343, "ADOBE INC.", "ADBE")
+    base = "https://www.sec.gov/Archives/edgar/data/796343/"
+    snippets = [snip("we employed 31,360 people.", period=date(2025, 11, 28), company=adobe,
+                     url=base + "000079634326000003/adbe-20251128.htm"),
+                snip("we employed 30,709 people.", period=date(2024, 11, 29), company=adobe,
+                     url=base + "000079634325000004/adbe-20241129.htm")]
     cert = certify(Entity(name="Adobe"), best_per_filing(snippets), lookup_date=LOOKUP)
-    assert (cert.certified_count, cert.confidence_score) == (31_360, 5)
+    assert (cert.certified_count, cert.confidence_score) == (31_360, 4)
+    assert [t.value for t in cert.trend] == [30_709, 31_360]
+
+
+# --- Provenance: SEC filers get EDGAR directly even when the caller passes no CIK ---
+
+def test_resolve_cik_from_exact_name():
+    from certifier.service import resolve_cik
+    edgar = Edgar(fetch=fake_fetch)
+    notes = []
+    assert resolve_cik(edgar, "NextEra Energy, Inc.", notes) == 753308
+    assert "resolved from the name" in notes[0]
+    assert resolve_cik(edgar, "NextEra", []) is None          # not an exact name: never guess
+    assert resolve_cik(edgar, "Florida Power & Light Company", []) is None
+
+
+def test_material_events_become_dated_events():
+    from certifier.policy import default_policy
+    from certifier.research import XEvent, material_events
+    events, notes = material_events([
+        XEvent(description="Acquired Informatica", url="https://example.com/pr", close_date=date(2025, 11, 18),
+               headcount_impact=0.05 + 0.2),
+        XEvent(description="Rumored deal", url=None, close_date=None, headcount_impact=None)], default_policy())
+    assert [(e.description, e.close_date) for e in events] == [("Acquired Informatica", date(2025, 11, 18))]
+    assert "unconfirmed" in notes[0]

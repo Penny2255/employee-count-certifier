@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -55,6 +56,8 @@ def lookup(entity: Entity, cik: int | None = None, lookup_date: date | None = No
     edgar = edgar or Edgar()
     notes: list[str] = []
     snippets: list[Snippet] = []
+    if cik is None:
+        cik = resolve_cik(edgar, entity.name, notes)
     filing_cik = cik or parent_cik
     if filing_cik:
         try:
@@ -81,7 +84,7 @@ def lookup(entity: Entity, cik: int | None = None, lookup_date: date | None = No
         sources += heuristic.best_per_filing(snippets, policy)
         notes.append("Claude extraction returned nothing; fell back to rule-based extraction of SEC filings.")
     cert = certify(entity, sources, linkedin=found.linkedin, lookup_date=lookup_date,
-                   event_flags=found.event_flags, review_flags=found.complexities, policy=policy)
+                   events=found.events, review_flags=found.complexities, policy=policy)
     notes.extend(spend.notes)
     if found.notes:
         notes.append(found.notes)
@@ -90,6 +93,29 @@ def lookup(entity: Entity, cik: int | None = None, lookup_date: date | None = No
                           queries=spend.queries)
     log_for_review(result)
     return result
+
+
+_SUFFIXES = {"inc", "incorporated", "corp", "corporation", "co", "company", "ltd", "limited", "plc", "se", "sa",
+             "ag", "nv", "the", "llc", "lp", "holdings"}
+
+
+def _norm(name: str) -> str:
+    return " ".join(w for w in re.findall(r"[a-z0-9&]+", name.lower()) if w not in _SUFFIXES)
+
+
+def resolve_cik(edgar: Edgar, name: str, notes: list[str]) -> int | None:
+    """Find the SEC CIK when the caller didn't pass one, so SEC filers always get their filings from
+    EDGAR directly (never a mirror). Only a unique exact name match counts."""
+    try:
+        matches = {c.cik for c in edgar.find_companies(name, limit=20) if _norm(c.name) == _norm(name)}
+    except Exception as e:
+        notes.append(f"SEC EDGAR lookup unavailable: {e}")
+        return None
+    if len(matches) == 1:
+        cik = matches.pop()
+        notes.append(f"SEC CIK {cik} resolved from the name.")
+        return cik
+    return None
 
 
 def form990_sources(entity: Entity, notes: list[str], propublica: ProPublica | None = None) -> list:
@@ -115,9 +141,12 @@ def log_for_review(result: LookupResult) -> None:
     path = Path(os.environ.get("CERTIFIER_REVIEW_LOG", REVIEW_LOG))
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
+        selected = next((s.url for s in cert.sources if s.role == "selected"), None)
         entry = {"logged_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "entity": cert.entity.name,
-                 "certified_count": cert.certified_count, "confidence": cert.confidence_score, "flags": cert.flags,
-                 "notes": result.notes}
+                 "certified_count": cert.certified_count, "confidence": cert.confidence_score,
+                 "method": result.method, "selected_url": selected,
+                 "breakdown": [f"{s.points:+d} {s.reason}" for s in cert.confidence_breakdown],
+                 "flags": cert.flags, "notes": result.notes}
         with open(path, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry) + "\n")
     except OSError:

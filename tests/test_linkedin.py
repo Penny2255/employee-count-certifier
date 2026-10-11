@@ -33,7 +33,7 @@ def test_below_member_count_is_flag_not_floor(entity):
     cert = certify(entity, [src(1, 10_000)], linkedin=li, lookup_date=LOOKUP)
     assert cert.certified_count == 10_000          # value is kept, not raised to the member count
     assert cert.linkedin_check.status == "flag"
-    assert "below the LinkedIn member count" in cert.linkedin_check.note
+    assert "20% above the certified 10,000; more than the 15% tolerance" in cert.linkedin_check.note
     assert cert.confidence_score == 3              # Certified (4) lowered one level
     assert any(f.startswith("LinkedIn") for f in cert.flags)
 
@@ -41,7 +41,7 @@ def test_below_member_count_is_flag_not_floor(entity):
 def test_above_implied_range_is_flag(policy):
     check = linkedin_check(30_000, LinkedInEvidence(member_count=9_500, workforce_profile="white_collar"), policy)
     assert check.status == "flag"
-    assert "outside the implied range" in check.note
+    assert check.note.startswith("Flag: certified 30,000 is above the range")
 
 
 def test_blue_collar_gap_passes(policy):
@@ -56,3 +56,19 @@ def test_size_range_recorded_but_never_changes_status(policy):
     assert check.size_range_agrees is False
     assert check.status == "pass"
     assert linkedin_check(9_000, LinkedInEvidence(size_range=(5_001, 10_000)), policy).size_range_agrees is True
+
+
+def test_members_within_tolerance_above_count_is_pass(entity):
+    # Salesforce run: 87,523 members vs 83,334 certified (+5%), white-collar: a pass, not a floor.
+    li = LinkedInEvidence(member_count=87_523, workforce_profile="white_collar")
+    cert = certify(entity, [src(1, 83_334)], linkedin=li, lookup_date=LOOKUP)
+    assert cert.linkedin_check.status == "pass"
+    assert cert.linkedin_check.note.startswith("Pass: LinkedIn shows 87,523 members, 5% above")
+    assert cert.flags == [] and cert.confidence_score == 4
+
+
+def test_status_and_note_always_agree(policy):
+    for members in (5_000, 9_000, 10_000, 11_000, 11_600, 30_000):
+        for profile in ("white_collar", "mixed", "blue_collar"):
+            check = linkedin_check(10_000, LinkedInEvidence(member_count=members, workforce_profile=profile), policy)
+            assert check.note.lower().startswith(check.status), (members, profile, check.note)

@@ -21,13 +21,90 @@ def test_tier2_recent_is_certified_4(entity):
 
 
 def test_recent_primary_plus_agreeing_source_is_5(entity):
-    cert = score(entity, src(1, 10_000), src(1, 9_200, as_of=date(2024, 12, 31)))
+    newsroom = src(3, 9_800, qualifier="more_than", as_of=date(2026, 1, 15), excerpt="over 9,800 employees")
+    cert = score(entity, src(1, 10_000), newsroom)
     assert (cert.confidence_score, cert.confidence_level) == (5, "Certified, corroborated")
     assert [s.role for s in cert.sources] == ["selected", "corroborates"]
 
 
 def test_corroboration_can_come_from_any_tier(entity):
-    assert score(entity, src(1, 10_000), src(4, 11_400, as_of=None)).confidence_score == 5
+    assert score(entity, src(1, 10_000), src(4, 11_400, as_of=date(2026, 2, 1))).confidence_score == 5
+
+
+# --- Corroboration must be independent and near the same as-of date ---
+
+def test_prior_year_filing_does_not_corroborate(entity):
+    cert = score(entity, src(1, 10_000), src(1, 9_200, as_of=date(2024, 12, 31)))
+    assert cert.confidence_score == 4
+    assert cert.sources[1].role == "supporting"
+    assert "more than 9 months" in cert.sources[1].notes[-1]
+
+
+def test_restatement_of_the_same_figure_does_not_corroborate(entity):
+    wikipedia = src(9, 10_000, as_of=date(2025, 12, 31), url="https://en.wikipedia.org/wiki/Example")
+    flagged = src(9, 10_050, as_of=date(2025, 12, 31), url="https://bullfincher.io/example", restates=True)
+    cert = score(entity, src(1, 10_000), wikipedia, flagged)
+    assert cert.confidence_score == 4
+    assert [s.role for s in cert.sources] == ["selected", "supporting", "supporting"]
+
+
+def test_same_document_does_not_corroborate(entity):
+    headline = src(1, 9_900, qualifier="more_than", url="https://example.com/10k#overview")
+    cert = score(entity, src(1, 9_950, url="https://example.com/10k#employees"), headline)
+    assert cert.confidence_score == 4
+
+
+def test_undated_source_cannot_corroborate_but_can_conflict(entity):
+    assert score(entity, src(1, 10_000), src(4, 10_100, as_of=None)).confidence_score == 4
+    assert score(entity, src(1, 10_000), src(4, 20_000, as_of=None)).confidence_score == 3
+
+
+def test_undated_selected_source_is_presumed_current(entity):
+    # A website tile corroborated by a recent dated source.
+    assert score(entity, src(4, 1_500, as_of=None), src(6, 1_550, as_of=date(2026, 7, 1))).confidence_score == 3
+
+
+# --- Score breakdown ---
+
+def test_breakdown_explains_each_step(entity):
+    newsroom = src(3, 9_800, qualifier="more_than", as_of=date(2026, 1, 15), url="https://example.com/news",
+                   excerpt="over 9,800 employees")
+    cert = score(entity, src(1, 10_000), newsroom)
+    steps = [(s.points, s.reason) for s in cert.confidence_breakdown]
+    assert steps[0] == (4, "base 4: tier 1, as-of within 18 months")
+    assert steps[1][0] == 1 and "example.com 'over 9,800 employees'" in steps[1][1]
+    assert steps[2] == (0, "no deductions")
+    assert sum(p for p, _ in steps) == cert.confidence_score == 5
+
+
+def test_breakdown_lists_deductions_and_floor(entity):
+    cert = score(entity, src(9, 1_000, as_of=None), event_flags=["merger", "spinoff"])
+    assert [s.points for s in cert.confidence_breakdown] == [1, 0, 0]
+    assert "minimum of 1" in cert.confidence_breakdown[1].reason
+
+
+# --- Events are judged against the as-of date ---
+
+def test_event_closed_before_as_of_is_noted_not_penalized(entity):
+    from certifier.models import Event
+    informatica = Event(description="Acquisition of Informatica", close_date=date(2025, 11, 18))
+    cert = score(entity, src(1, 10_000, as_of=date(2026, 1, 31)), events=[informatica])
+    assert cert.confidence_score == 4 and cert.flags == []
+    assert "not penalized" in cert.rationale
+
+
+def test_event_closed_after_as_of_lowers_confidence(entity):
+    from certifier.models import Event
+    deal = Event(description="Acquisition of Target Co", close_date=date(2026, 5, 1), url="https://example.com/pr")
+    cert = score(entity, src(1, 10_000, as_of=date(2026, 1, 31)), events=[deal])
+    assert cert.confidence_score == 3
+    assert cert.flags[0].startswith("Event-driven: Acquisition of Target Co, closed 2026-05-01, after")
+
+
+def test_event_without_close_date_is_noted(entity):
+    from certifier.models import Event
+    cert = score(entity, src(1, 10_000), events=[Event(description="Rumored merger")])
+    assert cert.confidence_score == 4
 
 
 def test_disagreeing_tertiary_does_not_corroborate(entity):
@@ -35,7 +112,7 @@ def test_disagreeing_tertiary_does_not_corroborate(entity):
 
 
 def test_partial_scope_does_not_corroborate(entity):
-    assert score(entity, src(1, 10_000), src(1, 9_800, scope="partial", url="https://x/us")).confidence_score == 4
+    assert score(entity, src(1, 10_000), src(1, 9_800, scope="partial", url="https://example.com/x/us")).confidence_score == 4
 
 
 def test_18_month_boundary(entity):
@@ -61,7 +138,7 @@ def test_tier3_is_supported(entity):
 
 def test_tier4_to_6_needs_corroboration(entity):
     assert score(entity, src(5, 4_500, as_of=None, qualifier="more_than")).confidence_score == 2
-    assert score(entity, src(5, 4_500, as_of=None), src(6, 4_800)).confidence_score == 3
+    assert score(entity, src(5, 4_500, as_of=None), src(6, 4_800, as_of=date(2026, 6, 1))).confidence_score == 3
 
 
 # --- Tertiary derivation ---
@@ -110,8 +187,8 @@ def test_tertiary_conflict_is_recorded_not_penalized(entity):
 
 
 def test_detailed_figure_not_in_line_is_flagged_not_corroborating(entity):
-    cert = score(entity, src(1, 110_000, qualifier="more_than", url="https://x/20f"),
-                 src(1, 105_000, url="https://x/table"))
+    cert = score(entity, src(1, 110_000, qualifier="more_than", url="https://example.com/x/20f"),
+                 src(1, 105_000, url="https://example.com/x/table"))
     assert cert.certified_count == 110_000
     assert [s.role for s in cert.sources] == ["selected", "conflicts"]
     assert cert.confidence_score == 3  # Certified (4), lowered one level by the review flag

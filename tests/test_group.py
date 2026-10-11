@@ -32,14 +32,14 @@ def test_institution_primary_and_grand_total_estimated_when_no_total_found():
 
 
 def test_primary_grand_total_wins_when_wholly_owned_is_proven():
-    total = cert("UC Davis (all entities)", src(1, 26_500, as_of=date(2025, 6, 30), url="https://x/annual-report"))
+    total = cert("UC Davis (all entities)", src(1, 26_500, as_of=date(2025, 6, 30), url="https://www.sec.gov/Archives/edgar/data/1/000000000126000001/annual-report.htm"))
     result = certify_group("UC Davis", SCHOOL, [HEALTH], grand_total=total, wholly_owned_proven=True)
     assert result.primary_role == "grand_total"
     assert roles(result)[0] == ("grand_total", True)
 
 
 def test_primary_grand_total_without_ownership_proof_stays_secondary():
-    total = cert("UC Davis (all entities)", src(1, 26_500, as_of=date(2025, 6, 30), url="https://x/annual-report"))
+    total = cert("UC Davis (all entities)", src(1, 26_500, as_of=date(2025, 6, 30), url="https://www.sec.gov/Archives/edgar/data/1/000000000126000001/annual-report.htm"))
     result = certify_group("UC Davis", SCHOOL, [HEALTH], grand_total=total, wholly_owned_proven=False)
     assert result.primary_role == "institution"
     assert "ownership of the affiliates is not proven" in result.rationale

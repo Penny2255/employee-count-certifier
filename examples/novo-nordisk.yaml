@@ -16,10 +16,11 @@ expected:
   qualifier: exact
   count_type: reported
   policy_tier: 1
-  confidence_score: 5
+  confidence_score: 4
   selected_url: https://www.sec.gov/Archives/edgar/data/353278/000035327826000012/nvo-20251231.htm#employees
 lesson: >
   The same filing gives "more than 69,500" in the overview and 69,505 in the employee
   section. The difference is immaterial, but the same specificity rule applies: the exact
-  figure is in line with the headline, so it wins and the headline corroborates. The 10%
+  figure is in line with the headline, so it wins. The headline is the same document, so it
+  does not corroborate: Certified (4) until an independent near-date source agrees. The 10%
   reduction in 2025 is a nuance worth logging, not an event-driven exception.

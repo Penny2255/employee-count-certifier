@@ -12,7 +12,9 @@ sources:
     as_of_date: 2025-08-31
     value: 341000
     excerpt: "Total employees 355,000 341,000 333,000"
-expected: {certified_count: 355000, qualifier: exact, count_type: reported, policy_tier: 1, confidence_score: 5}
+expected: {certified_count: 355000, qualifier: exact, count_type: reported, policy_tier: 1, confidence_score: 4}
 lesson: >
   The worldwide total includes part-time employees, which the policy counts. The prior-year
-  figure from the same table (341,000) is within 15% and corroborates, giving 5.
+  figure from the same table (341,000) is a different as-of date and the same document, so it
+  feeds the trend but does not corroborate: Certified (4). An independent source near the same
+  date (e.g. a company newsroom statement) would make it 5.

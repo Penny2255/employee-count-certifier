@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 from .examples import load_examples
 from .llm import Claude, Spend
-from .models import Entity, LinkedInEvidence, Source
+from .models import Entity, Event, LinkedInEvidence, Source
 from .policy import Policy
 from .sources.edgar import Snippet
 from .sources.website import PageSnippet
@@ -34,6 +34,9 @@ class XSource(BaseModel):
                     "broader: also covers bodies outside the entity (e.g., a city figure including schools)")
     as_of_date: date | None = Field(description="Date the count applies to, if stated or clearly implied")
     published_date: date | None
+    modified_date: date | None = Field(description="Page's last-updated date, if shown")
+    restates: bool = Field(description="True if this source repeats another source's figure (e.g. Wikipedia, "
+                                       "Bullfincher or an aggregator quoting the 10-K) rather than reporting its own")
     excerpt: str = Field(description="Verbatim quote containing the figure")
     contractors_included: int | None = Field(description="Independent contractors included in value, if stated")
     separately_reported: list[XCount] = Field(
@@ -53,6 +56,7 @@ class XLinkedIn(BaseModel):
 class XEvent(BaseModel):
     description: str
     url: str | None = Field(description="Source confirming the event; null if not confirmed by a found source")
+    close_date: date | None = Field(description="Date the deal closed or the spinoff completed, if known")
     headcount_impact: float | None = Field(
         description="Approximate change to headcount as a fraction (0.25 = +25%), null if unknown")
 
@@ -70,17 +74,17 @@ class Extraction(BaseModel):
     notes: str
 
 
-def material_events(events: list[XEvent], policy: Policy) -> tuple[list[str], list[str]]:
-    """Events become confidence flags only when a found source confirms them and the impact is
-    material (above the corroboration threshold) or unknown. Others are kept as notes."""
-    flags, notes = [], []
+def material_events(events: list[XEvent], policy: Policy) -> tuple[list[Event], list[str]]:
+    """Confirmed (sourced) events with a material or unknown headcount impact go to the engine,
+    which penalizes only those that closed after the as-of date. Others are kept as notes."""
+    material_events_, notes = [], []
     for e in events:
         material = e.headcount_impact is None or abs(e.headcount_impact) > policy.agreement.corroborates_within
         if e.url and material:
-            flags.append(f"{e.description} ({e.url})")
+            material_events_.append(Event(description=e.description, url=e.url, close_date=e.close_date))
         else:
             notes.append(f"Event noted, not flagged ({'unconfirmed' if not e.url else 'immaterial'}): {e.description}")
-    return flags, notes
+    return material_events_, notes
 
 
 # --- Prompts ------------------------------------------------------------------------------------
@@ -138,7 +142,11 @@ quotes verbatim. Assign tiers using the table. Record a qualified figure as stat
 qualifier ("more than 5,000" -> 5000, more_than). Mark scope carefully: segment, regional,
 subsidiary and department figures are partial; figures that include outside bodies (e.g. school
 systems for a city) are broader. Mark FTE figures as basis fte. Never invent a figure, URL or
-date; leave fields null when unknown. Exclude figures that are not headcounts (customers'
+date; leave fields null when unknown. Always use the URL where you actually read the figure: a
+10-K or annual report copied on a third-party site (Quartr, AnnualReports.com, aggregators) keeps
+that site's URL, not sec.gov's. Mark restates true when the source repeats another source's
+figure (Wikipedia, Bullfincher, data sites quoting the 10-K). For events, give the close date.
+Exclude figures that are not headcounts (customers'
 employees, layoffs, hires, survey participants, share counts). A LinkedIn member count ("N
 associated members", "N employees" on LinkedIn pages) goes in linkedin.member_count, never in
 sources; tier 5 is only headcount text the company wrote in its LinkedIn description.
@@ -171,7 +179,7 @@ def _entity_block(entity: Entity, lookup_date: date) -> str:
 class ResearchResult(BaseModel):
     sources: list[Source]
     linkedin: LinkedInEvidence
-    event_flags: list[str]
+    events: list[Event]
     complexities: list[str] = []
     notes: str
     research_notes: str
@@ -217,9 +225,9 @@ def research_entity(entity: Entity, snippets: list[Snippet], lookup_date: date, 
         + f"\n\nResearch notes:\n{notes or '(none)'}",
         Extraction, spend)
     if extraction is None:
-        return ResearchResult(sources=[], linkedin=LinkedInEvidence(), event_flags=[], notes="Extraction failed.",
+        return ResearchResult(sources=[], linkedin=LinkedInEvidence(), events=[], notes="Extraction failed.",
                               research_notes=notes)
-    event_flags, event_notes = material_events(extraction.events, claude.policy)
+    events, event_notes = material_events(extraction.events, claude.policy)
     return ResearchResult(
         sources=dedupe([to_source(x) for x in extraction.sources if 1 <= x.tier <= 9 and x.value >= 0]),
         linkedin=LinkedInEvidence(
@@ -230,7 +238,7 @@ def research_entity(entity: Entity, snippets: list[Snippet], lookup_date: date, 
             workforce_profile=extraction.workforce_profile,
             growth_6m=extraction.linkedin.growth_6m, growth_1y=extraction.linkedin.growth_1y,
             growth_2y=extraction.linkedin.growth_2y),
-        event_flags=event_flags, complexities=extraction.complexities,
+        events=events, complexities=extraction.complexities,
         notes=" ".join([extraction.notes, *event_notes]).strip(), research_notes=notes)
 
 
@@ -238,6 +246,7 @@ def to_source(x: XSource) -> Source:
     return Source(
         url=x.url, tier=x.tier, value=x.value, qualifier=x.qualifier, basis=x.basis, scope=x.scope,
         excerpt=x.excerpt, as_of_date=x.as_of_date, published_date=x.published_date,
+        modified_date=x.modified_date, restates=x.restates,
         contractors_included=x.contractors_included or None,
         separately_reported={c.category: c.count for c in x.separately_reported} or None,
         notes=[x.note] if x.note else [],

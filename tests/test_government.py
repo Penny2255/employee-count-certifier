@@ -29,15 +29,15 @@ def test_fte_never_growth_adjusted(entity):
 
 
 def test_headcount_in_line_replaces_fte_same_tier_and_date(entity):
-    fte = src(1, 499, basis="fte", url="https://x/fte")
-    headcount = src(1, 541, url="https://x/headcount")  # +8%: in line
+    fte = src(1, 499, basis="fte", url="https://example.com/x/fte")
+    headcount = src(1, 541, url="https://example.com/x/headcount")  # +8%: in line
     cert = certify(entity, [fte, headcount], lookup_date=LOOKUP)
     assert (cert.certified_count, cert.count_basis) == (541, "headcount")
 
 
 def test_headcount_far_from_fte_keeps_fte_without_flag(entity):
-    fte = src(1, 499, basis="fte", url="https://x/fte")
-    headcount = src(1, 700, url="https://x/headcount")  # +40%: not strong enough to replace FTE
+    fte = src(1, 499, basis="fte", url="https://example.com/x/fte")
+    headcount = src(1, 700, url="https://example.com/x/headcount")  # +40%: not strong enough to replace FTE
     cert = certify(entity, [fte, headcount], lookup_date=LOOKUP)
     assert (cert.certified_count, cert.count_basis) == (499, "fte")
     assert cert.flags == []
@@ -50,8 +50,8 @@ def test_lower_tier_headcount_does_not_replace_fte(entity):
 
 
 def test_school_system_figure_logged_with_variance_not_used(entity):
-    city = src(1, 499, basis="fte", url="https://x/acfr")
-    with_schools = src(2, 1_850, scope="broader", url="https://x/budget-incl-schools")
+    city = src(1, 499, basis="fte", url="https://example.com/x/acfr")
+    with_schools = src(2, 1_850, scope="broader", url="https://example.com/x/budget-incl-schools")
     cert = certify(entity, [city, with_schools], lookup_date=LOOKUP)
     assert cert.certified_count == 499
     assert cert.sources[1].role == "supporting"

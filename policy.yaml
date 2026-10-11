@@ -45,6 +45,16 @@ recency:
 agreement:
   corroborates_within: 0.15      # relative difference counted as agreeing
   conflict_above: 0.30           # relative difference counted as disagreeing
+  # Corroboration needs an independent source near the same as-of date: restatements of the same
+  # figure (Wikipedia, aggregators quoting the 10-K), the same document, and prior-year filings
+  # don't count. Undated sources can't corroborate.
+  corroboration_window_months: 9
+
+# Tier 1 provenance: a tier 1 figure must come from sec.gov (with an accession number in the URL)
+# or from the organization's own website. Copies elsewhere (Quartr, aggregators) are mirrors:
+# they may corroborate but never set the value.
+provenance:
+  sec_hosts: [sec.gov]
 
 confidence_levels:
   5: "Certified, corroborated"
@@ -67,21 +77,26 @@ qualifier_phrases:
   approximately: ["approximately", "approx.", "about", "around", "roughly", "nearly", "almost", "some", "close to", "~"]
   up_to: ["up to", "fewer than", "less than", "under", "no more than"]
 
-# Growth adjustment (examples: Gong, Donor Network West). An undated or old figure that LinkedIn
-# shows the organization has outgrown is moved conservatively toward the LinkedIn member count.
-# Tier 2 qualifies because filings like Form 990 lag 12-24 months; tier 1 (10-K, 20-F) never does.
+# Growth adjustment (examples: Gong, Donor Network West). An undated or old figure that current
+# evidence shows the organization has outgrown is moved conservatively toward a current signal:
+#   1. LinkedIn growth: member count above the figure, with visible headcount growth.
+#   2. Data-provider consensus: recent tier 7-9 figures that agree with each other and all exceed
+#      the figure; a LinkedIn member count that agrees with them joins as an input. Outliers
+#      (beyond agreement.conflict_above from the median) are ignored.
+# Tier 2 qualifies because filings like Form 990 lag 12-24 months; tier 1 (10-K, 20-F) and FTE
+# figures never do. Data-provider figures never replace the selected value, only inform the move.
 growth_adjustment:
   applies_to_tiers: [2, 3, 4, 5, 6]
   min_age_months:               # dated sources newer than this are left alone; undated always qualify
     primary: 18                 # i.e., only once no longer Certified
     secondary: 12
-  min_member_gap: 0.15          # member count must exceed the stated value by at least this
-  min_growth: 0.10              # LinkedIn 1-year growth (else 2-year) must be at least this
-  weight_toward_members: 0.75   # estimate = stated + weight x (members - stated)
+  min_member_gap: 0.15          # each signal input must exceed the stated value by at least this
+  min_growth: 0.10              # signal 1: LinkedIn 1-year growth (else 2-year) at least this
+  min_tertiary_sources: 2       # signal 2: at least this many recent tier 7-9 figures in agreement
+  tertiary_max_age_months: 12   # signal 2: tier 7-9 figures dated within this window
+  weight_toward_members: 0.75   # estimate = stated + weight x (target - stated); target = members or band mean
   round_to_significant: 2       # 1,978 -> 2,000
-  min_tertiary_sources: 2       # signal 2: at least this many recent tier 7-9 figures that agree
-  tertiary_max_age_months: 12   # ... dated within this window
-  confidence: 3                 # Supported: secondary source plus a consistent LinkedIn trend
+  confidence: 3                 # Supported: a company figure plus a consistent current signal
 
 # Guidance for the research step (build step 3). Grows with reviewed cases in examples/.
 research_guidelines:
@@ -114,6 +129,12 @@ research_guidelines:
 # LinkedIn members as a fraction of true headcount, by workforce profile.
 linkedin:
   default_profile: mixed
+  # Members may exceed the certified count by this much and still pass (profiles of former
+  # employees and contractors linger). The member count is a flag, never a floor.
+  member_overage_tolerance:
+    white_collar: 0.15
+    mixed: 0.0
+    blue_collar: 0.0
   profiles:
     white_collar: {members_per_employee: [0.90, 0.95]}
     mixed: {members_per_employee: [0.50, 0.90]}

@@ -63,6 +63,12 @@ The highest available tier sets the certified value; other sources only corrobor
 5. Run the LinkedIn sanity check (next section) on every result.
 6. Assign a confidence level and a range.
 
+**Tier 1 provenance.** A tier 1 figure must come from the filing itself:
+- **SEC filings:** a sec.gov URL with an accession number in it.
+- **Company-hosted reports:** the organization's own website (e.g., SAP's Integrated Report, a city's ACFR), where no accession number exists.
+
+Copies on other sites (Quartr, aggregators) are mirrors. They can corroborate, but they never set the value. Any organization with an SEC CIK gets its 10-K, 20-F or 40-F from EDGAR directly. If the caller doesn't pass a CIK, the service resolves it from the ticker or from a unique exact name match in SEC's company list. Example: the Salesforce run that read 83,334 from a Quartr mirror.
+
 **Exception and recency rules:**
 
 - A secondary source (tiers 3–6) may override a primary source (tiers 1–2) only when the primary source is more than 24 months old.
@@ -71,19 +77,34 @@ The highest available tier sets the certified value; other sources only corrobor
 - Only a dated secondary source with a newer as-of date may override a stale primary source. An undated secondary source cannot show that it's newer, so it doesn't override.
 - Within a tier, the newest as-of date wins. Dated beats undated.
 - **Prefer the more specific figure when it's in line.** When sources share a tier and as-of date, the most specific figure wins: exact before qualified, then more significant digits (112,234 before "more than 110,000"; "approximately 112,200" before "over 100,000"). It must be in line with every rounder statement: within 15%, at or above X for "more than X", and at or below X for "up to X". The rounder statement then corroborates it. If the detailed figure isn't in line, the headline statement is used, the detailed figure is recorded as a conflict, and the result is flagged for review. Examples: SAP, Novo Nordisk.
-- Ages are measured from the as-of date to the lookup date. A source with no as-of date uses its published date for recency but is still marked undated.
+- Ages are measured from the as-of date to the lookup date. A source with no as-of date uses its published date for recency, or its modified (last-updated) date when that is later, but it is still marked undated.
 - Figures for one region or a partial scope never set the certified value. They are recorded as supporting evidence only.
 - Figures with a broader scope (covering bodies outside the entity, such as a city figure that includes the school system) never set the value either. They are logged as notable with the variance from the certified value.
 
-**Growth adjustment (examples: Gong, Donor Network West).** A figure is treated as outdated when LinkedIn shows the organization has outgrown it, provided it is one of these:
+**Growth adjustment (examples: Gong, Donor Network West).** A selected figure is treated as outdated, and moved toward a current signal, when current evidence shows the organization has outgrown it. Only these figures qualify:
 - a tier 3–6 figure that is undated or more than 12 months old
 - a tier 2 figure more than 18 months old, because Form 990 and IPEDS lag
 
-Tier 1 is never adjusted. That takes both of these:
-- The member count exceeds the figure by at least 15%.
-- LinkedIn headcount growth is at least 10%: the one-year figure, or the two-year figure if the one-year is missing.
+Tier 1 and FTE figures are never adjusted.
 
-The value is then moved conservatively toward the member count: stated + 75% × (members − stated), rounded to two significant digits. The range runs from the stated figure to the midpoint of the LinkedIn implied range. The result is `estimated` with qualifier `approximately`, and scores Supported (3). Gong: the website says 1,500, LinkedIn has 2,137 members and shows 27% one-year growth, so the result is ~2,000 with a range of 1,500–2,300. All parameters are in `policy.yaml` under `growth_adjustment`. Open: applying the same logic to declining headcount, and using an organization's own filing trend (e.g., successive 990s) as the growth signal when no LinkedIn data exists.
+The current signal is the first of these two that applies:
+
+1. **LinkedIn growth.** The LinkedIn member count exceeds the figure by at least 15%, and LinkedIn headcount growth is at least 10% (the one-year figure, or the two-year figure if the one-year is missing). The target is the member count. The range runs from the stated figure to the midpoint of the LinkedIn implied range.
+2. **Data-provider consensus.** LinkedIn growth figures are rarely public, so this is the usual signal. It needs at least 2 tier 7–9 figures, dated within the last 12 months, within 30% of their median. Figures outside that band are outliers and are ignored. Every figure in the band must exceed the stated figure by at least 15%. A LinkedIn member count within 30% of the same median joins the band as an input. The target is the band's mean. The range runs from the stated figure to the highest figure in the band.
+
+The value moves 75% of the way from the stated figure to the target, rounded to two significant digits. The result is `estimated` with qualifier `approximately`, and scores Supported (3). The adjustment log records the stated figure, the signal used and its inputs.
+
+This is the "normally only moves a secondary value toward a calculated figure" exception for tertiary sources. A data-provider figure never replaces the selected value directly; it only informs the adjustment. When LinkedIn is one of the inputs, a LinkedIn check flag is reported but doesn't lower confidence, because LinkedIn isn't an independent check in that case.
+
+Examples:
+- **Gong, by LinkedIn growth (user's reference):** the website says 1,500; LinkedIn shows 2,137 members and 27% one-year growth. Result: about 2,000, range 1,500–2,300.
+- **Gong, by consensus (live run, 2026-10-11):** the website says 1,500 (undated). Revelio shows 2,101 (Mar 2026), LeadIQ 2,600 (Aug 2026) and Tracxn 2,672 (Aug 2026); LinkedIn has 2,592 members. Built In's 1,100 is outside the band and ignored. The target is the mean, 2,491, so the result is about 2,200, range 1,500–2,700, Supported (3).
+
+All parameters are in `policy.yaml` under `growth_adjustment`.
+
+Open:
+- the same logic for shrinking headcount
+- an organization's own filing trend (e.g., successive 990s) as a third signal
 
 **Confidence levels:**
 
@@ -96,13 +117,22 @@ The value is then moved conservatively toward the member count: stated + 75% × 
 | 1 | Unverified | One tier 7–9 source only, or tier 7–9 sources disagree by more than 30% |
 | 0 | Unattained | No usable source found |
 
+**Confidence breakdown.** Every record carries `confidence_breakdown`, the steps that sum to the score. Example: `+4 base 4: tier 1, as-of within 18 months`, `+1 corroborated by reveliolabs.com '…87,829…'`, `+0 no deductions`.
+
 **Confidence adjustments** (each lowers the score one level, never below 1):
 
 - The LinkedIn check flags the certified value (see below).
 - A non-stale tier 1–6 source disagrees with the certified value by more than 30%. Tier 7–9 sources that disagree with a tier 1–6 value are recorded but do not lower confidence.
-- An event-driven case (merger, acquisition, spinoff) is flagged.
+- A merger, acquisition or spinoff that closed *after* the certified figure's as-of date, so the figure can't include it. An event that closed on or before the as-of date, or whose close date is unknown, is noted but not penalized. Example: Salesforce's Informatica acquisition closed on 2025-11-18, before the 10-K's as-of date of 2026-01-31.
 
-**Corroboration** means any other source, of any tier and including an earlier filing of the same type, whose value is within 15% of the certified value. Stale and undated sources may corroborate. Regional or partial-scope figures may not.
+**Corroboration** means an *independent* source, of any tier, near the same as-of date, whose value is within 15% of the certified value. These don't count:
+- **The same document:** for example, a filing's overview restating its own employee section.
+- **Restatements:** for example, Wikipedia, Bullfincher or StockAnalysis repeating the 10-K's figure. This covers any source marked as restating, and any other source with the identical value and as-of date.
+- **Other periods:** sources dated more than 9 months from the certified figure's as-of date (`agreement.corroboration_window_months`), such as prior-year 10-Ks. These feed `trend[]` instead.
+- **Undated sources:** they can't corroborate, but they can still conflict.
+- **Partial or regional figures.**
+
+An undated certified figure, like a website tile, is presumed current, so its window centers on the lookup date.
 
 ## LinkedIn sanity check
 
@@ -117,8 +147,9 @@ The LinkedIn member count is a flag, not a hard floor. The true headcount is usu
 - Default ratio: 0.3–1.0 LinkedIn members per employee, set by industry classification and white- vs. blue-collar mix. Calibrate it against public companies whose 10-K headcount is known, and keep it in a config table tuned over time.
 - The LinkedIn size range (e.g., "5,001–10,000") is company-set evidence, but often stale. It counts as one corroborating data point, never the certified value.
 - The check returns a status:
-  - `pass`: the certified value is inside the implied range.
-  - `flag`: the value is below the member count or outside the implied range. Confidence drops one level.
+  - `pass`: the certified value is inside the implied range. The low end of that range allows members to exceed the count by the profile's tolerance (`linkedin.member_overage_tolerance`: 15% for white-collar, 0% otherwise), because profiles of former employees and contractors linger. Example: Salesforce has 87,523 members against 83,334 certified (+5%), which passes.
+  - `flag`: the value is outside that range. Confidence drops one level.
+  - The note always starts with the status ("Pass: …" or "Flag: …"), so the two can't disagree.
   - `not_available`: no member count was found. Confidence is unchanged.
 - The size range is recorded as agreeing or not. It never changes the status.
 - When LinkedIn was an input to the value (growth adjustment or tier 7–9 derivation), a `flag` is still reported but does not lower confidence, because LinkedIn isn't an independent check in that case.
@@ -167,6 +198,7 @@ Every lookup returns one certification record per entity, in this shape. Field n
 | `range` | [int, int] | Low and high plausible headcount |
 | `confidence_score` | integer 0–5 | Score from the confidence table |
 | `confidence_level` | enum | `Certified, corroborated`, `Certified`, `Supported`, `Estimated`, `Unverified`, `Unattained` |
+| `confidence_breakdown[]` | list | The base score and each adjustment, with points and reason, summing to `confidence_score` |
 | `policy_tier` | integer 1–9 | Tier of the source that set the value |
 | `as_of_date` | date or null | Date the source states the count applies to |
 | `sources[]` | list | Every source used: URL, tier, as-of date, published date, verbatim excerpt, value, qualifier |
@@ -174,7 +206,7 @@ Every lookup returns one certification record per entity, in this shape. Field n
 | `flags[]` | list | Conditions that lowered confidence or need review (LinkedIn, conflict, event-driven) |
 | `adjustments[]` | list | Adjustment and nuance log: source figure, change, reason, result |
 | `rationale` | text | Why this value, tier and confidence were chosen |
-| `trend[]` | list | Up to 5 dated values, oldest to newest (later phase) |
+| `trend[]` | list | Up to 5 dated values with the same tier and basis (e.g., consecutive 10-Ks), oldest to newest, ending at the certified figure |
 | `forecast` | object | Next-period value, method, range (later phase) |
 | `policy_version` | string | Version of this policy used, for audit |
 

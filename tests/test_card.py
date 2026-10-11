@@ -28,7 +28,7 @@ def test_recorded_lookups_build_valid_records(path):
 
 
 def test_fixture_set_covers_the_four_requested_lookups():
-    assert {p.stem for p in FIXTURES} == {"salesforce", "gong", "donor-network-west", "uc-davis"}
+    assert {p.stem for p in FIXTURES} == {"salesforce", "gong", "donor-network-west", "uc-davis", "stripe"}
 
 
 def test_salesforce_fixture_reads_sec_gov():

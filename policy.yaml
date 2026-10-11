@@ -50,6 +50,14 @@ agreement:
   # don't count. Undated sources can't corroborate.
   corroboration_window_months: 9
 
+# Indicated current range: when newer tier 7-9 data (e.g. quarterly Revelio) diverges from an old
+# certified figure, show its range alongside the certified value. It never replaces the value.
+indicated_range:
+  min_anchor_age_months: 12
+  max_source_age_months: 12
+  min_newer_by_months: 3
+  min_divergence: 0.05
+
 # Tier 1 provenance: a tier 1 figure must come from sec.gov (with an accession number in the URL)
 # or from the organization's own website. Copies elsewhere (Quartr, aggregators) are mirrors:
 # they may corroborate but never set the value.

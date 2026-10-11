@@ -1,0 +1,366 @@
+{
+  "certification": {
+    "entity": {
+      "name": "Stripe, Inc.",
+      "website": "https://stripe.com",
+      "hq": "South San Francisco, CA, USA",
+      "legal_parent": null,
+      "relationship_to_parent": null
+    },
+    "certified_count": 8500,
+    "count_type": "reported",
+    "qualifier": "exact",
+    "count_basis": "headcount",
+    "range": [
+      8500,
+      8500
+    ],
+    "confidence_score": 1,
+    "confidence_level": "Unverified",
+    "confidence_breakdown": [
+      {
+        "points": 2,
+        "reason": "base 2: tier 6 secondary source"
+      },
+      {
+        "points": -1,
+        "reason": "recency: as of 2025-01-15 (estimated) is older than 18 months"
+      },
+      {
+        "points": 1,
+        "reason": "corroborated by unifygtm.com 'Total employees 8017 7.2% from last year'"
+      },
+      {
+        "points": -1,
+        "reason": "Complexity: LinkedIn member count (16,924) is far above the 5,001-10,000 size range and the tracker estimates (~8,000-9,400), so it likely includes contractors and former staff."
+      },
+      {
+        "points": 0,
+        "reason": "Complexity: Tracker estimates disagree with each other (Revelio 9,383 vs 8,198 for different cuts). (no change: minimum of 1 reached)"
+      },
+      {
+        "points": 0,
+        "reason": "Complexity: No company-stated figure after January 2025; the 10,000 figure was a year-end 2025 target and no source confirms it was reached. (no change: minimum of 1 reached)"
+      },
+      {
+        "points": 0,
+        "reason": "LinkedIn: Flag: LinkedIn shows 16,924 members, 99% above the certified 8,500; more than the 15% tolerance for a white-collar workforce. (no change: minimum of 1 reached)"
+      }
+    ],
+    "policy_tier": 6,
+    "as_of_date": "2025-01-15",
+    "as_of_estimated": true,
+    "pre_adjustment": false,
+    "indicated_range": {
+      "low": 8198,
+      "high": 10000,
+      "earliest": "2025-12-01",
+      "latest": "2026-07-01",
+      "urls": [
+        "https://www.reveliolabs.com/companies/stripe/employees",
+        "https://pitchbook.com/profiles/company/54782-29",
+        "https://getlatka.com/companies/stripe",
+        "https://www.makerstations.io/stripe-employee-statistics/"
+      ],
+      "reason": "4 newer data-provider figure(s) dated 2025-12-01 to 2026-07-01 put headcount at 8,198-10,000, 6% from the certified figure as of 2025-01-15 (1 outlier(s) left out). Shown for context; policy does not let tier 7-9 data replace it."
+    },
+    "sources": [
+      {
+        "url": "https://www.paymentsdive.com/news/stripe-employees-workforce-cuts-additions/737935/",
+        "tier": 6,
+        "value": 8500,
+        "qualifier": "exact",
+        "excerpt": "The company had 8,500 total employees before taking the layoffs into account, the Stripe spokesperson said in an email.",
+        "location": {
+          "section": "article body",
+          "page": null,
+          "page_basis": null,
+          "context": "The payments services giant Stripe insists that it is still on pace to increase its employee count to 10,000 in 2025 despite hundreds of employee layoffs announced this week. The company had 8,500 total employees before taking the layoffs into account, the Stripe spokesperson said in an email. 'I want to be clear that we're not slowing down hiring,' said the memo, which was signed by Stripe Chief People Officer Rob McIntosh.",
+          "deep_link": "https://www.paymentsdive.com/news/stripe-employees-workforce-cuts-additions/737935/#:~:text=The%20company%20had%208%2C500%20total,in%20an%20email.",
+          "note": "Web page: no page numbers."
+        },
+        "as_of_date": "2025-01-15",
+        "as_of_estimated": true,
+        "as_of_basis": "Article on the January 2025 layoffs; the count is stated as of before the layoffs. The article's own date is not shown.",
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "corroboration_only": false,
+        "role": "selected",
+        "role_reason": "Highest-ranked eligible source: tier 6, as of 2025-01-15.",
+        "notes": [
+          "Spokesperson statement, more than a year old. The article's summary gives about 8,200 after the cut.",
+          "As-of date estimated from Article on the January 2025 layoffs; the count is stated as of before the layoffs. The article's own date is not shown.."
+        ]
+      },
+      {
+        "url": "https://www.reveliolabs.com/companies/stripe/employees",
+        "tier": 7,
+        "value": 9383,
+        "qualifier": "approximately",
+        "excerpt": "Stripe LLC has approximately 9,383 total employees worldwide as of March 2026, according to Revelio Labs workforce intelligence data.",
+        "location": {
+          "section": "How many employees work at Stripe?",
+          "page": null,
+          "page_basis": null,
+          "context": "Stripe LLC has approximately 9,383 total employees worldwide as of March 2026, according to Revelio Labs workforce intelligence data. Stripe's total headcount has grown 58.6% from 5,918 employees in 2023 to 9,383 in 2026.",
+          "deep_link": "https://www.reveliolabs.com/companies/stripe/employees#:~:text=Stripe%20LLC%20has%20approximately%209%2C383,workforce%20intelligence%20data.",
+          "note": "Web page: no page numbers."
+        },
+        "as_of_date": "2026-03-01",
+        "as_of_estimated": false,
+        "as_of_basis": null,
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
+        "notes": [
+          "Modelled estimate from profile data. Prior points: 8,679 in Q4 2025, 7,262 in 2024, 6,107 in 2023. Page figures are internally inconsistent (+4.4% YoY vs a stated +1,999 change). Regional splits (North America 5,179, South Asia 1,313, Northern Europe 1,007) are partial scope.",
+          "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
+        ]
+      },
+      {
+        "url": "https://pitchbook.com/profiles/company/54782-29",
+        "tier": 7,
+        "value": 10000,
+        "qualifier": "exact",
+        "excerpt": "Stripe has 10,000 total employees.",
+        "location": {
+          "section": "Stripe Overview / FAQs",
+          "page": null,
+          "page_basis": null,
+          "context": "Stripe has 10,000 total employees. … Stripe is headquartered in South San Francisco, CA. … 10,000 As of 2026",
+          "deep_link": "https://pitchbook.com/profiles/company/54782-29#:~:text=Stripe%20has%2010%2C000%20total%20employees.",
+          "note": "Web page: no page numbers."
+        },
+        "as_of_date": "2026-06-15",
+        "as_of_estimated": true,
+        "as_of_basis": "Profile snapshot about 116 days before the lookup date; the page says 'As of 2026'",
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
+        "notes": [
+          "Rounded figure that may reflect the company's 10,000 target.",
+          "As-of date estimated from Profile snapshot about 116 days before the lookup date; the page says 'As of 2026'.",
+          "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
+        ]
+      },
+      {
+        "url": "https://getlatka.com/companies/stripe",
+        "tier": 9,
+        "value": 8500,
+        "qualifier": "approximately",
+        "excerpt": "Stripe employs approximately 8.5K people as of 2026, down from 10.1K in 2024, including 254 sales reps that carry a quota.",
+        "location": {
+          "section": "Stripe Employees & Team Size",
+          "page": null,
+          "page_basis": null,
+          "context": "Stripe employs approximately 8.5K people as of 2026, down from 10.1K in 2024, including 254 sales reps that carry a quota. It serves 1M customers that rely on its solutions.",
+          "deep_link": "https://getlatka.com/companies/stripe#:~:text=Stripe%20employs%20approximately%208.5K%20people,carry%20a%20quota.",
+          "note": "Web page: no page numbers."
+        },
+        "as_of_date": "2026-07-01",
+        "as_of_estimated": true,
+        "as_of_basis": "Page snapshot about 100 days before the lookup date; the page says the figure is an estimate for 2026",
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
+        "notes": [
+          "Estimate. The 10.1K in 2024 is inconsistent with other sources.",
+          "As-of date estimated from Page snapshot about 100 days before the lookup date; the page says the figure is an estimate for 2026.",
+          "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
+        ]
+      },
+      {
+        "url": "https://tracxn.com/d/companies/stripe/__uahG_IGnVgsUsOG-f8otYHLkOkliWg7YFhJ5ZkNIkpI",
+        "tier": 9,
+        "value": 16918,
+        "qualifier": "exact",
+        "excerpt": "As of Aug 31, 2026, the latest employee count at Stripe is 16918.",
+        "location": {
+          "section": "Employee Count / FAQs",
+          "page": null,
+          "page_basis": null,
+          "context": "How many employees does Stripe have? As of Aug 31, 2026, the latest employee count at Stripe is 16918.",
+          "deep_link": "https://tracxn.com/d/companies/stripe/__uahG_IGnVgsUsOG-f8otYHLkOkliWg7YFhJ5ZkNIkpI#:~:text=As%20of%20Aug%2031%2C%202026%2C,Stripe%20is%2016918.",
+          "note": "Web page: no page numbers."
+        },
+        "as_of_date": "2026-08-31",
+        "as_of_estimated": false,
+        "as_of_basis": null,
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": true,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Not counted as corroboration: restates another source's figure.",
+        "notes": [
+          "Appears derived from the LinkedIn member count (16,924), so not independent. The page also lists the legal entity Stripe, Inc. at 5,154 as of 2024-12-31 (single entity, partial scope).",
+          "Not counted as corroboration: restates another source's figure."
+        ]
+      },
+      {
+        "url": "https://www.makerstations.io/stripe-employee-statistics/",
+        "tier": 9,
+        "value": 8198,
+        "qualifier": "approximately",
+        "excerpt": "Stripe has about 8,198 tracked employees as of December 2025, per Revelio Labs.",
+        "location": {
+          "section": "How Many Employees Does Stripe Have?",
+          "page": null,
+          "page_basis": null,
+          "context": "Stripe is private and files no official headcount, so this article uses workforce-tracker estimates for the tables and flags company-stated figures where they differ. Stripe's own early-2025 math implied about 8,550 staff, above the tracker count of 8,140 for the same period.",
+          "deep_link": "https://www.makerstations.io/stripe-employee-statistics/#:~:text=Stripe%20has%20about%208%2C198%20tracked,per%20Revelio%20Labs.",
+          "note": "Web page: no page numbers."
+        },
+        "as_of_date": "2025-12-01",
+        "as_of_estimated": false,
+        "as_of_basis": null,
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": true,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Not counted as corroboration: restates another source's figure.",
+        "notes": [
+          "Uses a different Revelio cut (identifiable profiles only), which disagrees with the Revelio public page (8,679 for Q4 2025).",
+          "Not counted as corroboration: restates another source's figure."
+        ]
+      },
+      {
+        "url": "https://www.unifygtm.com/insights-headcount/stripe",
+        "tier": 9,
+        "value": 8017,
+        "qualifier": "exact",
+        "excerpt": "Total employees 8017 7.2% from last year",
+        "location": {
+          "section": "Headcount and Employee Trends",
+          "page": null,
+          "page_basis": null,
+          "context": "Total employees 8017. 7.2% from last year. New hires (YTD) 1117.",
+          "deep_link": "https://www.unifygtm.com/insights-headcount/stripe#:~:text=Total%20employees%208017%207.2%25%20from%20last%20year",
+          "note": "Web page: no page numbers."
+        },
+        "as_of_date": "2025-08-31",
+        "as_of_estimated": true,
+        "as_of_basis": "A secondary report (coinlaw.io) dates the Unify figure to late August 2025",
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "corroboration_only": false,
+        "role": "corroborates",
+        "role_reason": "Independent source near the same date, within 6% of the certified value (threshold 15%).",
+        "notes": [
+          "Third-party tracker estimate.",
+          "As-of date estimated from A secondary report (coinlaw.io) dates the Unify figure to late August 2025."
+        ]
+      }
+    ],
+    "linkedin_check": {
+      "member_count": 16924,
+      "size_range": [
+        5001,
+        10000
+      ],
+      "workforce_profile": "white_collar",
+      "implied_range": [
+        14717,
+        18805
+      ],
+      "size_range_agrees": true,
+      "status": "flag",
+      "note": "Flag: LinkedIn shows 16,924 members, 99% above the certified 8,500; more than the 15% tolerance for a white-collar workforce."
+    },
+    "adjustments": [],
+    "flags": [
+      "Complexity: LinkedIn member count (16,924) is far above the 5,001-10,000 size range and the tracker estimates (~8,000-9,400), so it likely includes contractors and former staff.",
+      "Complexity: Tracker estimates disagree with each other (Revelio 9,383 vs 8,198 for different cuts).",
+      "Complexity: No company-stated figure after January 2025; the 10,000 figure was a year-end 2025 target and no source confirms it was reached.",
+      "LinkedIn: Flag: LinkedIn shows 16,924 members, 99% above the certified 8,500; more than the 15% tolerance for a white-collar workforce."
+    ],
+    "events": [
+      {
+        "description": "Stripe laid off about 300 employees (3.5% of staff) in January 2025, from about 8,500 employees.",
+        "url": "https://www.paymentsdive.com/news/stripe-employees-workforce-cuts-additions/737935/",
+        "close_date": "2025-01-15",
+        "penalized": false,
+        "after_as_of": false,
+        "headcount_change": -300,
+        "reason": "Closed 2025-01-15, on or before the 2025-01-15 as-of date, so the figure already reflects it; noted, not penalized."
+      }
+    ],
+    "rationale": "Highest-ranked available source is tier 6 (Reputable third-party article quoting an executive), as of 2025-01-15, reporting 8,500. Event noted, not penalized (closed 2025-01-15, on or before the as-of date): Stripe laid off about 300 employees (3.5% of staff) in January 2025, from about 8,500 employees. (https://www.paymentsdive.com/news/stripe-employees-workforce-cuts-additions/737935/). 1 independent corroborating source(s) within 15%. Complexity: LinkedIn member count (16,924) is far above the 5,001-10,000 size range and the tracker estimates (~8,000-9,400), so it likely includes contractors and former staff. Complexity: Tracker estimates disagree with each other (Revelio 9,383 vs 8,198 for different cuts). Complexity: No company-stated figure after January 2025; the 10,000 figure was a year-end 2025 target and no source confirms it was reached. LinkedIn: Flag: LinkedIn shows 16,924 members, 99% above the certified 8,500; more than the 15% tolerance for a white-collar workforce. Confidence 1 (Unverified).",
+    "trend": [
+      {
+        "as_of_date": "2025-01-15",
+        "value": 8500,
+        "tier": 6,
+        "url": "https://www.paymentsdive.com/news/stripe-employees-workforce-cuts-additions/737935/"
+      }
+    ],
+    "forecast": null,
+    "policy_version": "0.2"
+  },
+  "cost_usd": 0.1866,
+  "web_searches": 3,
+  "web_fetches": 1,
+  "method": "research",
+  "notes": [
+    "Stripe is private: no SEC filing, Form 990, IPEDS or government report applies, and no headcount was read from the company website. The tier 6 8,500 figure is the only company-stated count and is over 20 months old. The 10,000 target in the Payments Dive article is excluded as a target, not a count. The November 2022 layoff (~14%, ~1,120 people) is excluded from events as secondary-summary-only. The 500+ open roles (March 2026) is a hiring signal, not a headcount change."
+  ],
+  "queries": [
+    "web_fetch: https://stripe.com/about",
+    "web_search: Stripe number of employees 2026",
+    "web_search: Stripe annual letter 2025 employees headcount",
+    "web_search: Stripe LinkedIn company page employees"
+  ],
+  "run_at": "2026-10-11T21:37:47.397165Z",
+  "duration_s": 47.6,
+  "models": {
+    "research": "claude-sonnet-5-5",
+    "extraction": "claude-sonnet-5-5"
+  }
+}

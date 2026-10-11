@@ -161,3 +161,48 @@ Decisions made while building the `feature/company-card` branch, most consequent
 
 ### Open issue: a dated URL path isn't used as a date
 Donor Network West scores 2 because a 2023 sponsorship PDF reporting 300 people came back from research with no date, so it counted as a non-stale conflict. Its URL contains `/wp-content/uploads/2023/03/`. Inferring a published date from such paths would fix this, but it's a policy change, so it's logged rather than made.
+
+## Scoring fixes from the Stripe run
+
+Stripe had been certified at 8,500 with confidence 2. It's now 8,500 with confidence 1, plus an indicated current range of 8,198–10,000.
+
+### D27. Estimating an as-of date when the source gives none
+- **What:** when a source has no as-of date, one is estimated and stored with `as_of_estimated: true`. Every recency rule uses it. The estimate comes from:
+  - research's estimate from wording ("as of early 2025"), if available
+  - otherwise the publication date, or the modified date when that's later
+- **The cap:** the estimate is never later than the source's publication date or the lookup date. The Stripe rerun caught research dating a "10,000 by end of 2025" target to 2025-12-31.
+- **Why:** an article reports headcount as of roughly when it was written. Leaving the date out let an old figure pass as current.
+- **Alternatives:** use the lookup date, which is how the bug happened; or never estimate, which would leave Stripe undated.
+
+### D28. The corroboration window is centred on the anchor's as-of date; an undated anchor gets no bonus
+- **What:** before, an undated anchor was "presumed current" and measured against the lookup date. That's how March 2026 Revelio data corroborated a January 2025 statement. Now the window centres on the anchor's as-of date (estimated or not). If there's still no date, no source can corroborate it.
+- **Effect:** Gong's website tile (no date at all) can no longer gain a bonus. Gong's score didn't change, because its growth-adjusted path doesn't use one.
+
+### D29. Recency is now its own −1 line, for every tier
+- **What:** the breakdown now runs base → recency → corroboration → flags.
+  - **Base:** 4 for tier 1–2, 3 for tier 3, 2 for tiers 4–6.
+  - **Recency:** −1 when the anchor is older than 18 months, estimated dates included. Undated tier 1–2 sources also lose a level, as before.
+  - **Corroboration:** +1 is unchanged from the confidence table: tier 1–2 only when recent, never tier 3, always tier 4–6.
+- **Why:** you asked for recency to apply whenever the window is exceeded, with the finding's score impact matching the deduction. Old tier 1–2 sources still land on 3, exactly as before. Only tier 3–6 scores change: they now lose a level when old.
+- **Alternatives:** a separate 24-month window for secondary sources. Rejected: the 18-month window is the policy's existing certified window.
+- **Not penalized:** an anchor with no date at all and no basis to estimate one, like Gong's website tile. Its age can't be measured, and it already loses the corroboration bonus.
+
+### D30. Known changes label the figure "pre-adjustment"; the number isn't adjusted
+- **What:** any confirmed change that took effect after the as-of date (layoffs, acquisitions, spinoffs) sets `adjustment_status: pre-adjustment` and is listed in `known_changes`. A material change (over 15%, or of unknown size) also lowers confidence one level, under the existing event rule. When the headcount change is stated, the engine judges materiality itself against the certified value. That way Salesforce's layoffs of about 1,000 (1.2%) aren't penalized.
+- **Why this option:** announced cuts often differ from what actually happens, and timing is uncertain. Subtracting an announced number would publish a figure no source states. Labelling it keeps the certified figure true to its source while still warning the reader.
+- **Also:** bids, proposals and rumors are excluded. The Stripe rerun had flagged a reported Stripe–Advent bid for PayPal.
+
+### D31. Indicated current range
+- **What:** shown when:
+  - the anchor is at least 12 months old
+  - newer tier 7–9 figures are dated at least 3 months after it and within the last 12 months
+  - outliers more than 30% from the median are dropped (as in the growth signal)
+  - the remaining figures' mean differs from the certified figure by at least 5%
+- **Placement:** it appears next to the count, marked "context only, not certified", with a yellow finding. It's never shown when the growth adjustment has already moved the value.
+- **Why 5%:** you named quarterly Revelio diverging from Stripe's old figure. That gap was about 10%, under the 15% corroboration threshold, so a stricter cut-off would have hidden exactly the case you asked about. All four thresholds are in `policy.yaml`.
+
+### D32. Card header renamed to "Key Source"
+Done now rather than in the design pass, since it's a one-word change. It's logged in FEEDBACK.md.
+
+### Open issue: overuse of complexity flags
+In the Stripe rerun, research listed data disagreements as "complexity" flags ("tracker estimates disagree"). The extraction instructions say complexity is for entity-scope ambiguity only. It didn't change Stripe's result, since the score was at its minimum, but tightening this further would make the findings cleaner.

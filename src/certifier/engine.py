@@ -24,6 +24,19 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
 
     effective: dict[int, int] = {}
     for s in sources:
+        # An undated figure gets an as-of date estimated from its publication date (research may
+        # already have estimated one from wording such as "as of early 2025").
+        if s.as_of_date is None and s.latest_published is not None:
+            s.as_of_date, s.as_of_estimated = s.latest_published, True
+            s.as_of_basis = s.as_of_basis or f"publication date {s.latest_published.isoformat()}"
+        # A source can't report a headcount as of a date after it was published (or after today).
+        latest_possible = min(d for d in (s.latest_published, lookup_date) if d is not None)
+        if s.as_of_estimated and s.as_of_date is not None and s.as_of_date > latest_possible:
+            s.notes.append(f"Estimated as-of {s.as_of_date.isoformat()} is after the source's publication date; "
+                           f"capped at {latest_possible.isoformat()}.")
+            s.as_of_date = latest_possible
+        if s.as_of_estimated:
+            s.notes.append(f"As-of date estimated from {s.as_of_basis or 'context'}.")
         effective[id(s)], log = rules.apply_counting_rules(s)
         if s.tier == 1 and not rules.is_tier1_provenance(s, entity.website, policy):
             s.corroboration_only = True
@@ -91,13 +104,22 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
     event_outcomes: list[EventOutcome] = []
     for e in events or []:
         where = f" ({e.url})" if e.url else ""
+        if e.headcount_change is not None and value:  # a stated change is judged against the certified value
+            e = e.model_copy(update={"material": abs(e.headcount_change) / value > policy.agreement.corroborates_within})
         if e.close_date is not None and as_of is not None and e.close_date > as_of:
-            reason = (f"Closed {e.close_date.isoformat()}, after the {as_of.isoformat()} as-of date, so the "
-                      "certified figure cannot include it; confidence lowered one level.")
-            flags.append(f"Event-driven: {e.description}, closed {e.close_date.isoformat()}, after the "
-                         f"{as_of.isoformat()} as-of date{where}")
+            effect = "" if e.headcount_change is None else f" (stated change {e.headcount_change:+,})"
+            if e.material:
+                reason = (f"Took effect {e.close_date.isoformat()}, after the {as_of.isoformat()} as-of date, so the "
+                          f"certified figure cannot include it{effect}; the figure is labelled pre-adjustment and "
+                          "confidence is lowered one level.")
+                flags.append(f"Event-driven: {e.description}, {e.close_date.isoformat()}, after the "
+                             f"{as_of.isoformat()} as-of date{where}")
+            else:
+                reason = (f"Took effect {e.close_date.isoformat()}, after the {as_of.isoformat()} as-of date{effect}; "
+                          "the figure is labelled pre-adjustment. The change is small, so confidence is unchanged.")
             event_outcomes.append(EventOutcome(description=e.description, url=e.url, close_date=e.close_date,
-                                               penalized=True, reason=reason))
+                                               penalized=e.material, after_as_of=True,
+                                               headcount_change=e.headcount_change, reason=reason))
         else:
             when = (f"closed {e.close_date.isoformat()}, on or before the as-of date" if e.close_date and as_of
                     else "close date or as-of date unknown")
@@ -107,7 +129,7 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
                       "The close date or the as-of date is unknown, so it cannot be shown to postdate the figure; "
                       "noted, not penalized.")
             event_outcomes.append(EventOutcome(description=e.description, url=e.url, close_date=e.close_date,
-                                               penalized=False, reason=reason))
+                                               penalized=False, headcount_change=e.headcount_change, reason=reason))
 
     # Corroboration: independent sources near the same as-of date that agree within the threshold.
     corroborators: list[Source] = []
@@ -188,6 +210,9 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
         count_basis=None if value is None else (selected.basis if selected is not None else "headcount"),
         range=value_range, confidence_score=score, confidence_level=policy.confidence_levels[score],
         confidence_breakdown=steps, policy_tier=policy_tier, as_of_date=as_of,
+        as_of_estimated=bool(selected is not None and selected.as_of_estimated),
+        pre_adjustment=any(o.after_as_of for o in event_outcomes),
+        indicated_range=rules.indicated_range(selected, value, sources, lookup_date, policy) if growth is None else None,
         sources=_explain_unassigned(sources, value), linkedin_check=li, adjustments=adjustments, flags=flags,
         events=event_outcomes,
         rationale=_rationale(selected, derivation, value, len(corroborators), notes, flags, score, policy),

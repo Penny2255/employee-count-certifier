@@ -56,6 +56,13 @@ class Agreement(BaseModel):
     corroboration_window_months: int = 9
 
 
+class IndicatedRangePolicy(BaseModel):
+    min_anchor_age_months: int = 12  # only for certified figures at least this old
+    max_source_age_months: int = 12  # newer figures dated within this window of the lookup
+    min_newer_by_months: int = 3  # and at least this much newer than the anchor
+    min_divergence: float = 0.05  # and their mean differs from the certified value by at least this
+
+
 class Provenance(BaseModel):
     sec_hosts: list[str] = ["sec.gov"]
 
@@ -91,6 +98,7 @@ class Policy(BaseModel):
     recency: Recency
     agreement: Agreement
     provenance: Provenance = Provenance()
+    indicated_range: IndicatedRangePolicy = IndicatedRangePolicy()
     confidence_levels: dict[int, str]
     range_bands: dict[str, tuple[float, float]]
     qualifier_phrases: dict[str, list[str]]

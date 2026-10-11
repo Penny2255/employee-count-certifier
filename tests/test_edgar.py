@@ -135,8 +135,8 @@ def test_material_events_become_dated_events():
     from certifier.policy import default_policy
     from certifier.research import XEvent, material_events
     events, notes = material_events([
-        XEvent(description="Acquired Informatica", url="https://example.com/pr", close_date=date(2025, 11, 18),
+        XEvent(description="Acquired Informatica", url="https://example.com/pr", close_date=date(2025, 11, 18), kind="acquisition", headcount_change=None,
                headcount_impact=0.05 + 0.2),
-        XEvent(description="Rumored deal", url=None, close_date=None, headcount_impact=None)], default_policy())
+        XEvent(description="Rumored deal", url=None, close_date=None, kind="merger", headcount_change=None, headcount_impact=None)], default_policy())
     assert [(e.description, e.close_date) for e in events] == [("Acquired Informatica", date(2025, 11, 18))]
     assert "unconfirmed" in notes[0]

@@ -34,6 +34,10 @@ class XSource(BaseModel):
         description="global: the whole entity worldwide; partial: a region, segment, subsidiary or department; "
                     "broader: also covers bodies outside the entity (e.g., a city figure including schools)")
     as_of_date: date | None = Field(description="Date the count applies to, if stated or clearly implied")
+    as_of_estimate: date | None = Field(description="When as_of_date is null: best estimate of the date the count "
+                                                    "applies to from context (article date, 'as of early 2025' -> "
+                                                    "2025-02-15); null if there is no basis at all")
+    as_of_estimate_basis: str | None = Field(description="What the estimate rests on, e.g. 'article dated 2025-01-22'")
     published_date: date | None
     modified_date: date | None = Field(description="Page's last-updated date, if shown")
     restates: bool = Field(description="True if this source repeats another source's figure (e.g. Wikipedia, "
@@ -61,7 +65,10 @@ class XLinkedIn(BaseModel):
 class XEvent(BaseModel):
     description: str
     url: str | None = Field(description="Source confirming the event; null if not confirmed by a found source")
-    close_date: date | None = Field(description="Date the deal closed or the spinoff completed, if known")
+    close_date: date | None = Field(description="Date the deal closed, the spinoff completed, or layoffs/hiring "
+                                                "took effect; the announcement date if that is all that is known")
+    kind: Literal["merger", "acquisition", "spinoff", "layoff", "hiring", "other"]
+    headcount_change: int | None = Field(description="Signed change in headcount if stated (e.g. -300)")
     headcount_impact: float | None = Field(
         description="Approximate change to headcount as a fraction (0.25 = +25%), null if unknown")
 
@@ -70,7 +77,8 @@ class Extraction(BaseModel):
     sources: list[XSource]
     linkedin: XLinkedIn
     workforce_profile: Literal["white_collar", "mixed", "blue_collar"]
-    events: list[XEvent] = Field(description="Mergers, acquisitions, spinoffs or similar affecting headcount")
+    events: list[XEvent] = Field(description="Completed or definitively announced mergers, acquisitions, spinoffs, "
+                                             "layoffs or hiring that change headcount. Not bids, proposals or rumors")
     complexities: list[str] = Field(
         description="Only genuine entity-scope ambiguity that could change the count materially and needs human "
                     "review, e.g. 'University has an affiliated health system that IPEDS excludes' or 'city figure "
@@ -80,16 +88,18 @@ class Extraction(BaseModel):
 
 
 def material_events(events: list[XEvent], policy: Policy) -> tuple[list[Event], list[str]]:
-    """Confirmed (sourced) events with a material or unknown headcount impact go to the engine,
-    which penalizes only those that closed after the as-of date. Others are kept as notes."""
-    material_events_, notes = [], []
+    """Confirmed (sourced) events go to the engine with a materiality flag: any that took effect after
+    the as-of date label the figure pre-adjustment, and material ones also lower confidence.
+    Unconfirmed events are kept as notes."""
+    confirmed, notes = [], []
     for e in events:
         material = e.headcount_impact is None or abs(e.headcount_impact) > policy.agreement.corroborates_within
-        if e.url and material:
-            material_events_.append(Event(description=e.description, url=e.url, close_date=e.close_date))
+        if e.url:
+            confirmed.append(Event(description=e.description, url=e.url, close_date=e.close_date, kind=e.kind,
+                                   headcount_change=e.headcount_change, material=material))
         else:
-            notes.append(f"Event noted, not flagged ({'unconfirmed' if not e.url else 'immaterial'}): {e.description}")
-    return material_events_, notes
+            notes.append(f"Event noted, not flagged (unconfirmed): {e.description}")
+    return confirmed, notes
 
 
 # --- Prompts ------------------------------------------------------------------------------------
@@ -138,9 +148,12 @@ Also report, if visible in public search results only (never log in or scrape): 
 count ("N associated members", "N employees on LinkedIn"), the LinkedIn size range, and any
 headcount growth figures; and the workforce profile (white-collar, mixed, blue-collar). A
 LinkedIn member count is NOT a tier 5 source: tier 5 is only headcount text the company wrote in
-its LinkedIn description ("with more than 4,500 employees across the globe"). Report a merger, acquisition or
-spinoff only when a source you found confirms it, with its URL and the approximate headcount
-impact; never from background knowledge alone. Do not invent figures. If nothing is found, say so.
+its LinkedIn description ("with more than 4,500 employees across the globe"). Report a merger, acquisition,
+spinoff, layoff or hiring push only when it has taken effect or been definitively announced (not
+a bid, proposal, rumor or talks) and a source you found confirms it, with its URL, the date it
+took effect (or was announced) and the headcount change if stated; never from background
+knowledge alone. When a figure has no stated as-of date, say what dates it (article date, "as of
+early 2025"). Do not invent figures. If nothing is found, say so.
 
 {brief}"""
 
@@ -154,7 +167,8 @@ date; leave fields null when unknown. Always use the URL where you actually read
 10-K or annual report copied on a third-party site (Quartr, AnnualReports.com, aggregators) keeps
 that site's URL, not sec.gov's. Mark restates true when the source repeats another source's
 figure (Wikipedia, Bullfincher, data sites quoting the 10-K). For events, give the close date.
-Exclude figures that are not headcounts (customers'
+Exclude targets, plans, goals and forecasts ("aims to reach 10,000 by end of 2025",
+"plans to hire 2,000"): they are not headcounts. Exclude figures that are not headcounts (customers'
 employees, layoffs, hires, survey participants, share counts). A LinkedIn member count ("N
 associated members", "N employees" on LinkedIn pages) goes in linkedin.member_count, never in
 sources; tier 5 is only headcount text the company wrote in its LinkedIn description.
@@ -253,7 +267,11 @@ def research_entity(entity: Entity, snippets: list[Snippet], lookup_date: date, 
 def to_source(x: XSource) -> Source:
     return Source(
         url=x.url, tier=x.tier, value=x.value, qualifier=x.qualifier, basis=x.basis, scope=x.scope,
-        excerpt=x.excerpt, location=_location(x), as_of_date=x.as_of_date, published_date=x.published_date,
+        excerpt=x.excerpt, location=_location(x), as_of_date=x.as_of_date or x.as_of_estimate,
+        as_of_estimated=x.as_of_date is None and x.as_of_estimate is not None,
+        as_of_basis=(x.as_of_estimate_basis or "context in the source")
+        if x.as_of_date is None and x.as_of_estimate is not None else None,
+        published_date=x.published_date,
         modified_date=x.modified_date, restates=x.restates,
         contractors_included=x.contractors_included or None,
         separately_reported={c.category: c.count for c in x.separately_reported} or None,

@@ -83,6 +83,8 @@ summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; b
 .status.yellow { color: var(--yellow); background: var(--yellow-bg); }
 .status.red { color: var(--red); background: var(--red-bg); }
 .group-title { margin: 12px 0 0; font-size: 13px; font-weight: 600; color: var(--muted); }
+.badge.warn { background: var(--yellow-bg); color: var(--yellow); border-color: transparent; }
+.indicated { margin-top: 8px; padding: 6px 10px; border: 1px dashed var(--line); border-radius: 8px; font-size: 14px; }
 mark { background: var(--accent-soft); color: inherit; padding: 0 2px; border-radius: 3px; font-weight: 600; }
 .where { margin-top: 6px; }
 blockquote { margin: 8px 0; padding: 8px 12px; border-left: 3px solid var(--accent); background: var(--soft);
@@ -213,8 +215,9 @@ footer.block { font-size: 13px; color: var(--muted); }
         el("div", null, [QUAL[h.qualifier] ? el("span", { cls: "qual", text: QUAL[h.qualifier] }) : null, el("span", { cls: "count", text: num(h.count) })]),
         el("div", { cls: "row small" }, [el("span", { text: basis }),
           h.range && h.range[0] !== h.range[1] ? el("span", { cls: "muted", text: "range " + num(h.range[0]) + "–" + num(h.range[1]) }) : null,
-          h.as_of_date ? el("span", { cls: "muted", text: "as of " + h.as_of_date }) : el("span", { cls: "muted", text: "undated" }),
-          h.count_type ? el("span", { cls: "badge accent", text: h.count_type }) : null])
+          h.as_of_date ? el("span", { cls: "muted", text: "as of " + h.as_of_date + (h.as_of_estimated ? " (estimated)" : "") }) : el("span", { cls: "muted", text: "undated" }),
+          h.count_type ? el("span", { cls: "badge accent", text: h.count_type }) : null,
+          h.adjustment_status === "pre-adjustment" ? el("span", { cls: "badge warn", text: "! pre-adjustment" }) : null])
       ]);
     }
     var meter = el("span", { cls: "meter", role: "img", "aria-label": "Confidence " + c.score + " of 5" });
@@ -227,16 +230,27 @@ footer.block { font-size: 13px; color: var(--muted); }
     table.appendChild(el("tr", { cls: "total" }, [el("td", { cls: "pts", text: String(c.score) }), el("td", { text: "= " + c.arithmetic })]));
     var conf = el("details", null, [el("summary", { cls: "wrap" }, [el("span", null, [meter]), el("strong", { text: c.score + "/5 " + c.level }),
       el("span", { cls: "muted small", text: "score breakdown" })]), table]);
+    var extra = [];
+    if (h.known_changes && h.known_changes.length) {
+      extra.push(el("div", { cls: "row small", style: "margin-top:6px" }, [el("span", { cls: "muted", text: "Known change after the as-of date:" }),
+        el("span", { text: h.known_changes.join("; ") })]));
+    }
+    if (h.indicated_current_range) {
+      var ir = h.indicated_current_range;
+      extra.push(el("div", { cls: "indicated", title: ir.rationale }, [
+        el("strong", { text: "Indicated current range " + num(ir.low) + "–" + num(ir.high) }),
+        el("span", { cls: "muted small", text: " · newer data-provider figures, " + ir.earliest.slice(0, 7) + (ir.latest !== ir.earliest ? " to " + ir.latest.slice(0, 7) : "") + " · context only, not certified" })]));
+    }
     var p = r.primary_source;
     var src = p && p.source_id ? el("div", { cls: "row small muted where" }, [el("span", { text: "Source: " + where(p.url, p.location) })]) : null;
-    return el("div", { cls: "block" }, [top, src, el("div", { style: "margin-top:12px" }, [conf])].filter(Boolean));
+    return el("div", { cls: "block" }, [top].concat(extra).concat([src, el("div", { style: "margin-top:12px" }, [conf])]).filter(Boolean));
   }
 
   function primary(r) {
     var p = r.primary_source;
-    if (!p.source_id) return section("Primary source", "none", [none(p.none_reason)], true);
+    if (!p.source_id) return section("Key Source", "none", [none(p.none_reason)], true);
     var loc = p.location;
-    return section("Primary source", "tier " + p.tier + " · " + (loc.section ? loc.section + " · " : "") + loc.page_label, [
+    return section("Key Source", "tier " + p.tier + " · " + (loc.section ? loc.section + " · " : "") + loc.page_label, [
       el("div", { cls: "row" }, [el("span", { cls: "badge accent", text: "Tier " + p.tier }), el("span", { cls: "small", text: p.tier_name })]),
       el("p", { cls: "small muted", style: "margin:8px 0 0", text: "Detailed excerpt (the exact quote is highlighted):" }),
       passage(loc, p.excerpt),

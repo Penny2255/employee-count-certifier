@@ -59,9 +59,11 @@ def test_undated_source_cannot_corroborate_but_can_conflict(entity):
     assert score(entity, src(1, 10_000), src(4, 20_000, as_of=None)).confidence_score == 3
 
 
-def test_undated_selected_source_is_presumed_current(entity):
-    # A website tile corroborated by a recent dated source.
-    assert score(entity, src(4, 1_500, as_of=None), src(6, 1_550, as_of=date(2026, 7, 1))).confidence_score == 3
+def test_anchor_with_no_date_gets_no_corroboration_bonus(entity):
+    # A website tile with no date at all: nearness can't be established, so no +1.
+    cert = score(entity, src(4, 1_500, as_of=None), src(6, 1_550, as_of=date(2026, 7, 1)))
+    assert cert.confidence_score == 2
+    assert "no as-of date" in cert.sources[1].role_reason
 
 
 # --- Score breakdown ---
@@ -71,7 +73,7 @@ def test_breakdown_explains_each_step(entity):
                    excerpt="over 9,800 employees")
     cert = score(entity, src(1, 10_000), newsroom)
     steps = [(s.points, s.reason) for s in cert.confidence_breakdown]
-    assert steps[0] == (4, "base 4: tier 1, as-of within 18 months")
+    assert steps[0] == (4, "base 4: tier 1 primary source")
     assert steps[1][0] == 1 and "example.com 'over 9,800 employees'" in steps[1][1]
     assert steps[2] == (0, "no deductions")
     assert sum(p for p, _ in steps) == cert.confidence_score == 5
@@ -98,7 +100,8 @@ def test_event_closed_after_as_of_lowers_confidence(entity):
     deal = Event(description="Acquisition of Target Co", close_date=date(2026, 5, 1), url="https://example.com/pr")
     cert = score(entity, src(1, 10_000, as_of=date(2026, 1, 31)), events=[deal])
     assert cert.confidence_score == 3
-    assert cert.flags[0].startswith("Event-driven: Acquisition of Target Co, closed 2026-05-01, after")
+    assert cert.flags[0].startswith("Event-driven: Acquisition of Target Co, 2026-05-01, after")
+    assert cert.pre_adjustment
 
 
 def test_event_without_close_date_is_noted(entity):
@@ -125,8 +128,15 @@ def test_older_primary_is_supported_even_with_corroboration(entity):
                  src(1, 9_800, as_of=date(2023, 6, 30))).confidence_score == 3
 
 
-def test_undated_primary_is_supported(entity):
-    assert score(entity, src(2, 10_000, as_of=None, published_date=date(2026, 3, 1))).confidence_score == 3
+def test_undated_primary_gets_an_estimated_as_of_from_its_publication_date(entity):
+    cert = score(entity, src(2, 10_000, as_of=None, published_date=date(2026, 3, 1)))
+    assert (cert.as_of_date, cert.as_of_estimated, cert.confidence_score) == (date(2026, 3, 1), True, 4)
+
+
+def test_primary_with_no_date_at_all_is_supported(entity):
+    cert = score(entity, src(2, 10_000, as_of=None))
+    assert cert.confidence_score == 3
+    assert cert.confidence_breakdown[1].reason == "recency: tier 2 source has no as-of date"
 
 
 # --- Secondary sources ---
@@ -138,7 +148,7 @@ def test_tier3_is_supported(entity):
 
 def test_tier4_to_6_needs_corroboration(entity):
     assert score(entity, src(5, 4_500, as_of=None, qualifier="more_than")).confidence_score == 2
-    assert score(entity, src(5, 4_500, as_of=None), src(6, 4_800, as_of=date(2026, 6, 1))).confidence_score == 3
+    assert score(entity, src(5, 4_500, as_of=date(2026, 5, 1)), src(6, 4_800, as_of=date(2026, 6, 1))).confidence_score == 3
 
 
 # --- Tertiary derivation ---

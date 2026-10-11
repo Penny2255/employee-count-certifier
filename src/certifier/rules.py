@@ -353,21 +353,71 @@ def confidence_steps(selected: Source | None, derivation: Derivation | None, cor
         if derivation.count_type == "calculated":
             return [ScoreStep(points=2, reason="base 2: calculated from agreeing tier 7-9 inputs")]
         return [ScoreStep(points=1, reason="base 1: estimated from a single or disagreeing tier 7-9 input")]
-    bonus = ([ScoreStep(points=1, reason="corroborated by " + "; ".join(source_label(s) for s in corroborators))]
-             if corroborators else [])
+    months = policy.recency.certified_max_age_months
     cls = policy.tier_class(selected.tier)
+    as_of = selected.as_of_date
+    est = " (estimated)" if selected.as_of_estimated else ""
+    recent = as_of is not None and within_months(as_of, lookup_date, months)
+
     if cls == "primary":
-        months = policy.recency.certified_max_age_months
-        if selected.as_of_date is None:
-            return [ScoreStep(points=3, reason=f"base 3: tier {selected.tier}, undated")]
-        if not within_months(selected.as_of_date, lookup_date, months):
-            return [ScoreStep(points=3, reason=f"base 3: tier {selected.tier}, as-of older than {months} months")]
-        return [ScoreStep(points=4, reason=f"base 4: tier {selected.tier}, as-of within {months} months")] + bonus
-    if selected.tier == 3:
-        return [ScoreStep(points=3, reason="base 3: tier 3 company-published document")]
-    if corroborators:
-        return [ScoreStep(points=2, reason=f"base 2: tier {selected.tier}")] + bonus
-    return [ScoreStep(points=2, reason=f"base 2: tier {selected.tier} without corroboration")]
+        steps = [ScoreStep(points=4, reason=f"base 4: tier {selected.tier} primary source")]
+    elif selected.tier == 3:
+        steps = [ScoreStep(points=3, reason="base 3: tier 3 company-published document")]
+    else:
+        steps = [ScoreStep(points=2, reason=f"base 2: tier {selected.tier} secondary source")]
+
+    # Recency: one level off whenever the anchor is older than the window, estimated dates included.
+    if as_of is None and cls == "primary":
+        steps.append(ScoreStep(points=-1, reason=f"recency: tier {selected.tier} source has no as-of date"))
+    elif as_of is not None and not recent:
+        steps.append(ScoreStep(points=-1, reason=f"recency: as of {as_of.isoformat()}{est} is older than "
+                                                 f"{months} months"))
+
+    # Corroboration bonus (confidence table): tier 1-2 only when recent; never for tier 3; tier 4-6 yes.
+    if corroborators and as_of is not None and (selected.tier >= 4 or (cls == "primary" and recent)):
+        steps.append(ScoreStep(points=1, reason="corroborated by " + "; ".join(source_label(s) for s in corroborators)))
+    return steps
+
+
+def indicated_range(selected: Source | None, value: int | None, sources: list[Source], lookup_date: date,
+                    policy: Policy) -> "IndicatedRange | None":
+    """Newer tier 7-9 figures that diverge from an old certified figure (shown, never applied)."""
+    from .models import IndicatedRange
+    rule = policy.indicated_range
+    if selected is None or value is None or selected.as_of_date is None:
+        return None
+    if within_months(selected.as_of_date, lookup_date, rule.min_anchor_age_months):
+        return None
+    newer_floor = _add_months(selected.as_of_date, rule.min_newer_by_months)
+    newer = [s for s in sources if policy.tier_class(s.tier) in ("tertiary", "unranked") and s.scope == "global"
+             and s.as_of_date is not None and s.as_of_date >= newer_floor
+             and within_months(s.as_of_date, lookup_date, rule.max_source_age_months)]
+    if not newer:
+        return None
+    # Outliers (beyond the conflict threshold from the median) are left out, as for the growth signal.
+    ordered = sorted(s.value for s in newer)
+    median = ordered[len(ordered) // 2]
+    kept = [s for s in newer if relative_diff(s.value, median) <= policy.agreement.conflict_above]
+    dropped = len(newer) - len(kept)
+    newer = kept
+    vals = [s.value for s in newer]
+    mean = sum(vals) / len(vals)
+    if relative_diff(round(mean), value) < rule.min_divergence:
+        return None
+    dates = sorted(s.as_of_date for s in newer)
+    return IndicatedRange(
+        low=min(vals), high=max(vals), earliest=dates[0], latest=dates[-1], urls=[s.url for s in newer],
+        reason=(f"{len(newer)} newer data-provider figure(s) dated {dates[0].isoformat()} to {dates[-1].isoformat()} "
+                f"put headcount at {min(vals):,}-{max(vals):,}, {relative_diff(round(mean), value):.0%} from the "
+                f"certified figure as of {selected.as_of_date.isoformat()}"
+                + (f" ({dropped} outlier(s) left out)" if dropped else "")
+                + ". Shown for context; policy does not let tier 7-9 data replace it."))
+
+
+def _add_months(d: date, months: int) -> date:
+    total = d.year * 12 + d.month - 1 + months
+    year, month = divmod(total, 12)
+    return date(year, month + 1, min(d.day, calendar.monthrange(year, month + 1)[1]))
 
 
 def flag_steps(score: int, flags: list[str]) -> list[ScoreStep]:
@@ -425,7 +475,10 @@ def independence(candidate: Source, selected: Source, candidate_value: int, sele
         return Dependence("dependent", "restates another source's figure")
     if candidate_value == selected_value and candidate.as_of_date in (None, selected.as_of_date):
         return Dependence("dependent", "repeats the same figure (restatement)")
-    ref, sel_ref = candidate.recency_date, selected.recency_date or lookup_date
+    ref, sel_ref = candidate.recency_date, selected.as_of_date
+    if sel_ref is None:
+        return Dependence("undated_anchor", "the certified figure has no as-of date, so nearness can't be "
+                                            "established")
     if ref is None:
         return Dependence("undated", "undated, so not near the certified figure's as-of date")
     window = policy.agreement.corroboration_window_months

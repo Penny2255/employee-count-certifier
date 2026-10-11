@@ -41,6 +41,8 @@ class Source(BaseModel):
     excerpt: str = ""
     location: Location | None = None
     as_of_date: date | None = None
+    as_of_estimated: bool = False  # as_of_date was estimated from context, not stated
+    as_of_basis: str | None = None  # how it was estimated, e.g. "article published 2025-01-22"
     published_date: date | None = None
     modified_date: date | None = None  # last-updated date, when the page shows one
     scope: Scope = "global"
@@ -104,12 +106,16 @@ class LinkedInCheck(BaseModel):
 
 
 class Event(BaseModel):
-    """A merger, acquisition or spinoff. It lowers confidence only when it closed after the
-    selected source's as-of date, so the figure can't include it."""
+    """A known change to headcount: merger, acquisition, spinoff, layoff or hiring. When it took
+    effect after the selected source's as-of date the figure is labelled pre-adjustment, and a
+    material one also lowers confidence."""
 
     description: str
     url: str | None = None
-    close_date: date | None = None
+    close_date: date | None = None  # closed, took effect, or (if unknown) announced
+    kind: str | None = None  # merger, acquisition, spinoff, layoff, hiring, other
+    headcount_change: int | None = None  # signed, when the source states it
+    material: bool = True  # changes headcount by more than the corroboration threshold, or unknown
 
 
 class EventOutcome(BaseModel):
@@ -117,6 +123,20 @@ class EventOutcome(BaseModel):
     url: str | None
     close_date: date | None
     penalized: bool
+    after_as_of: bool = False
+    headcount_change: int | None = None
+    reason: str
+
+
+class IndicatedRange(BaseModel):
+    """Newer tier 7-9 data that diverges from an old certified figure. Shown alongside it; never
+    replaces it."""
+
+    low: int
+    high: int
+    earliest: date
+    latest: date
+    urls: list[str]
     reason: str
 
 
@@ -152,6 +172,9 @@ class Certification(BaseModel):
     confidence_breakdown: list[ScoreStep] = Field(default_factory=list)
     policy_tier: int | None
     as_of_date: date | None
+    as_of_estimated: bool = False
+    pre_adjustment: bool = False  # a known change took effect after the as-of date
+    indicated_range: IndicatedRange | None = None
     sources: list[Source]
     linkedin_check: LinkedInCheck
     adjustments: list[Adjustment]

@@ -65,6 +65,17 @@ class EntitySection(BaseModel):
     relationship: str
 
 
+class IndicatedRangeRow(BaseModel):
+    """Newer tier 7-9 data that diverges from an old certified figure: context, never the value."""
+
+    low: int
+    high: int
+    earliest: date
+    latest: date
+    source_ids: list[str]
+    rationale: Rationale
+
+
 class Headline(BaseModel):
     count: int | None
     qualifier: Qualifier | None
@@ -72,6 +83,10 @@ class Headline(BaseModel):
     count_type: CountType | None
     count_basis: Basis | None
     as_of_date: date | None
+    as_of_estimated: bool = False
+    adjustment_status: Literal["current", "pre-adjustment"] = "current"
+    known_changes: list[str] = []  # changes that took effect after the as-of date
+    indicated_current_range: IndicatedRangeRow | None = None
     none_reason: str | None = None
 
     @model_validator(mode="after")
@@ -469,12 +484,38 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
                              "No LinkedIn member count was visible in public search results. The sanity check could "
                              "not run, so confidence is unchanged.")
 
-    # Events that were noted but not penalized.
+    # Events that were noted but not penalized (penalized ones are red findings via their flag).
     for e in cert.events:
         if not e.penalized:
-            findings.add("event", "yellow", _first_sentence(f"Event noted: {e.description}"),
-                         f"{e.reason} Policy lowers confidence only for events that close after the as-of date.",
-                         [by_url[e.url]] if e.url in by_url else [])
+            title = (f"Known change after the as-of date: {e.description}" if e.after_as_of
+                     else f"Event noted: {e.description}")
+            findings.add("event", "yellow", _first_sentence(title),
+                         f"{e.reason} Policy lowers confidence only for material changes that take effect after the "
+                         "as-of date.", [by_url[e.url]] if e.url in by_url else [])
+
+    # Recency: an estimated as-of date, and the recency deduction.
+    recency_id = None
+    if selected is not None and selected.as_of_estimated:
+        findings.add("recency", "yellow", f"As-of date estimated: {selected.as_of_date.isoformat()}",
+                     f"The source gives no as-of date, so it was estimated from {selected.as_of_basis or 'context'}. "
+                     "Every recency rule uses the estimated date.", [ids[id(selected)]])
+    recency_step = next((st for st in cert.confidence_breakdown if st.reason.startswith("recency:")), None)
+    if recency_step is not None:
+        recency_id = findings.add(
+            "recency", "red", _first_sentence(recency_step.reason.removeprefix("recency: ").capitalize()),
+            f"{_sentence(recency_step.reason.removeprefix('recency: ').capitalize())} Policy lowers confidence one "
+            "level when the source is older than the window, because headcount may have changed since.",
+            [ids[id(selected)]] if selected is not None else [], recency_step.points)
+
+    # Newer data indicating a different current headcount.
+    ir = cert.indicated_range
+    indicated_row = None
+    if ir is not None:
+        ir_ids = [by_url[u] for u in ir.urls if u in by_url]
+        indicated_row = IndicatedRangeRow(low=ir.low, high=ir.high, earliest=ir.earliest, latest=ir.latest,
+                                          source_ids=ir_ids, rationale=ir.reason)
+        findings.add("data_gap", "yellow", f"Newer data indicates {ir.low:,}–{ir.high:,}",
+                     ir.reason, ir_ids)
 
     # Scope.
     partial = [s for s in cert.sources if s.scope == "partial"]
@@ -530,6 +571,8 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
             fid = base_id
         elif st.reason.startswith("corroborated by"):
             fid = corr_id
+        elif st.reason.startswith("recency:") and recency_id:
+            fid = recency_id
         else:
             fid = flag_ids.get(st.reason.split(" (no change: minimum")[0], base_id)
         lines.append(BreakdownLine(points=st.points, rationale=_sentence(st.reason), finding_id=fid))
@@ -592,6 +635,12 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
                              relationship=relationship),
         headline=Headline(count=cert.certified_count, qualifier=cert.qualifier, range=cert.range,
                           count_type=cert.count_type, count_basis=cert.count_basis, as_of_date=cert.as_of_date,
+                          as_of_estimated=cert.as_of_estimated,
+                          adjustment_status="pre-adjustment" if cert.pre_adjustment else "current",
+                          known_changes=[f"{e.description} ({e.close_date.isoformat()}"
+                                         + (f", {e.headcount_change:+,}" if e.headcount_change is not None else "") + ")"
+                                         for e in cert.events if e.after_as_of and e.close_date],
+                          indicated_current_range=indicated_row,
                           none_reason=None if cert.certified_count is not None else "No usable source was found."),
         confidence=ConfidenceSection(score=cert.confidence_score, level=cert.confidence_level, breakdown=lines,
                                      arithmetic=arithmetic),

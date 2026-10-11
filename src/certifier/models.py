@@ -42,6 +42,7 @@ class Source(BaseModel):
     # Set by the engine.
     corroboration_only: bool = False  # e.g. a mirror of a tier 1 filing: may corroborate, never selected
     role: SourceRole | None = None
+    role_reason: str = ""  # one sentence: why the source was used or excluded
     notes: list[str] = Field(default_factory=list)
 
     @property
@@ -96,6 +97,14 @@ class Event(BaseModel):
     close_date: date | None = None
 
 
+class EventOutcome(BaseModel):
+    description: str
+    url: str | None
+    close_date: date | None
+    penalized: bool
+    reason: str
+
+
 class ScoreStep(BaseModel):
     points: int  # the base score for the first step, then +/- adjustments
     reason: str
@@ -132,6 +141,7 @@ class Certification(BaseModel):
     linkedin_check: LinkedInCheck
     adjustments: list[Adjustment]
     flags: list[str]
+    events: list[EventOutcome] = Field(default_factory=list)
     rationale: str
     trend: list[TrendPoint] = Field(default_factory=list)  # oldest to newest, same tier and basis
     forecast: dict | None = None

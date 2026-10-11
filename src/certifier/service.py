@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -37,6 +38,9 @@ class LookupResult(BaseModel):
     method: str
     notes: list[str]
     queries: list[str] = []
+    run_at: datetime | None = None
+    duration_s: float | None = None
+    models: dict[str, str] = {}
 
 
 def edgar_snippets(edgar: Edgar, cik: int, limit: int = 3) -> list[Snippet]:
@@ -49,6 +53,18 @@ def edgar_snippets(edgar: Edgar, cik: int, limit: int = 3) -> list[Snippet]:
 def lookup(entity: Entity, cik: int | None = None, lookup_date: date | None = None, policy: Policy | None = None,
            edgar: Edgar | None = None, claude: Claude | None = None, parent_cik: int | None = None,
            propublica: ProPublica | None = None) -> LookupResult:
+    """Run one lookup and stamp it with run time, duration and models (the record's methodology)."""
+    policy = policy or default_policy()
+    run_at, started = datetime.now(timezone.utc), time.monotonic()
+    result = _lookup(entity, cik, lookup_date, policy, edgar, claude, parent_cik, propublica)
+    return result.model_copy(update={
+        "run_at": run_at, "duration_s": round(time.monotonic() - started, 1),
+        "models": {"research": policy.models.research, "extraction": policy.models.extraction}
+        if result.method != "edgar-heuristic" else {}})
+
+
+def _lookup(entity: Entity, cik: int | None, lookup_date: date | None, policy: Policy, edgar: Edgar | None,
+            claude: Claude | None, parent_cik: int | None, propublica: ProPublica | None) -> LookupResult:
     """`parent_cik` lets a subsidiary without its own filings use its parent's combined filing
     (e.g., FPL's headcount in NextEra's 10-K); Claude extraction scopes the figures to the entity."""
     policy = policy or default_policy()

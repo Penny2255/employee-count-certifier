@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date
 
 from . import rules
-from .models import Adjustment, Certification, Entity, Event, LinkedInEvidence, ScoreStep, Source
+from .models import Adjustment, Certification, Entity, Event, EventOutcome, LinkedInEvidence, ScoreStep, Source
 from .policy import Policy, default_policy
 
 
@@ -44,9 +44,15 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
     flags.extend(selection.flags)
     for s in selection.inconsistent:
         s.role = "conflicts"  # a detailed figure out of line with the headline never corroborates it
+        s.role_reason = ("A more detailed figure not in line with the headline statement for the same date; "
+                         "flagged for review.")
 
     if selected is not None:
         selected.role = "selected"
+        selected.role_reason = (f"Highest-ranked eligible source: tier {selected.tier}, "
+                                + (f"as of {selected.as_of_date.isoformat()}" if selected.as_of_date else "undated")
+                                + ("; the most specific figure in line with the rounder statements."
+                                   if any("More specific figure" in n for n in selection.notes) else "."))
         value = effective[id(selected)]
         qualifier = selected.qualifier
         count_type = "reported" if value == selected.value else "calculated"
@@ -70,6 +76,7 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
         derivation = rules.derive_value(inputs, policy)
         for s in selection.derive_from:
             s.role = "derived_input"
+            s.role_reason = "No tier 1-6 source exists, so this tier 7-9 figure is an input to the derived value."
         value, qualifier, count_type = derivation.value, "approximately", derivation.count_type
         value_range = derivation.range
         policy_tier = min(s.tier for s in selection.derive_from)
@@ -81,15 +88,26 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
         value = qualifier = count_type = value_range = policy_tier = as_of = None
 
     # Events lower confidence only when they closed after the as-of date (the figure can't include them).
+    event_outcomes: list[EventOutcome] = []
     for e in events or []:
         where = f" ({e.url})" if e.url else ""
         if e.close_date is not None and as_of is not None and e.close_date > as_of:
+            reason = (f"Closed {e.close_date.isoformat()}, after the {as_of.isoformat()} as-of date, so the "
+                      "certified figure cannot include it; confidence lowered one level.")
             flags.append(f"Event-driven: {e.description}, closed {e.close_date.isoformat()}, after the "
                          f"{as_of.isoformat()} as-of date{where}")
+            event_outcomes.append(EventOutcome(description=e.description, url=e.url, close_date=e.close_date,
+                                               penalized=True, reason=reason))
         else:
             when = (f"closed {e.close_date.isoformat()}, on or before the as-of date" if e.close_date and as_of
                     else "close date or as-of date unknown")
             notes.append(f"Event noted, not penalized ({when}): {e.description}{where}.")
+            reason = (f"Closed {e.close_date.isoformat()}, on or before the {as_of.isoformat()} as-of date, so the "
+                      "figure already reflects it; noted, not penalized." if e.close_date and as_of else
+                      "The close date or the as-of date is unknown, so it cannot be shown to postdate the figure; "
+                      "noted, not penalized.")
+            event_outcomes.append(EventOutcome(description=e.description, url=e.url, close_date=e.close_date,
+                                               penalized=False, reason=reason))
 
     # Corroboration: independent sources near the same as-of date that agree within the threshold.
     corroborators: list[Source] = []
@@ -101,6 +119,8 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
             if s.scope == "broader":
                 s.role = "supporting"
                 delta = effective[id(s)] - value
+                s.role_reason = (f"Covers bodies outside the entity (variance {delta:+,} vs. the certified value); "
+                                 "logged as notable, never used as the value.")
                 adjustments.append(Adjustment(
                     source_url=s.url, source_figure=effective[id(s)], change=0, result=value,
                     reason=f"Notable: figure includes bodies outside the entity (e.g., a school system): "
@@ -108,10 +128,13 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
                 continue
             if s.scope == "partial":
                 s.role = "supporting"
+                s.role_reason = "Covers only part of the organization (a region, segment or subsidiary); context only."
                 continue
             if selected is not None and s.basis != selected.basis and diff > policy.agreement.corroborates_within:
                 s.role = "supporting"  # FTE vs. headcount gaps are expected, not conflicts
                 s.notes.append(f"{s.basis} basis differs from the certified {selected.basis} figure.")
+                s.role_reason = (f"Counts {s.basis} while the certified figure counts {selected.basis}, so a gap is "
+                                 "expected; context only.")
                 continue
             dep = (rules.independence(s, selected, effective[id(s)], effective[id(selected)], lookup_date, policy)
                    if selected is not None else None)
@@ -121,17 +144,26 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
                 # restatements of the same evidence do neither.
                 if dep.kind != "undated" or diff <= policy.agreement.conflict_above:
                     s.role = "supporting"
+                    s.role_reason = f"Not counted as corroboration: {dep.reason}."
                     continue
             if diff <= policy.agreement.corroborates_within:
                 s.role = "corroborates"
+                s.role_reason = (f"Independent source near the same date, within {diff:.0%} of the certified value "
+                                 f"(threshold {policy.agreement.corroborates_within:.0%}).")
                 corroborators.append(s)
             elif diff > policy.agreement.conflict_above:
                 s.role = "conflicts"
                 if policy.tier_class(s.tier) in ("primary", "secondary") and not rules.is_stale(s, lookup_date, policy):
                     flags.append(f"Conflict: tier {s.tier} source ({s.url}) reports {effective[id(s)]:,}, "
                                  f"{diff:.0%} from the certified value.")
+                    s.role_reason = f"Disagrees with the certified value by {diff:.0%}; flagged as a conflict."
+                else:
+                    s.role_reason = (f"Disagrees by {diff:.0%}, but a tier {s.tier} or stale source never lowers "
+                                     "confidence; recorded only.")
             else:
                 s.role = "supporting"
+                s.role_reason = (f"Within {diff:.0%} of the certified value: closer than a conflict, not close enough "
+                                 "to corroborate; context only.")
 
     li = rules.linkedin_check(value, linkedin, policy)
     linkedin_was_input = ((growth is not None and growth.used_linkedin)
@@ -155,12 +187,25 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
         entity=entity, certified_count=value, count_type=count_type, qualifier=qualifier,
         count_basis=None if value is None else (selected.basis if selected is not None else "headcount"),
         range=value_range, confidence_score=score, confidence_level=policy.confidence_levels[score],
-        confidence_breakdown=steps, policy_tier=policy_tier, as_of_date=as_of, sources=sources,
-        linkedin_check=li, adjustments=adjustments, flags=flags,
+        confidence_breakdown=steps, policy_tier=policy_tier, as_of_date=as_of,
+        sources=_explain_unassigned(sources, value), linkedin_check=li, adjustments=adjustments, flags=flags,
+        events=event_outcomes,
         rationale=_rationale(selected, derivation, value, len(corroborators), notes, flags, score, policy),
         trend=rules.trend_points(selected, sources, effective) if selected is not None and growth is None else [],
         policy_version=policy.policy_version,
     )
+
+
+def _explain_unassigned(sources: list[Source], value: int | None) -> list[Source]:
+    """Every source carries a reason, including ones nothing was compared against."""
+    for s in sources:
+        if s.role is None:
+            s.role = "supporting"
+            s.role_reason = ("No certified value was produced, so nothing was compared." if value is None else
+                             "Not eligible to set the value (stale or a mirror) and not compared further.")
+        if s.corroboration_only and "mirror" not in s.role_reason.lower():
+            s.role_reason += " Hosted outside sec.gov and the organization's own site: a mirror, never the value."
+    return sources
 
 
 def _rationale(selected: Source | None, derivation: rules.Derivation | None, value: int | None,

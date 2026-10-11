@@ -81,6 +81,13 @@ def test_detailed_figure_above_up_to_is_not_in_line(policy):
     assert sel(policy, headline, src(1, 4_870, url="https://x/c")).selected.value == 4_870
 
 
+def test_unrelated_figure_in_same_document_does_not_block_specific_one(policy):
+    exact = src(1, 69_505, url="https://x/a")
+    rounded = src(1, 69_500, qualifier="more_than", url="https://x/b")
+    layoffs = src(1, 9_000, qualifier="approximately", url="https://x/c")  # "9,000 employees were let go"
+    assert sel(policy, exact, rounded, layoffs).selected is exact
+
+
 def test_specificity_only_among_same_tier_and_date(policy):
     newer_rounded = src(1, 110_000, qualifier="more_than", as_of=date(2025, 12, 31), url="https://x/a")
     older_exact = src(1, 108_123, as_of=date(2024, 12, 31), url="https://x/b")

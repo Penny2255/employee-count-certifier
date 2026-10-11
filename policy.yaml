@@ -8,6 +8,23 @@ models:
 budget:
   max_cost_usd_per_lookup: 0.50
   max_web_searches_per_entity: 8
+  max_web_searches_when_sec_filer: 4   # EDGAR already supplies tier 1
+  max_web_fetches_per_entity: 4       # full-page reads (annual reports, About pages)
+  fetch_max_content_tokens: 12000     # cap per fetched page
+  effort: medium                      # Claude effort for research and extraction
+  max_continuations: 3                # resumes after pause_turn
+  # Basic tool versions: in live tests the dynamic-filtering versions (_20260209) spent the search
+  # budget without returning provider pages; the basic versions found them in 2 searches.
+  web_search_tool: web_search_20250305
+  web_fetch_tool: web_fetch_20250910
+
+# USD prices used to estimate spend per lookup (Anthropic list prices; update when they change).
+pricing:
+  models:
+    claude-sonnet-5-5: {input_per_mtok: 2.00, output_per_mtok: 10.00, cache_read_per_mtok: 0.20}
+    claude-opus-5-5: {input_per_mtok: 4.00, output_per_mtok: 20.00, cache_read_per_mtok: 0.20}
+    claude-haiku-5-5: {input_per_mtok: 0.10, output_per_mtok: 0.50, cache_read_per_mtok: 0.01}
+  web_search_per_1000: 10.00
 
 # Tier number -> class. Lower tier number = higher rank.
 tiers:
@@ -62,6 +79,8 @@ growth_adjustment:
   min_growth: 0.10              # LinkedIn 1-year growth (else 2-year) must be at least this
   weight_toward_members: 0.75   # estimate = stated + weight x (members - stated)
   round_to_significant: 2       # 1,978 -> 2,000
+  min_tertiary_sources: 2       # signal 2: at least this many recent tier 7-9 figures that agree
+  tertiary_max_age_months: 12   # ... dated within this window
   confidence: 3                 # Supported: secondary source plus a consistent LinkedIn trend
 
 # Guidance for the research step (build step 3). Grows with reviewed cases in examples/.

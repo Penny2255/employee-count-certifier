@@ -11,12 +11,13 @@ from .policy import Policy, default_policy
 
 def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | None = None,
             lookup_date: date | None = None, event_flags: list[str] | None = None,
-            policy: Policy | None = None) -> Certification:
+            policy: Policy | None = None, review_flags: list[str] | None = None) -> Certification:
     policy = policy or default_policy()
     lookup_date = lookup_date or date.today()
     sources = [s.model_copy(deep=True) for s in sources]
     adjustments: list[Adjustment] = []
     flags: list[str] = [f"Event-driven: {f}" for f in event_flags or []]
+    flags += [f"Complexity: {f}" for f in review_flags or []]  # scope issues needing human review
 
     effective: dict[int, int] = {}
     for s in sources:
@@ -44,7 +45,8 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
         count_type = "reported" if value == selected.value else "calculated"
         value_range = rules.qualifier_range(value, qualifier, policy)
         policy_tier, as_of = selected.tier, selected.as_of_date
-        growth = rules.growth_adjustment(selected, value, linkedin, lookup_date, policy)
+        tertiary = [s for s in sources if policy.tier_class(s.tier) in ("tertiary", "unranked")]
+        growth = rules.growth_adjustment(selected, value, linkedin, lookup_date, policy, tertiary=tertiary)
         if growth is not None:
             adjustments.append(Adjustment(source_url=selected.url, source_figure=value,
                                           change=growth.value - value, reason=growth.reason, result=growth.value))
@@ -105,7 +107,8 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
                 s.role = "supporting"
 
     li = rules.linkedin_check(value, linkedin, policy)
-    linkedin_was_input = growth is not None or (derivation is not None and linkedin.member_count is not None)
+    linkedin_was_input = ((growth is not None and growth.used_linkedin)
+                          or (derivation is not None and linkedin.member_count is not None))
     if li.status == "flag":
         if linkedin_was_input:
             notes.append(f"LinkedIn check not applied as a penalty because LinkedIn was an input: {li.note}")

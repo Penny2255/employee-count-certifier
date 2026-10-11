@@ -75,6 +75,42 @@ def test_falls_back_to_two_year_growth(entity):
     assert run(entity, src(4, 1_500, as_of=None), two_year_only).certified_count == 2_000
 
 
+def test_recent_agreeing_data_providers_act_as_signal(entity):
+    # Gong live run: website 1,500 (undated); Revelio 2,101, LeadIQ 2,600, Tracxn 2,672 (2026).
+    sources = [src(4, 1_500, as_of=None, url="https://gong.io/about"),
+               src(7, 2_101, as_of=date(2026, 3, 1), url="https://revelio"),
+               src(9, 2_600, as_of=date(2026, 8, 1), url="https://leadiq"),
+               src(9, 2_672, as_of=date(2026, 8, 26), url="https://tracxn")]
+    cert = certify(entity, sources, lookup_date=LOOKUP)
+    assert (cert.certified_count, cert.range, cert.count_type) == (2_200, (1_500, 2_700), "estimated")
+    assert cert.confidence_score == 3
+    assert "data-provider figures" in cert.adjustments[-1].reason
+
+
+def test_outlier_provider_and_agreeing_member_count(entity):
+    # Gong live run 2: an outlier provider figure must not block the signal, and the LinkedIn
+    # member count (2,592, no growth visible) joins it instead of penalizing the result.
+    sources = [src(4, 1_500, as_of=None, url="https://gong.io/about"),
+               src(7, 2_101, as_of=date(2026, 3, 1), url="https://revelio"),
+               src(9, 2_600, as_of=date(2026, 8, 1), url="https://leadiq"),
+               src(9, 2_672, as_of=date(2026, 8, 26), url="https://tracxn"),
+               src(9, 1_100, as_of=date(2026, 5, 1), url="https://builtin")]
+    li = LinkedInEvidence(member_count=2_592, size_range=(1_001, 5_000), workforce_profile="white_collar")
+    cert = certify(entity, sources, linkedin=li, lookup_date=LOOKUP)
+    assert cert.certified_count == 2_200
+    assert cert.confidence_score == 3
+    assert cert.flags == []
+    assert "LinkedIn member count (2,592)" in cert.adjustments[-1].reason
+
+
+def test_single_or_disagreeing_data_providers_are_not_a_signal(entity):
+    one = [src(4, 1_500, as_of=None), src(7, 2_400, as_of=date(2026, 8, 1))]
+    assert certify(entity, one, lookup_date=LOOKUP).certified_count == 1_500
+    split = [src(4, 1_500, as_of=None), src(7, 1_800, as_of=date(2026, 8, 1), url="a"),
+             src(8, 4_000, as_of=date(2026, 8, 1), url="b")]
+    assert certify(entity, split, lookup_date=LOOKUP).certified_count == 1_500
+
+
 def test_needs_member_gap(entity):
     close = GROWING.model_copy(update={"member_count": 1_650})
     assert run(entity, src(4, 1_500, as_of=None), close).certified_count == 1_500

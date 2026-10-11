@@ -25,6 +25,24 @@ class Models(BaseModel):
 class Budget(BaseModel):
     max_cost_usd_per_lookup: float
     max_web_searches_per_entity: int
+    max_web_searches_when_sec_filer: int = 4
+    max_web_fetches_per_entity: int = 4
+    fetch_max_content_tokens: int = 12000
+    effort: str = "medium"
+    max_continuations: int = 3
+    web_search_tool: str = "web_search_20250305"
+    web_fetch_tool: str = "web_fetch_20250910"
+
+
+class ModelPrice(BaseModel):
+    input_per_mtok: float
+    output_per_mtok: float
+    cache_read_per_mtok: float
+
+
+class Pricing(BaseModel):
+    models: dict[str, ModelPrice]
+    web_search_per_1000: float
 
 
 class Recency(BaseModel):
@@ -54,12 +72,15 @@ class GrowthAdjustment(BaseModel):
     weight_toward_members: float
     round_to_significant: int
     confidence: int
+    min_tertiary_sources: int = 2
+    tertiary_max_age_months: int = 12
 
 
 class Policy(BaseModel):
     policy_version: str
     models: Models
     budget: Budget
+    pricing: Pricing
     tiers: dict[int, TierInfo]
     recency: Recency
     agreement: Agreement

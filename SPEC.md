@@ -247,12 +247,27 @@ Worked examples improve the engine by being fed into its prompt as references, n
 
 Each step ends with passing tests before the next one starts.
 
-1. **Rule engine (offline).** `uv` project, `policy.yaml`, data models, and the deterministic rules: qualified-figure parsing, counting adjustments, recency, selection and exceptions, tertiary derivation, LinkedIn check, confidence, range, and the certification record. No network calls and no LLM.
-2. **SEC EDGAR tier 1 fetcher.** Find the latest 10-K, 20-F or 40-F, extract the employee section, and run it through the engine. Tested against the golden set.
-3. **Research and extraction for tiers 2–9.** Claude with web search, under the budget limits, returning candidates in the engine's schema.
-4. **Entity resolution and confirmation.** Find candidates, detect the parent, and certify both entities.
-5. **Local MCP server.** A FastMCP stdio server tested in Claude Desktop.
-6. **Remote MCP server.**
+1. **Rule engine (offline). Done.** `uv` project, `policy.yaml`, data models, and the deterministic rules: qualified-figure parsing, counting adjustments, recency, selection and exceptions, tertiary derivation, LinkedIn check, confidence, range, and the certification record. No network calls and no LLM.
+2. **SEC EDGAR tier 1 fetcher. Done.** The three latest 10-K, 20-F or 40-F filings, with employee snippets. The prior years corroborate. All six golden companies match live (`RUN_LIVE=1`).
+3. **Research and extraction for tiers 2–9. Done.** There are two Claude calls (`claude-sonnet-5-5`): research with web search and fetch, then structured extraction. There are also direct fetchers for the company website (stat tiles) and Form 990 (ProPublica). Spend is tracked against the budget, and server-side refusal fallbacks are on.
+4. **Entity resolution and confirmation. Done.** Candidates with website, description, HQ, type, ticker → CIK, and global parent. A subsidiary without its own filings uses its parent's combined filing.
+5. **Local MCP server. Done.** An `MCPServer` (mcp 2.x) over stdio with `find_entity` and `certify_employee_count`, registered in Claude Desktop as `employee-count-certifier`.
+6. **Hosted service. Next.** One Python service with an MCP endpoint (`/mcp`, streamable HTTP) for users' own Claude apps, plus a JSON API and web page, all on the same engine. It runs on a small container host (Fly.io, Render or Cloud Run). It needs sign-in, because every lookup spends API credit.
+
+**Live results (2026-10-11):**
+
+| Lookup | Result | Confidence | Cost | Time |
+| --- | --- | --- | --- | --- |
+| Adobe (SEC) | 31,360 (10-K) | 4–5 | $0.15 | 45 s |
+| FPL (subsidiary) + NextEra | 9,400 + 17,400 (NEE 10-K) | 5 + 5 | $0.19 | 47 s |
+| Donor Network West (990) | 513 (Form 990, 2024) | 3 | $0.09 | 44 s |
+| Gong (private) | ~2,200 growth-adjusted from the website's 1,500, range 1,500–2,700 | 3 | $0.12 | 29 s |
+| UC Davis (university) | more than 25,000 (includes health system), flagged | 1 | $0.14 | 34 s |
+
+**Known gaps (v1):**
+- **IPEDS fetcher.** The NCES Human Resources API returns server errors, so universities rely on web research. That finds campus-plus-health figures, not IPEDS. This is the top follow-up.
+- **Research variance.** Web search results vary between runs. Basic search tools are set in `policy.yaml`, because the dynamic-filtering versions used up searches without returning results.
+- **Complex cases are logged, not solved.** Lookups with conflicts, events or complexities are appended to `logs/review_queue.jsonl` for review and future examples. The entity-group logic (`group.py`) isn't wired into lookups yet.
 
 ## Golden set (confirmed 2026-10-11)
 

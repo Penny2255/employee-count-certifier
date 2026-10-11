@@ -47,6 +47,7 @@ def test_qualifiers_and_units(text, expected):
     "Revenue grew 12% to $4,388 million in 2025.",
     "As of December 31, 2025.",
     "Founded in 1998, the company is headquartered in Austin.",
+    "Employees purchased 1.1 million shares at an average price of $321.93.",
     "",
 ])
 def test_no_headcount(text):

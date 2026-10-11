@@ -100,12 +100,24 @@ def best_of(sources: list[Source], policy: Policy) -> Pick:
     if not sources:
         return Pick(None, [], [], [])
     top = min(_rank_key(s) for s in sources)
-    peers = sorted((s for s in sources if _rank_key(s) == top), key=specificity, reverse=True)
+    same_rank = [s for s in sources if _rank_key(s) == top]
+    # A global total is at least as large as any part of it, so restatements of the total cluster
+    # near the largest figure; much smaller figures in the same document are other quantities.
+    largest = max(s.value for s in same_rank)
+    peers = sorted((s for s in same_rank if relative_diff(s.value, largest) <= policy.agreement.conflict_above),
+                   key=specificity, reverse=True)
+    ignored = len(same_rank) - len(peers)
     for i, candidate in enumerate(peers):
-        general = [g for g in peers[i + 1:] if specificity(g) < specificity(candidate)]
+        # Only rounder figures close enough to be a restatement of the same count are checked;
+        # unrelated figures in the same document ("9,000 employees were let go") are not.
+        general = [g for g in peers[i + 1:] if specificity(g) < specificity(candidate)
+                   and relative_diff(g.value, candidate.value) <= policy.agreement.conflict_above]
         if all(in_line(candidate, g, policy) for g in general):
             break
     notes, flags = [], []
+    if ignored:
+        notes.append(f"{ignored} much smaller figure(s) with the same tier and date treated as other "
+                     f"quantities, not restatements of the {candidate.value:,} total.")
     skipped = peers[:i]
     # A headcount out of line with an FTE figure is expected (part-time staff): note it, keep the FTE.
     other_basis = [s for s in skipped if s.basis != candidate.basis]
@@ -221,34 +233,62 @@ class GrowthEstimate(NamedTuple):
     value: int
     range: tuple[int, int]
     reason: str
+    used_linkedin: bool
 
 
 def growth_adjustment(source: Source, value: int, evidence: LinkedInEvidence | None, lookup_date: date,
-                      policy: Policy) -> GrowthEstimate | None:
-    """Move an undated or old tier 2-6 figure toward the LinkedIn member count when LinkedIn
-    shows the organization has grown past it (example: Gong). None when the rule doesn't apply."""
+                      policy: Policy, tertiary: list[Source] | None = None) -> GrowthEstimate | None:
+    """Move an undated or old tier 2-6 figure toward a current signal showing the organization
+    has grown past it (example: Gong). The signal is the LinkedIn member count with growth, or
+    else a consensus of recent tier 7-9 figures. None when the rule doesn't apply."""
     rule = policy.growth_adjustment
-    if evidence is None or evidence.member_count is None or source.tier not in rule.applies_to_tiers:
-        return None
-    if source.basis == "fte":  # FTE figures are kept as stated, never estimated upward
+    if source.tier not in rule.applies_to_tiers or source.basis == "fte":  # FTE is never estimated upward
         return None
     min_age = rule.min_age_months[policy.tier_class(source.tier)]
     if source.recency_date and within_months(source.recency_date, lookup_date, min_age):
         return None
-    growth = evidence.growth_1y if evidence.growth_1y is not None else evidence.growth_2y
-    members = evidence.member_count
-    if growth is None or growth < rule.min_growth or members < value * (1 + rule.min_member_gap):
-        return None
-    estimate = round_significant(value + rule.weight_toward_members * (members - value), rule.round_to_significant)
-    profile = evidence.workforce_profile or policy.linkedin.default_profile
-    implied = implied_headcount(members, profile, policy)
-    high = max(estimate, round_significant((implied[0] + implied[1]) / 2, rule.round_to_significant))
+    floor = value * (1 + rule.min_member_gap)
     age = "undated" if source.recency_date is None else f"as of {source.recency_date.isoformat()}"
-    reason = (f"Stated {value:,} ({age}) is outdated: LinkedIn shows {members:,} members and {growth:.0%} growth. "
-              f"Moved {rule.weight_toward_members:.0%} toward the member count and rounded to "
-              f"{rule.round_to_significant} significant digits; range runs from the stated figure to the "
-              f"{profile} implied midpoint.")
-    return GrowthEstimate(estimate, (value, high), reason)
+    rounding = f"rounded to {rule.round_to_significant} significant digits"
+
+    def estimate_toward(target: float) -> int:
+        return round_significant(value + rule.weight_toward_members * (target - value), rule.round_to_significant)
+
+    # Signal 1: LinkedIn member count with growth.
+    if evidence is not None and evidence.member_count is not None:
+        growth = evidence.growth_1y if evidence.growth_1y is not None else evidence.growth_2y
+        members = evidence.member_count
+        if growth is not None and growth >= rule.min_growth and members >= floor:
+            estimate = estimate_toward(members)
+            profile = evidence.workforce_profile or policy.linkedin.default_profile
+            implied = implied_headcount(members, profile, policy)
+            high = max(estimate, round_significant((implied[0] + implied[1]) / 2, rule.round_to_significant))
+            reason = (f"Stated {value:,} ({age}) is outdated: LinkedIn shows {members:,} members and {growth:.0%} "
+                      f"growth. Moved {rule.weight_toward_members:.0%} toward the member count and {rounding}; "
+                      f"range runs from the stated figure to the {profile} implied midpoint.")
+            return GrowthEstimate(estimate, (value, high), reason, used_linkedin=True)
+
+    # Signal 2: a cluster of recent tier 7-9 figures (within the conflict threshold of their median)
+    # that all exceed the stated value. A LinkedIn member count in the same cluster joins it.
+    recent = sorted(t.value for t in tertiary or [] if t.scope == "global" and t.recency_date is not None
+                    and within_months(t.recency_date, lookup_date, rule.tertiary_max_age_months))
+    if len(recent) >= rule.min_tertiary_sources:
+        median = recent[len(recent) // 2]
+        cluster = [n for n in recent if relative_diff(n, median) <= policy.agreement.conflict_above]
+        members = evidence.member_count if evidence is not None else None
+        with_members = members is not None and relative_diff(members, median) <= policy.agreement.conflict_above
+        if len(cluster) >= rule.min_tertiary_sources and min(cluster) >= floor:
+            inputs = cluster + ([members] if with_members else [])
+            mean = sum(inputs) / len(inputs)
+            estimate = estimate_toward(mean)
+            high = max(estimate, round_significant(max(inputs), rule.round_to_significant))
+            members_text = f" and the LinkedIn member count ({members:,})" if with_members else ""
+            reason = (f"Stated {value:,} ({age}) is outdated: {len(cluster)} recent data-provider figures "
+                      f"({', '.join(f'{n:,}' for n in cluster)}){members_text} agree and exceed it. Moved "
+                      f"{rule.weight_toward_members:.0%} toward their mean ({mean:,.0f}) and {rounding}; range "
+                      f"runs from the stated figure to the highest of these figures.")
+            return GrowthEstimate(estimate, (value, high), reason, used_linkedin=with_members)
+    return None
 
 
 # --- Tertiary derivation -----------------------------------------------------

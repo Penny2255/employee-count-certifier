@@ -155,9 +155,6 @@
     b.addEventListener("click", function () { say("home-status", b.getAttribute("data-soon") + " certification is coming soon. Today GTM Data Certifier certifies employee count."); });
   });
   $("search-form").addEventListener("submit", function (e) { e.preventDefault(); search($("q").value); });
-  Array.prototype.forEach.call(document.querySelectorAll("[data-example]"), function (b) {
-    b.addEventListener("click", function () { $("q").value = b.getAttribute("data-example"); search(b.getAttribute("data-example")); });
-  });
 
   // The confirm page shows a "finding" state until the matches arrive; only the latest search may render,
   // so a double submit (Enter plus a click) can't show one list and then replace it with another.
@@ -363,6 +360,13 @@
                  relationship_to_parent: c.relationship_to_parent, query: state.query, refresh: !!refresh };
     if (state.controller) state.controller.abort();
     var controller = state.controller = window.AbortController ? new AbortController() : null;
+    // Stages play at a readable pace (at least STAGE_MS each), even when the result comes from the cache.
+    var STAGE_MS = 750, nextAt = Date.now() + STAGE_MS;
+    function pace(step, hold) {
+      var wait = Math.max(0, nextAt - Date.now());
+      nextAt = Math.max(Date.now(), nextAt) + (hold || STAGE_MS);
+      setTimeout(function () { if (!controller || !controller.signal.aborted) step(); }, wait);
+    }
     fetch("/api/lookup", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, authHeaders()), body: JSON.stringify(body),
                            signal: controller ? controller.signal : undefined })
       .then(function (r) {
@@ -383,8 +387,12 @@
               });
               if (!data) return;
               var payload; try { payload = JSON.parse(data); } catch (e) { return; }
-              if (ev === "progress") markStage(theme, payload.stage);
-              else if (ev === "result") { markStage(theme, "certified"); state.controller = null; setTimeout(function () { if (!controller || !controller.signal.aborted) showResult(payload); }, 600); }
+              if (ev === "progress") pace(function () { markStage(theme, payload.stage); });
+              else if (ev === "result") {
+                state.controller = null;
+                pace(function () { markStage(theme, "certified"); });
+                pace(function () { if (!controller || !controller.signal.aborted) showResult(payload); }, 900);
+              }
               else if (ev === "error") throw Object.assign(new Error(payload.message), { status: payload.kind === "limit" ? 429 : 500 });
             });
             return pump();

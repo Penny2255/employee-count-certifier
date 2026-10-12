@@ -156,11 +156,14 @@ def test_salesforce_record_end_to_end():
     assert not mirror.used and "mirror" in mirror.tier_rationale
 
 
-def test_forecast_point_is_marked_estimated():
+def test_four_year_forecast_marked_estimated_with_a_widening_range():
     trend = salesforce_record().trend.items
-    assert [t.estimated for t in trend] == [False, False, False, True]
-    forecast = trend[-1]
-    assert forecast.low <= forecast.value <= forecast.high and "Estimated" in forecast.rationale
+    assert [t.estimated for t in trend] == [False, False, False, True, True, True, True]
+    forecast = [t for t in trend if t.estimated]
+    assert [t.as_of_date.year for t in forecast] == [2027, 2028, 2029, 2030]
+    assert all(t.low <= t.value <= t.high and "Estimated, year" in t.rationale for t in forecast)
+    widths = [t.high - t.low for t in forecast]
+    assert widths == sorted(widths) and widths[-1] > widths[0]
 
 
 def test_red_finding_for_penalized_flag(entity):

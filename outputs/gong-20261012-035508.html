@@ -610,21 +610,27 @@ main { max-width: 860px; margin: 0 auto; padding: var(--gap); }
       add("path", { d: line + " L " + pts[pts.length - 1][0] + " " + (H - B) + " L " + pts[0][0] + " " + (H - B) + " Z", fill: "url(#" + gid + ")", stroke: "none" });
       add("path", { d: line, fill: "none", stroke: "var(--meter)", "stroke-width": 3, "stroke-linecap": "round", "stroke-linejoin": "round" });
     }
-    items.filter(function (p) { return p.estimated && p.low != null; }).forEach(function (f) {
-      if (!last) return;
-      var lx = X(t(last.as_of_date)), ly = Y(last.value), fx = X(t(f.as_of_date)), mid = (lx + fx) / 2;
-      add("path", { d: "M " + lx + " " + ly + " Q " + mid + " " + ly + " " + fx + " " + Y(f.high) + " L " + fx + " " + Y(f.low) + " Q " + mid + " " + ly + " " + lx + " " + ly + " Z",
-        fill: "var(--loop-blue)", "fill-opacity": .16 });
-      add("path", { d: "M " + lx + " " + ly + " Q " + mid + " " + (ly + Y(f.value)) / 2 + " " + fx + " " + Y(f.value), fill: "none", stroke: "var(--meter)",
-        "stroke-width": 2.5, "stroke-dasharray": "6 5", "stroke-linecap": "round" });
-    });
+    var future = items.filter(function (p) { return p.estimated && p.low != null; });
+    if (last && future.length) {  // one widening band and a dashed line across the forecast years
+      var start = [X(t(last.as_of_date)), Y(last.value)];
+      var hi = [start].concat(future.map(function (f) { return [X(t(f.as_of_date)), Y(f.high)]; }));
+      var lo = [start].concat(future.map(function (f) { return [X(t(f.as_of_date)), Y(f.low)]; }));
+      var band = smooth(hi) + " L " + lo[lo.length - 1][0] + " " + lo[lo.length - 1][1] +
+        smooth(lo.slice().reverse()).replace(/^M [^C]+/, "") + " Z";
+      add("path", { d: band, fill: "var(--loop-blue)", "fill-opacity": .14, stroke: "none" });
+      add("path", { d: smooth([start].concat(future.map(function (f) { return [X(t(f.as_of_date)), Y(f.value)]; }))), fill: "none",
+        stroke: "var(--meter)", "stroke-width": 2.5, "stroke-dasharray": "6 5", "stroke-linecap": "round" });
+    }
+    var finalForecast = future.length ? future[future.length - 1] : null;
     items.forEach(function (p, i) {
       var cx = X(t(p.as_of_date)), cy = Y(p.value), isLast = p === last;
       if (isLast) add("circle", { cx: cx, cy: cy, r: 11, fill: "var(--loop-green)", "fill-opacity": .22 });
-      add("circle", { cx: cx, cy: cy, r: isLast ? 6.5 : 5, fill: p.estimated ? "var(--card)" : "var(--meter)", stroke: isLast ? "var(--loop-green)" : "var(--meter)", "stroke-width": isLast ? 3 : 2.5 });
+      add("circle", { cx: cx, cy: cy, r: isLast ? 6.5 : (p.estimated ? 4 : 5), fill: p.estimated ? "var(--card)" : "var(--meter)", stroke: isLast ? "var(--loop-green)" : "var(--meter)", "stroke-width": isLast ? 3 : 2.5 });
       // Values only on the chart; the certified point and the forecast range are named in the legend. The
       // forecast label sits below its point so it never collides with the certified label above.
       var below = !!p.estimated;
+      if (p.estimated && p !== finalForecast) return;  // only the final forecast year is labelled
+      if (W < 480 && !p.estimated && !isLast && i !== 0) return;  // phones: first, certified and final forecast only
       add("text", { x: cx, y: below ? cy + 20 : cy - (isLast ? 16 : 11),
         "text-anchor": i === 0 && items.length > 1 ? "start" : (i === items.length - 1 ? "end" : "middle"),
         "class": "pt-label" + (isLast ? " pt-key" : "") + (p.estimated ? " pt-est" : "") }, num(p.value));
@@ -658,10 +664,10 @@ main { max-width: 860px; margin: 0 auto; padding: var(--gap); }
     var svgEl = chart(r);
     if (svgEl) {
       nodes.push(el("div", { cls: "chart-wrap" }, [svgEl]));
-      var fc = items.filter(function (p) { return p.estimated; })[0];
+      var fcs = items.filter(function (p) { return p.estimated; }), fc = fcs[fcs.length - 1];
       nodes.push(el("div", { cls: "legend small muted" }, [el("span", null, [el("i", { cls: "lg solid" }), "Reported"]),
         el("span", null, [el("i", { cls: "lg key" }), "Certified figure"]),
-        fc ? el("span", null, [el("i", { cls: "lg hollow" }), "Forecast " + fc.as_of_date.slice(0, 4) + ": " + num(fc.value) +
+        fc ? el("span", null, [el("i", { cls: "lg hollow" }), "Forecast " + (fcs.length > 1 ? "to " : "") + fc.as_of_date.slice(0, 4) + ": " + num(fc.value) +
           (fc.low != null ? " (range " + num(fc.low) + "–" + num(fc.high) + ")" : "")]) : null,
         h.indicated_current_range ? el("span", null, [el("i", { cls: "lg box" }), "Indicated current range (context only)"]) : null]));
     } else {

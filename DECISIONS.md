@@ -802,3 +802,16 @@ The record's entity carries `address` and `address_source`, shown as **HQ addres
 - The list is PowerPoint, CSV, JSON, Copy for CRM, then the Word document greyed out ("coming soon").
 - PowerPoint opens a second step with light and dark slide previews, preselecting the theme you're viewing; CSV opens
   Summary (the default) or Sources. Each has Back and Download. Closing the menu returns it to the list.
+
+### D104. Read careers pages; "team members" means employees (the Mortenson case)
+- **What happened:** mortenson.com/careers states "10,000+ team members", but the website reader only tried the
+  homepage and a few /about paths, so the figure was derived from data providers (about 6,761, 2/5).
+- **Fix:** the reader also tries /careers and /who-we-are and follows the homepage's own links to About, Careers,
+  Company, Facts and similar pages (up to 10 pages, fetched in parallel). A "10,000+" tile keeps its plus ("more
+  than"), and a label is never paired with the next tile's number. Extraction is told that "team members",
+  "teammates", "associates" and similar words on careers, about, company and fact-sheet pages and in the LinkedIn
+  description mean employees, as a whole-organization figure.
+- **Labels:** careers pages get their own source type, "Website: Careers Page" (tier 4), even when extraction labels
+  the page generically.
+- **Result (live):** more than 10,000 from the careers page, 2/5 (tier 4, undated); the data providers' 6,000-7,200
+  are recorded as supporting.

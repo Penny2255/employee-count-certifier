@@ -196,7 +196,10 @@ one document gives several figures, report its organization-wide total (a "Total
 row, "N people who work for X") as global and mark smaller programme, gender, age, country or
 management figures partial or leave them out. Snippets joined with " · " are table cells or stat
 tiles read in order; a label applies to the figure right after it, and in a multi-year table the
-first figure is the latest year. A LinkedIn member count ("N
+first figure is the latest year. On the organization's own careers, about, company or fact-sheet pages and
+in its LinkedIn description, "team members", "teammates", "associates", "colleagues", "people" and similar
+words mean employees: record such a figure as a whole-organization headcount (global scope), keeping its
+qualifier ("10,000+ team members" -> 10000, more_than). A LinkedIn member count ("N
 associated members", "N employees" on LinkedIn pages) goes in linkedin.member_count, never in
 sources; tier 5 is only headcount text the company wrote in its LinkedIn description.
 

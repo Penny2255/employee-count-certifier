@@ -48,7 +48,9 @@ class Spend:
 
     @property
     def over_budget(self) -> bool:
-        return self.usd >= self.policy.budget.max_cost_usd_per_lookup
+        """Research stops here, early enough that its last turn and the extraction call stay inside
+        max_cost_usd_per_lookup (the amount reserved against the beta allowances)."""
+        return self.usd >= self.policy.budget.research_stop_usd
 
 
 def _cached(system: str) -> list[dict]:

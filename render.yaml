@@ -18,17 +18,21 @@ services:
         sync: false
       - key: SEC_USER_AGENT        # e.g. "Your Name you@example.com" (SEC requires contact info)
         sync: false
-      - key: CERTIFIER_ACCESS_CODES  # name:hash entries from `uv run certifier-access new NAME`
+      - key: CERTIFIER_ACCESS_CODES  # admin codes (bypass beta limits): `uv run certifier-access new NAME`
         sync: false
       - key: PUBLIC_BASE_URL       # https://<your-service>.onrender.com (checked at startup: https, no path)
         sync: false
-      # Spend controls and cache (change any time in the dashboard).
-      - key: CERTIFIER_DAILY_LOOKUPS_PER_USER
-        value: "10"
+      # Open beta limits and cache (change any time in the dashboard). See DEPLOY.md, "Beta limits".
+      - key: CERTIFIER_VISITOR_USD_PER_DAY
+        value: "2"
       - key: CERTIFIER_DAILY_USD_CAP
-        value: "10"
+        value: "5"
       - key: CERTIFIER_CACHE_DAYS
         value: "90"
+      - key: CERTIFIER_RATE_LIMIT_PER_MIN
+        value: "10"
+      - key: CERTIFIER_PROXY_HOPS   # proxies in front of the service, for X-Forwarded-For; check /admin after deploy
+        value: "1"
       - key: CERTIFIER_DATA_DIR
         value: /var/data
     disk:                    # keeps the cache, daily usage and Claude sign-ins across deploys

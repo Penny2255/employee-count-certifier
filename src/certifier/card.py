@@ -55,6 +55,11 @@ CARD_CSS = r"""
 .cert .block { padding: 20px 24px; border-top: 1px solid var(--line); }
 .cert .block:first-child { border-top: 0; }
 .cert h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -.01em; }
+.cert .org-head { display: flex; align-items: center; gap: 12px; }
+.cert .org-head h1 { margin: 0; }
+.cert .org-logo { display: inline-grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 10px;
+  background: var(--soft); border: 1px solid var(--line); font-weight: 800; color: var(--muted); }
+.cert .org-logo img { width: 28px; height: 28px; border-radius: 6px; }
 .cert h2 { font-size: 15px; color: var(--text); margin: 0; font-weight: 700; letter-spacing: -.005em; }
 .cert .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .cert a { color: var(--accent); overflow-wrap: anywhere; }
@@ -346,10 +351,16 @@ CARD_JS = r"""
     return "as of " + h.as_of_date + est;
   }
 
-  function header(r) {
-    var e = r.entity;
+  function header(r, opts) {
+    var e = r.entity, src = opts && opts.logo ? opts.logo(e.website) : null;
+    var mark = null;
+    if (src) {
+      mark = el("span", { cls: "org-logo", "aria-hidden": "true", text: (e.name || "?").slice(0, 1).toUpperCase() });
+      var img = el("img", { src: src, alt: "", width: "28", height: "28" });
+      img.addEventListener("load", function () { if (img.naturalWidth > 1) { mark.textContent = ""; mark.appendChild(img); } });
+    }
     return el("div", { cls: "block" }, [
-      el("h1", { text: e.name }),
+      el("div", { cls: "org-head" }, [mark, el("h1", { text: e.name })]),
       el("div", { cls: "row small muted" }, [e.website ? link(e.website, host(e.website)) : null, e.hq ? el("span", { text: e.hq }) : null,
         el("span", { text: e.relationship })])
     ]);
@@ -739,7 +750,7 @@ CARD_JS = r"""
     records.forEach(function (r, i) {
       r.__k = "r" + i;
       root.appendChild(el("article", { cls: "card", "aria-label": "Certification for " + r.entity.name }, [
-        header(r), answer(r), trust(r), trendBlock(r), findings(r), primary(r), sources(r), adjustments(r), events(r),
+        header(r, opts), answer(r), trendBlock(r), trust(r), findings(r), primary(r), sources(r), adjustments(r), events(r),
         footer(r, records, opts)]));
     });
     if (location.hash === "#expand-all") Array.prototype.forEach.call(root.querySelectorAll("details"), function (d) { d.open = true; });

@@ -6,7 +6,8 @@ models:
   extraction: claude-sonnet-5-5
 
 budget:
-  max_cost_usd_per_lookup: 0.50
+  max_cost_usd_per_lookup: 0.50     # reserved in full against the beta allowances before each lookup
+  research_stop_usd: 0.20           # research stops here, leaving room for its last turn and extraction
   max_web_searches_per_entity: 8
   max_web_searches_when_sec_filer: 4   # EDGAR already supplies tier 1
   max_web_fetches_per_entity: 4       # full-page reads (annual reports, About pages)
@@ -48,6 +49,11 @@ tiers:
 recency:
   certified_max_age_months: 18   # tier 1-2 as-of date must be within this for Certified (4)
   stale_after_months: 24         # older dated sources are supporting evidence only
+  # Lagging official releases (D76): the latest available release counts as current for recency, and is never
+  # stale, until the next release is due: as-of date + these days + the grace below. Then normal rules apply.
+  latest_release_current:
+    ipeds: 765                   # staff as of Nov 1 of the fall collection; the next is released ~25 months later
+  latest_release_grace_days: 60
 
 agreement:
   corroborates_within: 0.15      # relative difference counted as agreeing

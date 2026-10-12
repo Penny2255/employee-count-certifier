@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>GTM Data Certifier · Human in the Hyperloop</title>
-<meta name="description" content="Certified global employee counts from public sources, with the key source, page reference and a confidence score.">
+<meta name="description" content="Certified employee counts from public sources, with the key source, page reference and a confidence score. Open beta.">
 <link rel="icon" href="/assets/brand/favicon.png">
 <link rel="stylesheet" href="/static/app.css">
 <script>try { var t = localStorage.getItem("gtm_theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}</script>
@@ -53,17 +53,14 @@
           <button type="button" class="chip-btn" data-example="Stripe">Stripe</button>
           <button type="button" class="chip-btn" data-example="Adobe">Adobe</button>
         </div>
-        <form id="code-form" class="code-form" hidden>
-          <p id="code-help" class="small">GTM Data Certifier is invite-only. Enter your access code to continue; it's remembered in this browser.</p>
-          <div class="code-row">
-            <label class="sr-only" for="code">Access code</label>
-            <input id="code" type="password" autocomplete="off" placeholder="Access code (ecc_…)" required>
-            <button class="primary" type="submit">Continue</button>
-          </div>
-        </form>
         <p id="home-status" class="status-line" role="status" aria-live="polite"></p>
+        <p id="allowance" class="allowance small muted" aria-live="polite"></p>
       </div>
     </div>
+    <section id="samples" class="samples" aria-labelledby="samples-title" hidden>
+      <h2 id="samples-title">Sample results <span class="muted small">· free, certified ahead of time</span></h2>
+      <ul id="sample-list" class="sample-list"></ul>
+    </section>
     <section id="recent" class="recent" aria-labelledby="recent-title" hidden>
       <h2 id="recent-title">Recent lookups</h2>
       <ul id="recent-list" class="recent-list"></ul>
@@ -168,6 +165,12 @@
   <h3>What each source type means</h3>
   <p class="small muted">Every source on a certification is labelled with its tier, category and type. Open a type for a plain explanation.</p>
   <div class="glossary">__GLOSSARY__</div>
+  <h3>Open beta</h3>
+  <ul class="principles">
+    <li><strong>Free to try.</strong> Anyone with the link can search, with no sign-up. Each visitor gets about 10 new lookups a day; the counter resets at midnight Pacific.</li>
+    <li><strong>Cached and sample results are always free.</strong> A certification is reused for 90 days, and the sample results never count.</li>
+    <li><strong>Shared capacity.</strong> When the beta's daily capacity is used up, new lookups pause until tomorrow; cached and sample results still work.</li>
+  </ul>
   <h3>Principles</h3>
   <ul class="principles">
     <li><strong>The highest source wins.</strong> An official filing outranks a press release, which outranks a data provider.</li>
@@ -180,11 +183,11 @@
 
 <dialog id="dlg-privacy" class="panel" aria-labelledby="privacy-title">
   <div class="panel-head"><h2 id="privacy-title">Privacy</h2><button type="button" class="icon-btn" data-close aria-label="Close">✕</button></div>
-  <p><strong>What we store:</strong> the company you searched for, the certification result, your rating and comment if you leave one, and the name attached to your access code.</p>
-  <p><strong>Why:</strong> to review the quality of certifications and improve them.</p>
-  <p><strong>What we don't need:</strong> any personal data. Don't enter personal information in comments.</p>
-  <p><strong>In your browser only:</strong> your access code and your last 10 lookups, so you don't have to re-enter them. Clearing your browser's site data removes both.</p>
-  <p><button type="button" class="secondary" id="forget-code">Forget my access code</button></p>
+  <p><strong>No sign-up:</strong> GTM Data Certifier is an open beta. We don't ask who you are.</p>
+  <p><strong>Fair use:</strong> to share the beta fairly, each visitor has a small daily allowance. We key it on a hash of your IP address, salted with a random value that changes every day; the IP address itself is never stored, and the hash is used only for these limits. If you connect Claude, the connection keeps a keyed hash of the IP you signed in from, so it shares your allowance.</p>
+  <p><strong>What we store for quality review:</strong> the company you searched for, the certification result, and your rating and comment if you leave one. Don't enter personal information in comments.</p>
+  <p><strong>In your browser only:</strong> your last 10 lookups. Clearing your browser's site data removes them.</p>
+  <p id="forget-wrap" hidden><button type="button" class="secondary" id="forget-code">Forget the admin code in this browser</button></p>
 </dialog>
 
 <dialog id="dlg-about" class="panel" aria-labelledby="about-title">
@@ -192,13 +195,15 @@
   <svg class="mark" viewBox="0 0 200 110" role="img" aria-label="Human in the Hyperloop logo" width="120" height="66"><defs><clipPath id="mab"><polygon points="62,0 200,0 200,110 138,110 138,55 62,55"/></clipPath><clipPath id="mag"><polygon points="0,0 62,0 62,55 138,55 138,110 0,110"/></clipPath></defs><rect x="17" y="17" width="166" height="76" rx="38" fill="none" stroke="#3FCF8E" stroke-width="22" clip-path="url(#mag)"/><rect x="17" y="17" width="166" height="76" rx="38" fill="none" stroke="#599AF5" stroke-width="22" clip-path="url(#mab)"/><circle cx="100" cy="55" r="15" fill="currentColor"/></svg>
   <p class="mission about-mission">GTM Data Certifier · Giving you transparency &amp; trust to take real action</p>
   <p>GTM Data Certifier finds the most authoritative public figure for an organization's global headcount, shows exactly where it came from (down to the page), and scores how far you can rely on it. Machines do the deep sweep; the policy, the evidence and the hard calls stay visible for humans to judge.</p>
+  <h3>Open beta</h3>
+  <p>GTM Data Certifier is in open beta: no sign-up, a fair daily allowance per visitor, and free cached and sample results. Tell us how we did with the rating on every result.</p>
   <h3>How it's built</h3>
   <p>The certifier is a custom Model Context Protocol (MCP) server built with Claude Code. Claude does the research and extraction: it searches the public web, reads filings and pages, and records each figure with its quote, date and location. The certification rules (which source wins, how confidence is scored, what gets flagged) are deterministic, tested code that follows a published policy, so the same evidence always gets the same answer.</p>
   <h3>Use it in Claude</h3>
   <ol class="steps">
     <li>In the Claude app, open <strong>Settings → Connectors</strong> and choose <strong>Add custom connector</strong>.</li>
     <li>Name it "GTM Data Certifier" and paste this URL (it ends in <code>/mcp</code>): <code class="mcp-url">__MCP_URL__</code></li>
-    <li>Choose <strong>Connect</strong>, then sign in with your access code when asked.</li>
+    <li>Choose <strong>Connect</strong>, then <strong>Continue as beta guest</strong>. No code or sign-up needed.</li>
     <li>Ask, for example: "What's the certified employee count for Adobe?" Claude confirms the organization, then shows the certification card in the chat.</li>
   </ol>
   <p class="powered"><span class="powered-badge">Powered by Claude · Custom-built MCP service</span></p>

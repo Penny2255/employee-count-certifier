@@ -14,7 +14,7 @@ def test_record_has_every_spec_field_and_serializes(entity):
     assert set(data) == {
         "entity", "certified_count", "count_type", "qualifier", "count_basis", "range", "confidence_score", "confidence_level",
         "confidence_breakdown",
-        "policy_tier", "as_of_date", "as_of_estimated", "as_of_from_url", "pre_adjustment", "direction", "scope_notes",
+        "policy_tier", "as_of_date", "as_of_estimated", "as_of_from_url", "pre_adjustment", "direction", "scope_notes", "explained_flags",
         "indicated_range", "sources", "linkedin_check", "adjustments", "flags", "events", "rationale",
         "trend", "forecast", "policy_version"}
     assert data["policy_version"] == "0.2"

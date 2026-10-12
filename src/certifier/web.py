@@ -7,12 +7,19 @@ Routes
   GET  /static/app.css|app.js    one stylesheet, one script (brand tokens + card renderer included)
   GET  /assets/brand/{file}      logo, mark, favicon
   GET  /health                   {"status": "ok"} only
-  GET  /admin/status             spend and configuration (access code required)
-  POST /api/find                 matching entities (access code)
+  GET  /admin, /api/admin/summary   today's spend, lookups, cache hits, visitors, limit hits, ratings (admin code)
+  GET  /admin/status             configuration (admin code)
+  GET  /api/allowance            approximate searches left today (open beta)
+  GET  /api/samples[/{slug}]     pre-certified sample results (free)
+  POST /api/find                 matching entities
   POST /api/lookup               certify one confirmed entity; streams progress as server-sent events
   GET  /api/lookups/{id}         a stored result; /export?format=json|summary_csv|sources_csv; POST /rating
   GET  /cards/{file}             saved company cards (used by the Claude connector)
-  GET/POST /oauth/login          access-code sign-in for the Claude custom connector (OAuth)
+  GET  /logos/{host}.png         company logos, fetched once server-side and cached (no third-party calls from browsers)
+  GET/POST /oauth/login          connector sign-in: "Continue as beta guest", or an admin code
+
+Open beta: no codes for visitors. Allowances are keyed on a hashed client IP (see hosted.py); admin
+codes (CERTIFIER_ACCESS_CODES) bypass them. Max 10 API requests a minute per IP.
   /mcp, /.well-known/*, /authorize, /token, /register, /revoke   MCP and OAuth, served by the MCP SDK
 
 Configuration comes only from environment variables (see DEPLOY.md).
@@ -21,12 +28,16 @@ Configuration comes only from environment variables (see DEPLOY.md).
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import html
 import json
 import logging
 import os
 import re
+import threading
+import time
 import uuid
+from collections import deque
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -49,7 +60,7 @@ from .entity import find_entities
 from .export import sources_csv, summary_csv
 from .llm import Claude, Spend
 from .models import Entity
-from .oauth import SCOPE, AccessCodeOAuthProvider
+from .oauth import SCOPE, BetaOAuthProvider
 from .policy import default_policy
 from .record import record_from_lookup
 from .service import STAGES, LookupResult, lookup
@@ -65,6 +76,51 @@ CONFIG_ERROR = "Service configuration issue, please try again later."
 GENERIC_ERROR = "Something went wrong on our side. Please try again in a moment."
 TAGLINE = "Deep sweeps. Certified answers."
 RATINGS = {"great", "good", "okay", "off"}
+SAMPLES_DIR = Path(__file__).resolve().parents[2] / "samples"
+SAMPLES = ("salesforce", "stripe", "adobe", "gong", "workday", "donor-network-west", "nextera-energy", "uc-davis")
+RATE_LIMITED = "Too many requests. Please wait a minute and try again."
+PNG_SIGNATURE = bytes([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
+LOGO_HOST = re.compile(r"(?:[a-z0-9-]{1,63}\.){1,4}[a-z]{2,24}")
+# Not rate limited: static files and health checks (page loads, Render), and the MCP/OAuth endpoints, whose
+# requests all arrive from Anthropic's servers (the connector is limited per guest by its allowance instead).
+RATE_EXEMPT = ("/health", "/static/", "/assets/", "/favicon.ico", "/cards/", "/logos/", "/mcp", "/.well-known/", "/authorize",
+               "/token", "/register", "/revoke")
+
+
+def client_ip(request: Request) -> str:
+    """The real client IP behind Render's proxy: the entry CERTIFIER_PROXY_HOPS from the right of
+    X-Forwarded-For (proxies append; entries further left are client-supplied and can't be trusted)."""
+    try:
+        hops = int(os.environ.get("CERTIFIER_PROXY_HOPS", "1") or 1)
+    except ValueError:
+        hops = 1
+    chain = [p.strip() for p in request.headers.get("x-forwarded-for", "").split(",") if p.strip()]
+    if hops > 0 and len(chain) >= hops:
+        return chain[-hops]
+    return request.client.host if request.client else "unknown"
+
+
+class RateLimiter:
+    """Sliding one-minute window per key (in memory; one instance)."""
+
+    def __init__(self, per_minute: int):
+        self.per_minute = per_minute
+        self.hits: dict[str, deque] = {}
+        self.lock = threading.Lock()
+
+    def allow(self, key: str) -> bool:
+        now = time.monotonic()
+        with self.lock:
+            q = self.hits.setdefault(key, deque())
+            while q and now - q[0] > 60:
+                q.popleft()
+            if len(q) >= self.per_minute:
+                return False
+            q.append(now)
+            if len(self.hits) > 50_000:  # forget idle keys
+                for k in [k for k, v in self.hits.items() if not v or now - v[-1] > 60]:
+                    del self.hits[k]
+            return True
 
 
 class StartupError(SystemExit):
@@ -127,7 +183,7 @@ def create_app() -> FastAPI:
     store = Store()
     codes = AccessCodes()
     controls = hosted.Controls.from_env(store)
-    provider = AccessCodeOAuthProvider(store, codes, base_url)
+    provider = BetaOAuthProvider(store, codes, base_url)
     mcp = mcp_server.create_server(
         auth_server_provider=provider,
         auth=AuthSettings(
@@ -156,12 +212,33 @@ def create_app() -> FastAPI:
 
     app = FastAPI(title="GTM Data Certifier", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 
-    async def subject_for(authorization: str | None) -> str:
+    limiter = RateLimiter(int(_env_int("CERTIFIER_RATE_LIMIT_PER_MIN", 10)))
+
+    def admin_name(authorization: str | None) -> str | None:
         token = (authorization or "")[7:].strip() if (authorization or "").lower().startswith("bearer ") else ""
-        access = await provider.load_access_token(token) if token else None
-        if access is None or not access.subject:
-            raise HTTPException(401, "Enter a valid access code.")
-        return access.subject
+        return codes.verify(token) if token else None
+
+    def who_for(request: Request, authorization: str | None) -> hosted.Who:
+        """An admin (valid admin code) or a beta visitor (today's bucket for their hashed IP)."""
+        name = admin_name(authorization)
+        if name:
+            return hosted.Who("admin:" + name, admin=True)
+        return controls.visitor(controls.ip_key(client_ip(request)))
+
+    def require_admin(authorization: str | None) -> str:
+        name = admin_name(authorization)
+        if not name:
+            raise HTTPException(401, "Enter a valid admin code.")
+        return name
+
+    @app.middleware("http")
+    async def rate_limit(request: Request, call_next):
+        path = request.url.path
+        if not path.startswith(RATE_EXEMPT) and not admin_name(request.headers.get("authorization")):
+            key = hashlib.sha256(client_ip(request).encode()).hexdigest()  # kept in memory for a minute only
+            if not limiter.allow(key):
+                return JSONResponse({"error": RATE_LIMITED}, status_code=429)
+        return await call_next(request)
 
     # --- errors: always JSON the page can show -----------------------------------------------
 
@@ -213,38 +290,93 @@ def create_app() -> FastAPI:
 
     @app.get("/admin/status")
     async def admin_status(authorization: str | None = Header(default=None)) -> dict[str, Any]:
-        await subject_for(authorization)
+        require_admin(authorization)
         return {"status": "ok", "policy_version": policy_version, "public_base_url": base_url,
                 "anthropic_key_set": bool(os.environ.get("ANTHROPIC_API_KEY")),
                 "sec_user_agent_set": bool(os.environ.get("SEC_USER_AGENT")),
-                "access_codes_configured": len(codes.entries()), "spend_today_usd": round(store.spend_today(), 2),
-                "daily_usd_cap": controls.daily_usd_cap, "daily_lookups_per_code": controls.daily_lookups,
+                "admin_codes_configured": len(codes.entries()), "spend_today_usd": round(store.spend_today(), 2),
+                "daily_usd_cap": controls.daily_usd_cap, "visitor_usd_per_day": controls.visitor_usd,
                 "cache_days": controls.cache_days}
+
+    @app.get("/admin", response_class=HTMLResponse)
+    async def admin_page() -> str:
+        return ADMIN_HTML
+
+    @app.get("/api/admin/summary")
+    async def admin_summary(request: Request, authorization: str | None = Header(default=None)) -> dict[str, Any]:
+        name = require_admin(authorization)
+        chain = [p.strip() for p in request.headers.get("x-forwarded-for", "").split(",") if p.strip()]
+        seen = client_ip(request)
+        return {"admin": name, "today": store.summary_today(), "daily_usd_cap": controls.daily_usd_cap,
+                "visitor_usd_per_day": controls.visitor_usd,
+                "ratings": [{k: r.get(k) for k in ("created_at", "rating", "comment", "query", "entity_name",
+                                                   "certified_count", "confidence")} for r in store.ratings(20)],
+                # To check the proxy setting: your own request, with the last part of the IP masked.
+                "proxy": {"x_forwarded_for_entries": len(chain), "proxy_hops": os.environ.get("CERTIFIER_PROXY_HOPS", "1"),
+                          "your_ip_as_seen": re.sub(r"[^.:]+$", "x", seen)}}
+
+    @app.get("/api/allowance")
+    async def allowance(request: Request, authorization: str | None = Header(default=None)) -> dict[str, Any]:
+        who = who_for(request, authorization)
+        left = controls.searches_left(who)
+        return {"admin": who.admin, "searches_left": left,
+                "message": None if left is None or left > 0 else
+                (hosted.GLOBAL_LIMIT if store.used(who.bucket)[1] + controls.lookup_reserve_usd > controls.daily_usd_cap
+                 else hosted.VISITOR_LIMIT)}
+
+    # --- sample results (free) ----------------------------------------------------------------
+
+    def sample(slug: str) -> dict[str, Any]:
+        path = SAMPLES_DIR / f"{slug}.json"
+        if slug not in SAMPLES or not path.is_file():
+            raise HTTPException(404, "No such sample.")
+        result = LookupResult.model_validate_json(path.read_text(encoding="utf-8"))
+        record = json.loads(record_from_lookup(result).model_dump_json())
+        return {"query_id": "sample-" + slug, "sample": True, "cached": True, "certified_on": _certified_on(record),
+                "record": record}
+
+    @app.get("/api/samples")
+    async def samples() -> dict[str, Any]:
+        out = []
+        for slug in SAMPLES:
+            if (SAMPLES_DIR / f"{slug}.json").is_file():
+                rec = sample(slug)["record"]
+                out.append({"slug": slug, "name": rec["entity"]["name"], "website": rec["entity"]["website"],
+                            "count": rec["headline"]["count"], "qualifier": rec["headline"]["qualifier"],
+                            "score": rec["confidence"]["score"], "level": rec["confidence"]["level"],
+                            "certified_on": _certified_on(rec)})
+        return {"samples": out}
+
+    @app.get("/api/samples/{slug}")
+    async def get_sample(slug: str) -> dict[str, Any]:
+        return sample(slug)
 
     # --- find and certify --------------------------------------------------------------------
 
     @app.post("/api/find")
-    async def api_find(req: FindRequest, authorization: str | None = Header(default=None)) -> dict[str, Any]:
-        subject = await subject_for(authorization)
+    async def api_find(req: FindRequest, request: Request,
+                       authorization: str | None = Header(default=None)) -> dict[str, Any]:
+        who = who_for(request, authorization)
         name, website = _query_fields(req.query)
         if not name:
             raise HTTPException(400, "Enter a company name or website.")
-        controls.check_spend()
         policy = default_policy()
-        spend = Spend(policy)
         try:
-            candidates = await anyio.to_thread.run_sync(lambda: find_entities(name, website, Claude(policy), spend))
+            with controls.metered(who, hosted.FIND_RESERVE_USD) as spend:
+                candidates = await anyio.to_thread.run_sync(lambda: find_entities(name, website, Claude(policy), spend))
+        except hosted.LimitExceeded:
+            raise
         except Exception as e:
             if _is_config_error(e):
                 log.error("Anthropic API rejected the key (check ANTHROPIC_API_KEY): %s", e)
                 raise HTTPException(503, CONFIG_ERROR) from None
             raise
-        hosted.charge(subject, controls, spend.usd)
-        return {"candidates": [c.model_dump(mode="json") for c in candidates]}
+        return {"candidates": [c.model_dump(mode="json") for c in candidates],
+                "searches_left": controls.searches_left(who)}
 
     @app.post("/api/lookup")
-    async def api_lookup(req: LookupRequest, authorization: str | None = Header(default=None)):
-        subject = await subject_for(authorization)
+    async def api_lookup(req: LookupRequest, request: Request, authorization: str | None = Header(default=None)):
+        who = who_for(request, authorization)
         entity = Entity(name=req.name, website=req.website, hq=req.hq, legal_parent=req.legal_parent,
                         relationship_to_parent=req.relationship_to_parent)
         job = hosted.Job(entity, cik=req.cik, parent_cik=req.parent_cik)  # single lookups only
@@ -256,7 +388,7 @@ def create_app() -> FastAPI:
 
         def work() -> hosted.Outcome:
             run = lambda e, **kw: lookup(e, progress=progress, **kw)
-            return hosted.run_lookups([job], run, subject=subject, controls=controls, refresh=req.refresh)[0]
+            return hosted.run_lookups([job], run, who=who, controls=controls, refresh=req.refresh)[0]
 
         async def events():
             task = asyncio.create_task(asyncio.to_thread(work))
@@ -280,7 +412,7 @@ def create_app() -> FastAPI:
             try:
                 outcome = task.result()
             except hosted.LimitExceeded as e:
-                yield _sse("error", {"message": str(e), "kind": "limit"})
+                yield _sse("error", {"message": str(e), "kind": e.kind})
                 return
             except Exception as e:  # never a raw stack trace or a 500 page in the stream
                 if _is_config_error(e):
@@ -293,15 +425,18 @@ def create_app() -> FastAPI:
             if outcome.cached:
                 for stage in STAGES:
                     yield _sse("progress", {"stage": stage, "message": "From the certification cache"})
-            yield _sse("result", _store_result(store, subject, req.query or req.name, outcome))
+            yield _sse("result", {**_store_result(store, who.bucket, req.query or req.name, outcome),
+                                  "searches_left": controls.searches_left(who)})
 
         return StreamingResponse(events(), media_type="text/event-stream",
                                  headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
     # --- stored results, exports and ratings -------------------------------------------------
 
-    async def stored(query_id: str, authorization: str | None) -> dict:
-        await subject_for(authorization)
+    async def stored(query_id: str) -> dict:
+        if query_id.startswith("sample-"):
+            data = sample(query_id[7:])
+            return {"record": json.dumps(data["record"]), "cached": True}
         row = store.get_query(query_id) if re.fullmatch(r"[0-9a-f]{32}", query_id) else None
         if row is None:
             raise HTTPException(404, "That lookup wasn't found. Run the search again.")
@@ -309,14 +444,14 @@ def create_app() -> FastAPI:
 
     @app.get("/api/lookups/{query_id}")
     async def get_lookup(query_id: str, authorization: str | None = Header(default=None)) -> dict[str, Any]:
-        row = await stored(query_id, authorization)
+        row = await stored(query_id)
         record = json.loads(row["record"])
         return {"query_id": query_id, "cached": bool(row["cached"]), "certified_on": _certified_on(record),
                 "record": record}
 
     @app.get("/api/lookups/{query_id}/export")
-    async def export(query_id: str, format: str = "json", authorization: str | None = Header(default=None)):
-        row = await stored(query_id, authorization)
+    async def export(query_id: str, format: str = "json"):
+        row = await stored(query_id)
         record = json.loads(row["record"])
         slug = re.sub(r"[^a-z0-9]+", "-", record["entity"]["name"].lower()).strip("-") or "certification"
         if format == "json":
@@ -331,14 +466,29 @@ def create_app() -> FastAPI:
                         headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
     @app.post("/api/lookups/{query_id}/rating")
-    async def rate(query_id: str, req: RatingRequest, authorization: str | None = Header(default=None)):
-        await stored(query_id, authorization)
-        subject = await subject_for(authorization)
+    async def rate(query_id: str, req: RatingRequest, request: Request,
+                   authorization: str | None = Header(default=None)):
+        await stored(query_id)
+        subject = who_for(request, authorization).bucket
         rating = req.rating.strip().lower()
         if rating not in RATINGS:
             raise HTTPException(400, "Choose Great, Good, Okay or Off.")
         store.save_rating(query_id, subject, rating, (req.comment or "").strip()[:2000])
         return {"ok": True}
+
+    @app.get("/logos/{name}")
+    async def logo(name: str):
+        host = name.removesuffix(".png").lower()
+        if not LOGO_HOST.fullmatch(host):
+            raise HTTPException(404, "No logo.")
+        path = data_dir() / "logos" / f"{host}.png"
+        if not path.is_file():
+            data = await anyio.to_thread.run_sync(lambda: _fetch_logo(host))
+            if data is None:
+                raise HTTPException(404, "No logo.")
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
+        return FileResponse(path, media_type="image/png", headers={"Cache-Control": "public, max-age=604800"})
 
     @app.get("/cards/{name}")
     async def card(name: str):
@@ -366,22 +516,41 @@ def create_app() -> FastAPI:
 
     @app.get("/oauth/login", response_class=HTMLResponse)
     async def login_form(request: str = "") -> str:
+        if demo and request == "demo":  # screenshots only
+            return _login_page(request)
         if not provider.pending(request):
             return _login_page(request, "This sign-in link has expired. Start again from the Claude app.", expired=True)
         return _login_page(request)
 
     @app.post("/oauth/login")
-    async def login_submit(request: str = Form(""), access_code: str = Form("")):
-        redirect = provider.complete_login(request, access_code)
+    async def login_submit(http: Request, request: str = Form(""), access_code: str = Form(""),
+                           mode: str = Form("guest")):
+        if mode == "admin":
+            redirect = provider.complete_login(request, access_code)
+        else:  # this page runs in the person's own browser: bind the connector to its hashed IP
+            redirect = provider.complete_guest(request, controls.ip_key(client_ip(http)))
         if redirect is None:
             expired = provider.pending(request) is None
             return HTMLResponse(_login_page(request, "That link has expired. Start again from the Claude app."
-                                            if expired else "That access code isn't valid. Check it and try again.",
-                                            expired=expired), status_code=400)
+                                            if expired else "That admin code isn't valid. Check it, or continue as a "
+                                            "beta guest.", expired=expired), status_code=400)
         return RedirectResponse(redirect, status_code=302)
 
     app.mount("/", mcp_app)  # /mcp and the OAuth endpoints
     return app
+
+
+def _fetch_logo(host: str) -> bytes | None:
+    """A 128px icon for a company's site via Google's favicon service; None when there isn't one."""
+    import urllib.request
+    url = f"https://www.google.com/s2/favicons?domain={host}&sz=128"
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "GTM Data Certifier"}),
+                                    timeout=8) as r:
+            data = r.read(200_000)
+            return data if r.status == 200 and data.startswith(PNG_SIGNATURE) else None
+    except Exception:
+        return None
 
 
 def _sse(event: str, data: dict) -> str:
@@ -410,14 +579,32 @@ def _store_result(store: Store, subject: str, query: str, outcome: hosted.Outcom
             "record": data}
 
 
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(os.environ.get(name, "") or default)
+    except ValueError:
+        return default
+
+
 def _login_page(request_id: str, error: str | None = None, expired: bool = False) -> str:
+    rid = html.escape(request_id)
     form = "" if expired else f"""
       <form method="post" action="/oauth/login">
-        <input type="hidden" name="request" value="{html.escape(request_id)}">
-        <label for="code">Access code</label>
-        <input id="code" name="access_code" type="password" autocomplete="off" required placeholder="ecc_…" autofocus>
-        <button type="submit" class="primary">Connect to Claude</button>
-      </form>"""
+        <input type="hidden" name="request" value="{rid}">
+        <input type="hidden" name="mode" value="guest">
+        <button type="submit" class="primary wide" autofocus>Continue as beta guest</button>
+      </form>
+      <p class="small muted">Open beta: about 10 new lookups a day, shared with the website from this network.
+        Cached and sample results are free.</p>
+      <details class="admin-code"><summary class="small">Have an admin code?</summary>
+        <form method="post" action="/oauth/login">
+          <input type="hidden" name="request" value="{rid}">
+          <input type="hidden" name="mode" value="admin">
+          <label for="code" class="small">Admin code</label>
+          <div class="code-row"><input id="code" name="access_code" type="password" autocomplete="off" required
+            placeholder="ecc_…"><button type="submit" class="secondary">Connect</button></div>
+        </form>
+      </details>"""
     err = f'<p class="error" role="alert">✕ {html.escape(error, quote=False)}</p>' if error else ""
     return LOGIN_HTML.replace("__BODY__", err + form)
 
@@ -428,9 +615,69 @@ LOGIN_HTML = """<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <body><main class="page narrow"><section class="panel-card">
 <img src="/assets/brand/hyperloop-mark-small.png" alt="Human in the Hyperloop" width="56" height="56">
 <h1>Connect Claude to GTM Data Certifier</h1>
-<p class="muted">Enter the access code you were given. It links this Claude connection to you, for your daily lookup limit.</p>
+<p class="muted">GTM Data Certifier is in open beta. Continue as a guest to add it to Claude; no sign-up needed.</p>
 __BODY__
 </section></main></body></html>"""
+
+
+ADMIN_HTML = """<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>Admin · GTM Data Certifier</title>
+<link rel="icon" href="/assets/brand/favicon.png"><link rel="stylesheet" href="/static/app.css"></head>
+<body><main class="page admin">
+<h1 class="view-title">Beta admin</h1>
+<form id="admin-form" class="code-form" hidden><p class="small">Enter your admin code. It's remembered in this browser.</p>
+<div class="code-row"><label class="sr-only" for="code">Admin code</label><input id="code" type="password" autocomplete="off"
+ placeholder="ecc_…" required><button class="primary" type="submit">Open</button></div></form>
+<p id="admin-status" class="status-line" role="status" aria-live="polite"></p>
+<section id="admin-body" hidden>
+<p class="muted small" id="admin-day"></p>
+<div class="stat-grid" id="stats"></div>
+<h2>Latest ratings</h2><div class="table-wrap"><table class="admin-table" id="ratings"></table></div>
+<h2>Proxy check</h2><p class="small muted" id="proxy"></p>
+<p><a href="/">Back to GTM Data Certifier</a></p>
+</section></main>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  function code() { try { return localStorage.getItem("gtm_code") ? JSON.parse(localStorage.getItem("gtm_code")) : ""; } catch (e) { return ""; } }
+  function cell(tag, text) { var n = document.createElement(tag); n.textContent = text == null ? "" : String(text); return n; }
+  function stat(label, value) { var d = document.createElement("div"); d.className = "stat"; d.appendChild(cell("span", label)); d.appendChild(cell("strong", value)); return d; }
+  function load() {
+    fetch("/api/admin/summary", { headers: { "Authorization": "Bearer " + code() } }).then(function (r) {
+      return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || "Not allowed."); return d; });
+    }).then(function (d) {
+      $("admin-form").hidden = true; $("admin-body").hidden = false; $("admin-status").textContent = "";
+      var t = d.today, stats = $("stats"); stats.textContent = "";
+      $("admin-day").textContent = "Today (Pacific): " + t.day + " · signed in as " + d.admin;
+      stats.appendChild(stat("Spend today", "$" + Number(t.spent).toFixed(2) + " of $" + Number(d.daily_usd_cap).toFixed(2)));
+      stats.appendChild(stat("Reserved now", "$" + Number(t.reserved).toFixed(2)));
+      stats.appendChild(stat("New lookups", t.lookups));
+      stats.appendChild(stat("Cache hits", t.cache_hits));
+      stats.appendChild(stat("Distinct visitors", t.visitors));
+      stats.appendChild(stat("Limit hits", t.limit_hits));
+      var table = $("ratings"); table.textContent = "";
+      var head = document.createElement("tr"); ["When", "Rating", "Comment", "Search", "Organization", "Count", "Conf."].forEach(function (h) { head.appendChild(cell("th", h)); });
+      table.appendChild(head);
+      d.ratings.forEach(function (r) {
+        var tr = document.createElement("tr");
+        [r.created_at, r.rating, r.comment, r.query, r.entity_name, r.certified_count, r.confidence].forEach(function (v) { tr.appendChild(cell("td", v)); });
+        table.appendChild(tr);
+      });
+      if (!d.ratings.length) { var tr = document.createElement("tr"); var td = cell("td", "No ratings yet."); td.colSpan = 7; tr.appendChild(td); table.appendChild(tr); }
+      $("proxy").textContent = "X-Forwarded-For entries on your request: " + d.proxy.x_forwarded_for_entries +
+        " · CERTIFIER_PROXY_HOPS = " + d.proxy.proxy_hops + " · your IP as seen: " + d.proxy.your_ip_as_seen +
+        ". If this isn't your own IP, adjust CERTIFIER_PROXY_HOPS.";
+    }).catch(function (err) { $("admin-form").hidden = false; $("admin-status").textContent = code() ? err.message : ""; });
+  }
+  $("admin-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    try { localStorage.setItem("gtm_code", JSON.stringify($("code").value.trim())); } catch (err) {}
+    $("code").value = ""; load();
+  });
+  load();
+})();
+</script></body></html>"""
 
 
 try:

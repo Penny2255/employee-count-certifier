@@ -427,6 +427,9 @@ class _Findings:
 
 _FLAG_CATEGORY = (("Conflict:", "corroboration"), ("LinkedIn:", "linkedin"), ("Event-driven:", "event"),
                   ("Complexity:", "scope"), ("Detailed figure", "definition"))
+_HEALTH = re.compile(r"health system|health care system|medical center|hospital", re.I)
+_HEALTH_SO_WHAT = ("The campus figure likely excludes health-system staff, so the full-organization count is likely "
+                   "higher; use the campus figure only if that's the organization you mean")
 _FLAG_SO_WHAT = {
     "corroboration": "Look at the conflicting source before updating records",
     "linkedin": "Check whether the LinkedIn count includes former staff or contractors before relying on the figure",
@@ -464,10 +467,11 @@ def bottom_line(score: int, count: int | None) -> str:
 # Typical lag from the as-of date to the next edition, in days (fiscal year plus filing time).
 _NEXT_EDITION = {"10-K": (365 + 60, "10-K"), "20-F": (365 + 120, "20-F"), "40-F": (365 + 90, "40-F"),
                  "sec_filing": (365 + 90, "annual SEC filing"), "annual_report": (365 + 90, "annual report"),
-                 "acfr": (365 + 180, "ACFR"), "form_990": (365 + 320, "Form 990"), "ipeds": (365 + 300, "IPEDS release")}
+                 "acfr": (365 + 180, "ACFR"), "form_990": (365 + 320, "Form 990"), "ipeds": (365 + 400, "IPEDS release")}
 
 
-def next_update(selected: Source | None, lookup_date: date) -> tuple[date | None, str | None]:
+def next_update(selected: Source | None, lookup_date: date,
+                policy: Policy | None = None) -> tuple[date | None, str | None]:
     """When a newer edition of the key source is expected (e.g. the next 10-K)."""
     if selected is None or selected.as_of_date is None:
         return None, None
@@ -476,6 +480,7 @@ def next_update(selected: Source | None, lookup_date: date) -> tuple[date | None
     if kind not in _NEXT_EDITION:
         return None, "This kind of source has no fixed publishing schedule."
     lag, name = _NEXT_EDITION[kind]
+    lag = (policy or default_policy()).recency.latest_release_current.get(kind, lag)  # one source of truth
     expected = selected.as_of_date + timedelta(days=lag)
     while expected < lookup_date - timedelta(days=365):  # several editions behind: the next one still due
         expected += timedelta(days=365)
@@ -486,7 +491,7 @@ def next_update(selected: Source | None, lookup_date: date) -> tuple[date | None
 
 
 def _build_findings(cert: Certification, policy: Policy, ids: dict[int, str], by_url: dict[str, str],
-                    selected: Source | None, notes: list[str] | None):
+                    selected: Source | None, notes: list[str] | None, lookup_date: date):
     findings = _Findings()
 
     # Base score.
@@ -579,14 +584,38 @@ def _build_findings(cert: Certification, policy: Policy, ids: dict[int, str], by
             f"{_sentence(body)} Policy lowers confidence one level for this"
             + (", but the score was already at its minimum of 1." if impact == 0 else ".")
             + " A reviewer should check it before relying on the figure.", evidence, impact,
-            group="affects" if impact else "worth_knowing", so_what=_FLAG_SO_WHAT[category],
+            group="affects" if impact else "worth_knowing",
+            so_what=(_HEALTH_SO_WHAT if category == "scope" and _HEALTH.search(body) else _FLAG_SO_WHAT[category]),
             chip=None if impact else "No further effect (confidence already at its minimum)")
+
+    # Gaps explained by an open scope question: linked to it, recorded without a second penalty.
+    explained_ids: dict[str, str] = {}
+    for flag, cause in cert.explained_flags:
+        category = next((c for prefix, c in _FLAG_CATEGORY if flag.startswith(prefix)), "data_gap")
+        body = flag.split(":", 1)[1].strip()
+        cause_id = flag_ids.get(cause)
+        evidence = [sid for url, sid in by_url.items() if url in flag]
+        cause_title = _first_sentence(_plain(cause.split(":", 1)[1].strip()), limit=70)
+        explained_ids[flag] = findings.add(
+            category, "yellow", _first_sentence(re.sub(r"\s*\(https?://[^)]*\)", "", _plain(body)), limit=90),
+            f"{_sentence(body)} The gap is most likely the same root cause as the open scope question"
+            f"{f' ({cause_id})' if cause_id else ''}: {cause_title}. Policy applies one penalty per root cause, so the "
+            "scope finding carries it and this one is recorded without one.", evidence, 0,
+            group="worth_knowing", chip=f"No extra penalty (same cause as {cause_id})" if cause_id else
+            "No extra penalty (same cause as the scope question)",
+            so_what="No separate action: once the scope question is settled, this gap is explained")
+        if cause_id:
+            scope = next(f for f in findings.items if f.id == cause_id)
+            scope.rationale += f" Related: {explained_ids[flag]} shows the same gap from LinkedIn; it isn't penalized again."
 
     # LinkedIn.
     li = cert.linkedin_check
     li_flag = next((f for f in cert.flags if f.startswith("LinkedIn:")), None)
+    li_explained = next((f for f, _ in cert.explained_flags if f.startswith("LinkedIn:")), None)
     if li_flag:
         li_id = flag_ids[li_flag]
+    elif li_explained:
+        li_id = explained_ids[li_explained]
     elif li.status == "pass":
         li_id = findings.add("linkedin", "green", "LinkedIn member count is consistent",
                              f"{_sentence(li.note.removeprefix('Pass: '))} The member count is a sanity check, never "
@@ -636,6 +665,15 @@ def _build_findings(cert: Certification, policy: Policy, ids: dict[int, str], by
                      f"The source gives no as-of date, so it was estimated from {selected.as_of_basis or 'context'}. "
                      "Every recency rule uses the estimated date.", [ids[id(selected)]],
                      group="worth_knowing", so_what="Treat the as-of date as approximate")
+    if selected is not None and rules.latest_release_current(selected, lookup_date, policy):
+        due = rules.next_release_due(selected, policy)
+        kind = _type_of(selected)
+        findings.add("recency", "green", f"Latest {kind} release, as of {selected.as_of_date.isoformat()}",
+                     f"{kind} is published well after its as-of date, so this is the newest figure available. Policy "
+                     f"treats the latest release as current for recency until the next is due, around "
+                     f"{due.strftime('%B %Y')}.", [ids[id(selected)]],
+                     group="worth_knowing", chip="Counted as current (no recency penalty)",
+                     so_what=f"Treat it as current; recheck after {due.strftime('%B %Y')}, when the next release is due")
     for note in cert.scope_notes:
         findings.add("scope", "yellow", _first_sentence(note, limit=90),
                      f"{_sentence(note)} It cannot change which entity is counted, so it is noted without a score "
@@ -707,7 +745,7 @@ def _build_findings(cert: Certification, policy: Policy, ids: dict[int, str], by
                          so_what="The certified figure differs from the source's number for the reason given")
     if selected is not None:
         own = [n for n in selected.notes if not n.startswith(("Undated source", "Older than", "Partial or regional",
-                                                              "Mirror of", "Not counted"))]
+                                                              "Mirror of", "Not counted", "Latest release"))]
         if own:
             findings.add("definition", "yellow", "How the source defines its count",
                          f"{_sentence(' '.join(own))} It is recorded for transparency; the figure is used as stated.",
@@ -735,7 +773,7 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
     by_url = {s.url: ids[id(s)] for s in cert.sources}
     selected = next((s for s in cert.sources if s.role == "selected"), None)
     findings, base_step, base_id, corr_id, flag_ids, recency_id, li_id, indicated_row = _build_findings(
-        cert, policy, ids, by_url, selected, notes)
+        cert, policy, ids, by_url, selected, notes, lookup_date)
     li = cert.linkedin_check
 
     # Confidence breakdown, each line linked to a finding.
@@ -769,7 +807,7 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
         notes=[n for n in s.notes if n not in s.role_reason and not n.startswith(("Not counted", "Mirror of"))])
         for s in cert.sources]
 
-    upcoming = next_update(selected, lookup_date)
+    upcoming = next_update(selected, lookup_date, policy)
 
     # Primary source.
     if selected is not None:

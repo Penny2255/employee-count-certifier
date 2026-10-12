@@ -469,3 +469,106 @@ A Playwright script clicks through the demo with the installed Edge:
 - the finding state, the soon pills, and no page errors
 
 It found one bug: Back after "Search another company" no longer restored the result. Fixed by keeping the last result for history.
+
+## Open beta access (2026-10-12)
+
+### D68. No codes for visitors; allowances keyed on a hashed IP
+- **What:** anyone with the link can search. The allowance key is built in two steps:
+  1. a keyed hash of the client IP, an HMAC with a server secret (`CERTIFIER_HASH_SECRET`, or one generated and kept in the database)
+  2. that hash, salted with a random value for the Pacific day; earlier days' salts are deleted
+
+  The IP itself is never stored.
+- **Client IP:** the entry `CERTIFIER_PROXY_HOPS` (default 1) from the right of `X-Forwarded-For`. Proxies append, so entries further left are client-supplied and can be spoofed.
+- **Not verified:** how many proxies Render puts in front of the service. `/admin` shows your own IP as the service sees it, masked, so you can check after deploying and adjust.
+
+### D69. Reservations make both caps hard
+- **What:**
+  - Before each lookup, the per-lookup maximum ($0.50, `max_cost_usd_per_lookup`) is reserved against the visitor's $2 and the global $5 in one locked SQLite transaction (`BEGIN IMMEDIATE`).
+  - Afterwards the reservation is released and only the actual cost is kept, including a failed lookup's partial cost.
+  - An entity search reserves $0.10 the same way.
+  - A subsidiary plus its parent reserve together, all or nothing.
+- **Why it holds:** spent plus reserved never passes either cap, even with lookups in flight at once (tested with 8 threads).
+- **Engine change to make the ceiling real:**
+  - **Problem:** research used to stop only after crossing $0.50, and extraction then ran on top.
+  - **Fix:** research now stops at $0.20 (`research_stop_usd`), leaving room for its last turn and extraction. Typical lookups cost $0.11–0.23.
+
+### D70. Days reset at midnight Pacific
+Allowances, salts and the admin's "today" use America/Los_Angeles. `tzdata` is a dependency, so this also works on Windows.
+
+### D71. Free content
+- **Cache:** cached results never touch an allowance; they're counted as cache hits for the admin page.
+- **Samples:** eight sample results live in `samples/` and are served free from the home page, labelled "Sample result, certified on [date]".
+  - Salesforce, Stripe, Gong and Donor Network West are the reviewed fixtures.
+  - Adobe (31,360, 4/5), Workday (21,000, 4/5), NextEra Energy (17,400, 5/5) and UC Davis were certified live in this run.
+- **UC Davis:** it needed the IPEDS reader (D73) and was certified again after it was built.
+- **Visibility:** visitors see "About N searches left today". The estimate is remaining dollars divided by a typical $0.20, and dollars are never shown.
+
+### D72. Connector: guest sign-in bound to the browser's IP; admin codes
+- **What:** the connector sign-in page has one button, **Continue as beta guest**. The page runs in the person's own browser, so its IP's keyed hash becomes the token subject (`ip:<hash>`). Connector lookups then draw on that IP's daily allowance, shared with the website. Reconnecting from the same IP gives the same key, so the allowance doesn't reset.
+- **Admin codes:** your existing access codes became admin codes (`CERTIFIER_ACCESS_CODES`). They bypass both caps on the web, through `/admin` in the browser, and on the connector (sign-in page → "Have an admin code?").
+- **Messages:** limit messages reach Claude exactly as written, returned as an error result instead of the SDK's "Error executing tool …" wrapper.
+- **Privacy:** a guest token keeps the keyed hash (not the IP) for its 30-day life. The privacy note says so.
+
+### D73. IPEDS reader (UC Davis, your example)
+- **What:** for organizations that look like a college or university (by name, or a `.edu` site):
+  - College Navigator's search finds the IPEDS unit ID by exact name
+  - the institution profile's JSON API (Human Resources) supplies "All staff (excludes graduate assistants)", column Total, from the latest fall collection
+  - it's recorded as tier 2, with an as-of date of November 1 of the fall year and graduate assistants logged as separately reported
+- **UC Davis:** 15,029 (Fall 2024), unit ID 110644, with the profile URL as the source.
+- **Open question (yours):** UC Davis scores 1/5 because three rules stack:
+  1. recency: IPEDS runs about two years behind
+  2. the UC Davis Health scope flag
+  3. LinkedIn's 21,000, which likely includes UC Davis Health, counted as a conflict
+
+  Not changed here, because it's a scoring-policy call.
+
+### D74. Fair use
+- **Concurrency:** one lookup in progress per visitor (in memory; one instance).
+- **Rate limit:** 10 API requests a minute per IP, a sliding window in memory with the IP hashed.
+  - **Not counted:** page assets, `/health` (Render's health checks), logos, cards, and the MCP and OAuth endpoints.
+  - **Why the connector is exempt:** its requests all come from Anthropic's servers, so a per-IP limit would throttle every connector user together. The connector is held by its per-guest allowance and the one-at-a-time rule instead.
+- **Admins:** exempt.
+
+### D75. Logos and layout
+- **Logos:** company logos appear on the confirm cards, the sample cards and the result header. The server fetches each one once from Google's favicon service (128 px), caches it on disk and serves it from `/logos/<host>.png`, so visitors' browsers never contact a third party.
+- **Trend placement:** the trend and forecast chart moved up, directly under the answer, ahead of the trust strip.
+
+### Open issues (beta)
+- **`CERTIFIER_PROXY_HOPS` after deploy:** verify it on `/admin` → Proxy check.
+- **In-memory limits:** the rate limit and the one-at-a-time rule reset on restart. That's fine for one instance; several would need a shared store.
+- **Shared networks:** visitors behind one IP (an office or campus) share an allowance.
+- **UC Davis scoring:** see D73.
+
+## Scoring decisions (2026-10-12, yours)
+
+### D76. The latest IPEDS release counts as current
+- **What:** `recency.latest_release_current` in `policy.yaml` lists lagging official source types with the days from as-of
+  to the next release (IPEDS: 765, so staff as of Nov 1 are superseded about 25 months later), plus a 60-day grace.
+- **While it's the latest release:** no recency penalty, never stale, and it keeps the corroboration bonus. A note and a
+  green finding give the as-of term and when the next release is due. The record's "Next update" uses the same number.
+- **Also:** no growth adjustment for such a source. The live UC Davis rerun showed why: Revelio figures of about
+  20,000–21,000 (likely including UC Davis Health) otherwise moved IPEDS's 15,029 to a 19,000 estimate. The latest
+  release is current, so there's no lag to correct, and that gap belongs to the scope question.
+- **Not applied to Form 990:** you described this as "the same approach as Form 990", but Form 990 has no such allowance
+  today. Donor Network West still takes the recency −1 (513, 3/5). Adding `form_990: <days>` to the list would give it
+  the same treatment; left for you to decide.
+
+### D77. One root cause, one penalty
+- **What:** with an open entity scope question, a LinkedIn figure (company description or member count) *above* the
+  certified figure is attributed to that question. It's recorded in `explained_flags` and shown as a linked finding,
+  "No extra penalty (same cause as F#)". The scope finding keeps the −1 and notes "Related: F#".
+- **Still penalized:** a LinkedIn figure below the certified count, and any LinkedIn gap with no open scope question.
+
+### D78. Health-system "so what"
+The scope flag stays (−1). Its "so what" reads: "The campus figure likely excludes health-system staff, so the
+full-organization count is likely higher; use the campus figure only if that's the organization you mean."
+
+### UC Davis rerun (live, $0.12; $0.14 for the earlier run that exposed the growth issue)
+
+| | Before | After |
+| --- | --- | --- |
+| Count | 15,029 (IPEDS, Fall 2024) | 15,029 (reported) |
+| Score | 1/5 Unverified | **3/5 Supported** |
+| Breakdown | 4 − 1 health system − 1 LinkedIn conflict − 1 recency | **4 − 1 health system** |
+| LinkedIn description 21,000 and 17,847 members | penalized | linked to the health-system finding, no extra penalty |
+| Bottom line | Directional only | Usable. Note the range and the as-of date. |

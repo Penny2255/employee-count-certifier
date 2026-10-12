@@ -336,11 +336,15 @@ The web app at `/` is a single page (`src/certifier/static/`), branded GTM Data 
 - **Expedition:** live progress over the real stages (resolve, SEC and official filings, web sweep, corroboration, scoring, certified), streamed as server-sent events, in one of five themes: Deep Sea Dive, Treasure Map, Galaxy Star-Gazing, Detective's Clues, Frontier Voyage.
 - **Result:** the certification card, with "Key Source". A cached result shows "Certified on [date]" and a Refresh button. Downloads: JSON (record v1.1), summary CSV, sources CSV. "How did we do?" (Great, Good, Okay or Off, plus a comment) is stored with the query.
 - **Panels:** How certification works (the source hierarchy, confidence scale and principles, without thresholds or prompts), About, Privacy.
-- **Rules:**
-  - single lookups only, behind invite codes
-  - 10 new lookups per code per day, and $10 a day of spend overall
-  - a shared 90-day cache: cached results are free, and Refresh counts as a new lookup
-  - queries, results and ratings are stored
+- **Rules (open beta):**
+  - no codes for visitors; single lookups only
+  - each visitor has $2 a day of lookup spend, keyed on a daily-salted hash of their IP and shown as "About N searches left today"; a $5 daily hard cap across everyone
+  - the per-lookup maximum is reserved against both before each lookup and the unused part released, so neither cap is exceeded; days reset at midnight Pacific
+  - a shared 90-day cache and eight sample results, all free; Refresh counts as a new lookup
+  - one lookup in progress per visitor; 10 API requests a minute per IP
+  - the Claude connector signs in with "Continue as beta guest" and shares the allowance of the IP it signed in from
+  - admin codes bypass the limits and open `/admin` (spend, lookups, cache hits, visitors, limit hits, ratings)
+  - queries, results and ratings are stored for quality review
 - **Endpoints:** `/health` returns only `{"status":"ok"}`. `/admin/status` (access code required) shows configuration and spend. Every error is JSON. `PUBLIC_BASE_URL` is validated at startup.
 - **Accessibility:** works with a keyboard and a screen reader, status is never shown by color alone, motion stops under `prefers-reduced-motion`, and light and dark themes follow the device, with a toggle.
 

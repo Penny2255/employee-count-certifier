@@ -24,6 +24,7 @@ class Models(BaseModel):
 
 class Budget(BaseModel):
     max_cost_usd_per_lookup: float
+    research_stop_usd: float = 0.20
     max_web_searches_per_entity: int
     max_web_searches_when_sec_filer: int = 4
     max_web_fetches_per_entity: int = 4

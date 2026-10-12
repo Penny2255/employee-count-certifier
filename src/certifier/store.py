@@ -1,21 +1,30 @@
-"""Small SQLite store for the hosted service: daily usage (spend controls), the certification
-cache, and OAuth state. Lives in CERTIFIER_DATA_DIR (default ./data)."""
+"""Small SQLite store for the hosted service: the daily allowance ledger (open beta), the
+certification cache, queries and ratings, and OAuth state. Lives in CERTIFIER_DATA_DIR (default ./data).
+
+Days run midnight to midnight America/Los_Angeles. Allowance buckets are keyed by a daily-salted
+hash (see hosted.Controls); the salt for each day is random and earlier days' salts are deleted."""
 
 from __future__ import annotations
 
 import json
 import os
+import secrets
 import sqlite3
 import threading
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import Callable
+from zoneinfo import ZoneInfo
 
 DEFAULT_DIR = Path(__file__).resolve().parents[2] / "data"
+PACIFIC = ZoneInfo("America/Los_Angeles")
 
 _SCHEMA = """
-CREATE TABLE IF NOT EXISTS usage (day TEXT, subject TEXT, lookups INTEGER DEFAULT 0, usd REAL DEFAULT 0,
-                                  PRIMARY KEY (day, subject));
+CREATE TABLE IF NOT EXISTS allowance (day TEXT, bucket TEXT, spent REAL DEFAULT 0, reserved REAL DEFAULT 0,
+                                      lookups INTEGER DEFAULT 0, cache_hits INTEGER DEFAULT 0,
+                                      limit_hits INTEGER DEFAULT 0, PRIMARY KEY (day, bucket));
+CREATE TABLE IF NOT EXISTS salts (day TEXT PRIMARY KEY, salt TEXT);
 CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY, created_at TEXT, payload TEXT);
 CREATE TABLE IF NOT EXISTS oauth (kind TEXT, key TEXT, payload TEXT, expires_at REAL, PRIMARY KEY (kind, key));
 CREATE TABLE IF NOT EXISTS queries (id TEXT PRIMARY KEY, created_at TEXT, subject TEXT, query TEXT, entity_name TEXT,
@@ -30,8 +39,9 @@ def data_dir() -> Path:
 
 
 class Store:
-    def __init__(self, path: Path | None = None):
+    def __init__(self, path: Path | None = None, clock: Callable[[], datetime] | None = None):
         self.path = path or data_dir() / "certifier.sqlite3"
+        self.clock = clock or (lambda: datetime.now(timezone.utc))
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()
         with self._conn() as c:
@@ -42,27 +52,101 @@ class Store:
         conn.row_factory = sqlite3.Row
         return conn
 
-    # --- usage --------------------------------------------------------------------------------
+    # --- daily allowance ledger (open beta) ----------------------------------------------------
 
-    @staticmethod
-    def today() -> str:
-        return datetime.now(timezone.utc).date().isoformat()
+    def today(self) -> str:
+        """Today in America/Los_Angeles: allowances reset at midnight Pacific."""
+        return self.clock().astimezone(PACIFIC).date().isoformat()
 
-    def lookups_today(self, subject: str) -> int:
+    def salt(self) -> str:
+        """Today's random salt for visitor hashes; earlier days' salts are deleted (rotated daily)."""
+        day = self.today()
         with self._lock, self._conn() as c:
-            row = c.execute("SELECT lookups FROM usage WHERE day=? AND subject=?", (self.today(), subject)).fetchone()
-        return row["lookups"] if row else 0
+            row = c.execute("SELECT salt FROM salts WHERE day=?", (day,)).fetchone()
+            if row:
+                return row["salt"]
+            salt = secrets.token_hex(32)
+            c.execute("DELETE FROM salts WHERE day <> ?", (day,))
+            c.execute("INSERT INTO salts (day, salt) VALUES (?, ?)", (day, salt))
+            return salt
+
+    def secret(self) -> str:
+        """Server secret for keyed IP hashes (CERTIFIER_HASH_SECRET, else generated once and kept here)."""
+        if os.environ.get("CERTIFIER_HASH_SECRET"):
+            return os.environ["CERTIFIER_HASH_SECRET"]
+        found = self.get("secret", "ip")
+        if found:
+            return found["value"]
+        value = secrets.token_hex(32)
+        self.put("secret", "ip", {"value": value})
+        return value
+
+    def reserve(self, bucket: str, amount: float, bucket_cap: float | None, global_cap: float | None) -> str | None:
+        """Atomically reserve `amount` for today against the bucket's and the global allowance.
+        Returns None when reserved, else "visitor" or "global" for the cap that would be exceeded.
+        Spent plus reserved never passes either cap (None = no cap, e.g. admin)."""
+        day = self.today()
+        with self._lock:
+            conn = self._conn()
+            conn.isolation_level = None
+            try:
+                conn.execute("BEGIN IMMEDIATE")
+                mine = conn.execute("SELECT COALESCE(SUM(spent + reserved), 0) FROM allowance WHERE day=? AND bucket=?",
+                                    (day, bucket)).fetchone()[0]
+                total = conn.execute("SELECT COALESCE(SUM(spent + reserved), 0) FROM allowance WHERE day=?",
+                                     (day,)).fetchone()[0]
+                reason = ("visitor" if bucket_cap is not None and mine + amount > bucket_cap + 1e-9 else
+                          "global" if global_cap is not None and total + amount > global_cap + 1e-9 else None)
+                if reason:
+                    conn.execute("INSERT INTO allowance (day, bucket, limit_hits) VALUES (?, ?, 1) ON CONFLICT(day, bucket) "
+                                 "DO UPDATE SET limit_hits = limit_hits + 1", (day, bucket))
+                else:
+                    conn.execute("INSERT INTO allowance (day, bucket, reserved) VALUES (?, ?, ?) ON CONFLICT(day, bucket) "
+                                 "DO UPDATE SET reserved = reserved + excluded.reserved", (day, bucket, amount))
+                conn.execute("COMMIT")
+                return reason
+            except BaseException:
+                conn.execute("ROLLBACK")
+                raise
+            finally:
+                conn.close()
+
+    def settle(self, bucket: str, reserved: float, actual: float, lookups: int = 0) -> None:
+        """Release a reservation and record what was actually spent."""
+        day = self.today()
+        with self._lock, self._conn() as c:
+            c.execute("INSERT INTO allowance (day, bucket, spent, lookups) VALUES (?, ?, ?, ?) ON CONFLICT(day, bucket) "
+                      "DO UPDATE SET reserved = MAX(0, reserved - ?), spent = spent + excluded.spent, "
+                      "lookups = lookups + excluded.lookups", (day, bucket, actual, lookups, reserved))
+
+    def note_cache_hit(self, bucket: str) -> None:
+        with self._lock, self._conn() as c:
+            c.execute("INSERT INTO allowance (day, bucket, cache_hits) VALUES (?, ?, 1) ON CONFLICT(day, bucket) "
+                      "DO UPDATE SET cache_hits = cache_hits + 1", (self.today(), bucket))
+
+    def used(self, bucket: str) -> tuple[float, float]:
+        """(this bucket's spent + reserved, everyone's spent + reserved) today."""
+        day = self.today()
+        with self._lock, self._conn() as c:
+            mine = c.execute("SELECT COALESCE(SUM(spent + reserved), 0) FROM allowance WHERE day=? AND bucket=?",
+                             (day, bucket)).fetchone()[0]
+            total = c.execute("SELECT COALESCE(SUM(spent + reserved), 0) FROM allowance WHERE day=?", (day,)).fetchone()[0]
+        return float(mine), float(total)
 
     def spend_today(self) -> float:
         with self._lock, self._conn() as c:
-            row = c.execute("SELECT COALESCE(SUM(usd), 0) AS usd FROM usage WHERE day=?", (self.today(),)).fetchone()
+            row = c.execute("SELECT COALESCE(SUM(spent), 0) AS usd FROM allowance WHERE day=?", (self.today(),)).fetchone()
         return float(row["usd"])
 
-    def record_usage(self, subject: str, lookups: int, usd: float) -> None:
+    def summary_today(self) -> dict:
+        """Admin view of today: spend, lookups, cache hits, distinct visitors, limit hits."""
         with self._lock, self._conn() as c:
-            c.execute("INSERT INTO usage (day, subject, lookups, usd) VALUES (?, ?, ?, ?) "
-                      "ON CONFLICT(day, subject) DO UPDATE SET lookups = lookups + excluded.lookups, "
-                      "usd = usd + excluded.usd", (self.today(), subject, lookups, usd))
+            row = c.execute("SELECT COALESCE(SUM(spent), 0) AS spent, COALESCE(SUM(reserved), 0) AS reserved, "
+                            "COALESCE(SUM(lookups), 0) AS lookups, COALESCE(SUM(cache_hits), 0) AS cache_hits, "
+                            "COALESCE(SUM(limit_hits), 0) AS limit_hits, "
+                            "COUNT(DISTINCT CASE WHEN bucket LIKE 'v:%' THEN bucket END) AS visitors "
+                            "FROM allowance WHERE day=?", (self.today(),)).fetchone()
+        return {"day": self.today(), **{k: row[k] for k in row.keys()}}
 
     # --- certification cache ------------------------------------------------------------------
 

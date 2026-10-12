@@ -46,7 +46,7 @@ The same engine also runs as one web service, **GTM Data Certifier** by Human in
 - an MCP endpoint at `/mcp` for the Claude app's custom connectors, with an in-chat company card
 - a JSON API
 
-Access is by per-person access codes, created with `uv run certifier-access new NAME`. The service allows 10 new lookups per code per day, a $10 daily dollar cap and a shared 90-day cache. See [DEPLOY.md](DEPLOY.md) for step-by-step Render setup, and [docs/screenshots/](docs/screenshots/) for every screen.
+It runs as an **open beta**: no sign-up or codes for visitors. Each visitor has $2 a day of lookup spend (about 10 lookups, keyed on a daily-salted hash of their IP), the whole service has a $5 daily hard cap (both reserved per lookup, reset at midnight Pacific), and cached results (90 days) and eight sample results are free. The Claude connector signs in with "Continue as beta guest" and shares the website allowance of the network it signed in from. Admin codes (`uv run certifier-access new NAME`) bypass the limits and open `/admin`. See [DEPLOY.md](DEPLOY.md) for step-by-step Render setup, and [docs/screenshots/](docs/screenshots/) for every screen.
 
 ```
 PUBLIC_BASE_URL=http://localhost:8000 uv run uvicorn certifier.web:app --port 8000   # run the hosted service locally

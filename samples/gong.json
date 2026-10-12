@@ -1,0 +1,234 @@
+{
+  "certification": {
+    "entity": {
+      "name": "Gong",
+      "website": "https://www.gong.io",
+      "hq": "San Francisco, CA, USA",
+      "legal_parent": null,
+      "relationship_to_parent": null
+    },
+    "certified_count": 2200,
+    "count_type": "estimated",
+    "qualifier": "approximately",
+    "count_basis": "headcount",
+    "range": [
+      1500,
+      2700
+    ],
+    "confidence_score": 3,
+    "confidence_level": "Supported",
+    "confidence_breakdown": [
+      {
+        "points": 3,
+        "reason": "base 3: growth-adjusted estimate from a tier 4 figure and a current signal"
+      },
+      {
+        "points": 0,
+        "reason": "no deductions"
+      }
+    ],
+    "policy_tier": 4,
+    "as_of_date": null,
+    "sources": [
+      {
+        "url": "https://www.gong.io/about",
+        "tier": 4,
+        "value": 1500,
+        "qualifier": "exact",
+        "excerpt": "1,500 Employees",
+        "location": {
+          "section": "About page stat tiles",
+          "page": null,
+          "page_basis": null,
+          "context": "Statistics shown on the page: Customers: 5,000; Employees: 1,500.",
+          "deep_link": null,
+          "note": "Web page: no page numbers; read from the page's stat tiles (embedded page data)."
+        },
+        "as_of_date": null,
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "corroboration_only": false,
+        "role": "selected",
+        "role_reason": "Highest-ranked eligible source: tier 4, undated.",
+        "notes": [
+          "Undated stat tile, probably stale. Well below LinkedIn member counts (2,592 and 3,572) and other 2026 signals of about 2,100-2,700.",
+          "Undated source."
+        ]
+      },
+      {
+        "url": "https://www.reveliolabs.com/companies/gong-io/employees",
+        "tier": 7,
+        "value": 2101,
+        "qualifier": "approximately",
+        "excerpt": "Gong.io, Inc. has approximately 2,101 total employees worldwide as of March 2026, according to Revelio Labs workforce intelligence data.",
+        "location": {
+          "section": "How many employees work at Gong io?",
+          "page": null,
+          "page_basis": null,
+          "context": "Gong io had 2,101 employees as of March 2026, up 509 (+4.8%) from the prior year. Gong io's total headcount has grown 40.3% from 1,497 employees in 2023 to 2,101 in 2026.",
+          "deep_link": "https://www.reveliolabs.com/companies/gong-io/employees#:~:text=Gong.io%2C%20Inc.%20has%20approximately%202%2C101,workforce%20intelligence%20data.",
+          "note": "Web page: no page numbers."
+        },
+        "as_of_date": "2026-03-01",
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "corroboration_only": false,
+        "role": "corroborates",
+        "role_reason": "Independent source near the same date, within 4% of the certified value (threshold 15%).",
+        "notes": [
+          "Modelled estimate from profile data. Page is internally inconsistent (+509 shown as +4.8%; 2023 appears as 1,464 and 1,497). Trend: 1,557 (2024), 1,978 (2025), 2,101 (2026 Q1). Page published about 2026-08 (month only)."
+        ]
+      },
+      {
+        "url": "https://tracxn.com/d/companies/gong/__mjeQDnUWFkOeqhLP0hTeCWKtGTQFGZ2jMcWDrks5qZ8",
+        "tier": 9,
+        "value": 2672,
+        "qualifier": "exact",
+        "excerpt": "As of Aug 31, 2026, the latest employee count at Gong is 2672.",
+        "location": {
+          "section": "Company Details / FAQs",
+          "page": null,
+          "page_basis": null,
+          "context": "Gong has 2,672 employees as of Aug 26. ... As of Aug 31, 2026, the latest employee count at Gong is 2672.",
+          "deep_link": "https://tracxn.com/d/companies/gong/__mjeQDnUWFkOeqhLP0hTeCWKtGTQFGZ2jMcWDrks5qZ8#:~:text=As%20of%20Aug%2031%2C%202026%2C,Gong%20is%202672.",
+          "note": "Web page: no page numbers."
+        },
+        "as_of_date": "2026-08-31",
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Within 21% of the certified value: closer than a conflict, not close enough to corroborate; context only.",
+        "notes": [
+          "Page labels the date both Aug 26 and Aug 31. The same page lists the legal entity GONG.IO INC. at 645 employees as of 2024-12-31, which is partial scope and not used."
+        ]
+      },
+      {
+        "url": "https://leadiq.com/c/gong/5a1d8a6f240000240063d770/employee-directory",
+        "tier": 9,
+        "value": 2600,
+        "qualifier": "approximately",
+        "excerpt": "Gong has approximately 2.6K employees as of August 2026.",
+        "location": {
+          "section": "Gong Global Highlights / FAQ",
+          "page": null,
+          "page_basis": null,
+          "context": "Gong has approximately 2.6K employees as of August 2026. These team members are located across 6 continents, including North America, Asia and Europe.",
+          "deep_link": "https://leadiq.com/c/gong/5a1d8a6f240000240063d770/employee-directory#:~:text=Gong%20has%20approximately%202.6K%20employees%20as%20of%20August%202026.",
+          "note": "Web page: no page numbers."
+        },
+        "as_of_date": "2026-08-01",
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Within 18% of the certified value: closer than a conflict, not close enough to corroborate; context only.",
+        "notes": [
+          "Rounded figure. LeadIQ lists about 1.6K people in the USA."
+        ]
+      },
+      {
+        "url": "https://builtin.com/company/gong/faq/stability-growth",
+        "tier": 9,
+        "value": 1100,
+        "qualifier": "exact",
+        "excerpt": "1,100 Total Employees",
+        "location": {
+          "section": "Company header",
+          "page": null,
+          "page_basis": null,
+          "context": "Total Offices: 7. 1,100 Total Employees. Year Founded: 2023",
+          "deep_link": null,
+          "note": "Web page: no page numbers."
+        },
+        "as_of_date": null,
+        "published_date": "2026-09-08",
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "corroboration_only": false,
+        "role": "conflicts",
+        "role_reason": "Disagrees by 50%, but a tier 9 or stale source never lowers confidence; recorded only.",
+        "notes": [
+          "Appears stale and unreliable: lists founding year as 2023 (LinkedIn says 2015). Published date is the page's updated date.",
+          "Undated source."
+        ]
+      }
+    ],
+    "linkedin_check": {
+      "member_count": 2592,
+      "size_range": [
+        1001,
+        5000
+      ],
+      "workforce_profile": "white_collar",
+      "implied_range": [
+        2254,
+        2880
+      ],
+      "size_range_agrees": true,
+      "status": "flag",
+      "note": "Flag: LinkedIn shows 2,592 members, 18% above the certified 2,200; more than the 15% tolerance for a white-collar workforce."
+    },
+    "adjustments": [
+      {
+        "source_url": "https://www.gong.io/about",
+        "source_figure": 1500,
+        "change": 700,
+        "reason": "Stated 1,500 (undated) is outdated: 3 recent data-provider figures (2,101, 2,600, 2,672) and the LinkedIn member count (2,592) agree and exceed it. Moved 75% toward their mean (2,491) and rounded to 2 significant digits; range runs from the stated figure to the highest of these figures.",
+        "result": 2200
+      }
+    ],
+    "flags": [],
+    "events": [],
+    "rationale": "Highest-ranked available source is tier 4 (Company website description), undated, reporting 1,500. Growth-adjusted from 1,500 to 2,200. LinkedIn check not applied as a penalty because LinkedIn was an input. Flag: LinkedIn shows 2,592 members, 18% above the certified 2,200; more than the 15% tolerance for a white-collar workforce. 1 independent corroborating source(s) within 15%. Confidence 3 (Supported).",
+    "trend": [],
+    "forecast": null,
+    "policy_version": "0.2"
+  },
+  "cost_usd": 0.1069,
+  "web_searches": 2,
+  "web_fetches": 0,
+  "method": "research",
+  "notes": [
+    "Gong is private; no SEC filings, annual reports, press releases or executive quotes with headcount found (tiers 1-3 and 6 empty). LinkedIn member count 2,592 (snippet about 111 days old, roughly June 2026); a different snippet of the same page showed 3,572 members, which could not be reconciled or dated. Older snapshots showed 1,475 and 1,449 members (about 2021-2022). LinkedIn description has no headcount text, so no tier 5 source. ZoomInfo shows only the range 1K-5K employees (not a point figure, excluded from sources). No LinkedIn growth percentages visible. The website tile of 1,500 is undated and likely 1-2 years stale versus 2026 signals clustering around 2,100-2,700 (Revelio 2,101 in March, LinkedIn 2,592, LeadIQ about 2,600 and Tracxn 2,672 in August). Crunchbase, PitchBook and Growjo were not searched. The gong.io/about page was not fetched directly; the figure comes from supplied page context."
+  ],
+  "queries": [
+    "web_search: Gong number of employees 2026",
+    "web_search: Gong.io LinkedIn employees"
+  ],
+  "run_at": "2026-10-11T20:29:54.662533Z",
+  "duration_s": 32.6,
+  "models": {
+    "research": "claude-sonnet-5-5",
+    "extraction": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,216 @@
+{
+  "certification": {
+    "entity": {
+      "name": "Workday, Inc.",
+      "website": "https://www.workday.com",
+      "hq": "Pleasanton, CA, USA",
+      "legal_parent": null,
+      "relationship_to_parent": null
+    },
+    "certified_count": 21000,
+    "count_type": "reported",
+    "qualifier": "more_than",
+    "count_basis": "headcount",
+    "range": [
+      21000,
+      23100
+    ],
+    "confidence_score": 4,
+    "confidence_level": "Certified",
+    "confidence_breakdown": [
+      {
+        "points": 4,
+        "reason": "base 4: tier 1 primary source"
+      },
+      {
+        "points": 1,
+        "reason": "corroborated by reveliolabs.com 'Workday, Inc. (WDAY) has approximately 21,226 total employee'"
+      },
+      {
+        "points": -1,
+        "reason": "LinkedIn: Flag: LinkedIn shows 25,217 members, 20% above the certified 21,000; more than the 15% tolerance for a white-collar workforce."
+      }
+    ],
+    "policy_tier": 1,
+    "as_of_date": "2026-01-31",
+    "as_of_estimated": false,
+    "as_of_from_url": false,
+    "pre_adjustment": false,
+    "direction": {
+      "direction": "lower",
+      "reason": "Likely somewhat lower than reported because of a change after the as-of date: Form 8-K: reduction of approximately 2.5% of Workday's current workforce, primarily… (2026-09-29)."
+    },
+    "scope_notes": [],
+    "indicated_range": null,
+    "sources": [
+      {
+        "url": "https://www.sec.gov/Archives/edgar/data/1327811/000132781126000014/wday-20260131.htm",
+        "tier": 1,
+        "value": 21000,
+        "qualifier": "more_than",
+        "excerpt": "As of January 31, 2026, our global workforce consisted of over 21,000 employees in 36 countries, of which approximately 58% were located in the U.S. and 42% were located internationally.",
+        "location": {
+          "section": "Item 1. Business › Human Capital",
+          "page": "6",
+          "page_basis": "printed",
+          "context": "Workday was founded with the idea of putting people at the center of enterprise software, which is why employees are our number one core value. As of January 31, 2026, our global workforce consisted of over 21,000 employees in 36 countries, of which approximately 58% were located in the U.S. and 42% were located internationally. Maintaining strong employee relations is a priority and we consider our relations with our employees to be positive.",
+          "deep_link": "https://www.sec.gov/Archives/edgar/data/1327811/000132781126000014/wday-20260131.htm#:~:text=As%20of%20January%2031%2C%202026%2C,were%20located%20internationally.",
+          "note": "Printed page 6 (page 8 of 101 in the HTML filing)."
+        },
+        "as_of_date": "2026-01-31",
+        "as_of_estimated": false,
+        "as_of_basis": null,
+        "as_of_from_url": false,
+        "predates_change": true,
+        "published_date": "2026-03-06",
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "document_type": "10-K",
+        "publisher": null,
+        "corroboration_only": false,
+        "role": "selected",
+        "role_reason": "Highest-ranked eligible source: tier 1, as of 2026-01-31.",
+        "notes": [
+          "Rounded figure ('over 21,000'). Does not state FTE vs headcount or contractor treatment. Predates the September 2026 reduction of about 2.5%."
+        ]
+      },
+      {
+        "url": "https://www.reveliolabs.com/companies/workday/employees",
+        "tier": 7,
+        "value": 21226,
+        "qualifier": "approximately",
+        "excerpt": "Workday, Inc. (WDAY) has approximately 21,226 total employees worldwide as of March 2026, according to Revelio Labs workforce intelligence data.",
+        "location": {
+          "section": "How many employees work at Workday?",
+          "page": null,
+          "page_basis": null,
+          "context": "Workday (WDAY) had 21,226 employees as of March 2026, up 1,481 (-1.1%) from the prior year. Workday, Inc. (WDAY) has approximately 21,226 total employees worldwide as of March 2026, according to Revelio Labs workforce intelligence data.",
+          "deep_link": "https://www.reveliolabs.com/companies/workday/employees#:~:text=Workday%2C%20Inc.%20%28WDAY%29%20has%20approximately,workforce%20intelligence%20data.",
+          "note": "Web page: no page numbers."
+        },
+        "as_of_date": "2026-03-15",
+        "as_of_estimated": true,
+        "as_of_basis": "page states 'as of March 2026'",
+        "as_of_from_url": false,
+        "predates_change": true,
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "document_type": "data_provider",
+        "publisher": null,
+        "corroboration_only": false,
+        "role": "corroborates",
+        "role_reason": "Independent source near the same date, within 1% of the certified value (threshold 15%).",
+        "notes": [
+          "Modeled workforce data; page internally inconsistent ('up 1,481' next to '-1.1%'; 2025 history shows 20,848). Rough corroboration only.",
+          "As-of date estimated from page states 'as of March 2026'."
+        ]
+      },
+      {
+        "url": "https://pitchbook.com/profiles/company/13331-71",
+        "tier": 7,
+        "value": 25036,
+        "qualifier": "exact",
+        "excerpt": "Workday has 25,036 total employees.",
+        "location": {
+          "section": "Workday Overview / FAQs",
+          "page": null,
+          "page_basis": null,
+          "context": "Workday has 25,036 total employees. Workday's primary industry is Business/Productivity Software. … The current market capitalization of Workday is $46.7B.",
+          "deep_link": "https://pitchbook.com/profiles/company/13331-71#:~:text=Workday%20has%2025%2C036%20total%20employees.",
+          "note": "Web page: no page numbers."
+        },
+        "as_of_date": null,
+        "as_of_estimated": false,
+        "as_of_basis": null,
+        "as_of_from_url": false,
+        "predates_change": false,
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "document_type": "data_provider",
+        "publisher": null,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Not counted as corroboration: undated, so not near the certified figure's as-of date.",
+        "notes": [
+          "About 19% above the 10-K figure; likely a broader profile-based count. Labeled 'As of 2026' but page metadata suggests it may be stale, so date is unreliable.",
+          "Undated source.",
+          "Not counted as corroboration: undated, so not near the certified figure's as-of date."
+        ]
+      }
+    ],
+    "linkedin_check": {
+      "member_count": 25217,
+      "size_range": null,
+      "workforce_profile": "white_collar",
+      "implied_range": [
+        21928,
+        28019
+      ],
+      "size_range_agrees": null,
+      "status": "flag",
+      "note": "Flag: LinkedIn shows 25,217 members, 20% above the certified 21,000; more than the 15% tolerance for a white-collar workforce."
+    },
+    "adjustments": [],
+    "flags": [
+      "LinkedIn: Flag: LinkedIn shows 25,217 members, 20% above the certified 21,000; more than the 15% tolerance for a white-collar workforce."
+    ],
+    "events": [
+      {
+        "description": "Form 8-K: reduction of approximately 2.5% of Workday's current workforce, primarily within the Product and Technology team, plus select leased office space reductions. Employee-related actions expected to be substantially completed by Q1 of fiscal 2028; Workday plans to continue hiring in key strategic areas.",
+        "url": "https://www.sec.gov/Archives/edgar/data/0001327811/000132781126000048/wday-20260929.htm",
+        "close_date": "2026-09-29",
+        "penalized": false,
+        "after_as_of": true,
+        "headcount_change": null,
+        "reason": "Took effect 2026-09-29, after the 2026-01-31 as-of date. The tier 1 figure stands as reported; this is noted for awareness and in the directional guidance."
+      }
+    ],
+    "rationale": "Highest-ranked available source is tier 1 (10-K, 20-F, 40-F or annual financial report), as of 2026-01-31, reporting 21,000. 1 independent corroborating source(s) within 15%. LinkedIn: Flag: LinkedIn shows 25,217 members, 20% above the certified 21,000; more than the 15% tolerance for a white-collar workforce. Confidence 4 (Certified).",
+    "trend": [
+      {
+        "as_of_date": "2026-01-31",
+        "value": 21000,
+        "tier": 1,
+        "url": "https://www.sec.gov/Archives/edgar/data/1327811/000132781126000014/wday-20260131.htm"
+      }
+    ],
+    "forecast": null,
+    "policy_version": "0.2"
+  },
+  "cost_usd": 0.1287,
+  "web_searches": 2,
+  "web_fetches": 1,
+  "method": "edgar+research",
+  "notes": [
+    "SEC CIK 1327811 resolved from the name.",
+    "Latest 10-K gives 'over 21,000' as of 2026-01-31. The ARS excerpt retrieved contained no headcount figure (not read in full). The workday.com '3,500 Employees' tile is not a company headcount (midsize-business package page for businesses under 3,500 employees) and was excluded. Aggregators (Stockanalysis, Bullfincher) restate the 10-K and were not recorded. Prior 10-Ks: 20,400 (2025-01-31) and 18,800 (2024-01-31). LinkedIn count of 25,217 is above the 10-K, which is common for white-collar software firms. No fact sheet or press release headcount was found. The roughly 525-person estimate from the 2.5% cut is arithmetic, not stated by the company."
+  ],
+  "queries": [
+    "web_search: Workday number of employees 2026",
+    "web_search: Workday LinkedIn company page employees",
+    "web_fetch: https://www.sec.gov/Archives/edgar/data/0001327811/000132781126000048/wday-20260929.htm"
+  ],
+  "run_at": "2026-10-12T02:15:19.581624Z",
+  "duration_s": 34.1,
+  "models": {
+    "research": "claude-sonnet-5-5",
+    "extraction": "claude-sonnet-5-5"
+  }
+}

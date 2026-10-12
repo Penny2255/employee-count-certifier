@@ -6,7 +6,8 @@ models:
   extraction: claude-sonnet-5-5
 
 budget:
-  max_cost_usd_per_lookup: 0.50
+  max_cost_usd_per_lookup: 0.50     # reserved in full against the beta allowances before each lookup
+  research_stop_usd: 0.20           # research stops here, leaving room for its last turn and extraction
   max_web_searches_per_entity: 8
   max_web_searches_when_sec_filer: 4   # EDGAR already supplies tier 1
   max_web_fetches_per_entity: 4       # full-page reads (annual reports, About pages)

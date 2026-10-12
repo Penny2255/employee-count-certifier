@@ -13,6 +13,7 @@ import time
 from datetime import date, datetime, timezone
 from typing import Callable
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel
 
@@ -26,6 +27,7 @@ from .locate import locate_sources
 from .models import Location
 from .research import dedupe, research_entity
 from .sources.edgar import Edgar, Snippet
+from .sources.ipeds import IPEDS
 from .sources.propublica import ProPublica
 from .sources.website import website_snippets
 
@@ -64,12 +66,15 @@ def _noop(stage: str, message: str) -> None:
 
 def lookup(entity: Entity, cik: int | None = None, lookup_date: date | None = None, policy: Policy | None = None,
            edgar: Edgar | None = None, claude: Claude | None = None, parent_cik: int | None = None,
-           propublica: ProPublica | None = None, progress: Progress | None = None) -> LookupResult:
+           propublica: ProPublica | None = None, progress: Progress | None = None,
+           spend: Spend | None = None) -> LookupResult:
     """Run one lookup and stamp it with run time, duration and models (the record's methodology).
-    `progress(stage, message)` is called as each pipeline stage starts (see STAGES)."""
+    `progress(stage, message)` is called as each pipeline stage starts (see STAGES). Pass `spend` to
+    read the cost so far even if the lookup fails (the hosted allowances settle on it)."""
     policy = policy or default_policy()
     run_at, started = datetime.now(timezone.utc), time.monotonic()
-    result = _lookup(entity, cik, lookup_date, policy, edgar, claude, parent_cik, propublica, progress or _noop)
+    result = _lookup(entity, cik, lookup_date, policy, edgar, claude, parent_cik, propublica, progress or _noop,
+                     spend or Spend(policy))
     return result.model_copy(update={
         "run_at": run_at, "duration_s": round(time.monotonic() - started, 1),
         "models": {"research": policy.models.research, "extraction": policy.models.extraction}
@@ -78,7 +83,7 @@ def lookup(entity: Entity, cik: int | None = None, lookup_date: date | None = No
 
 def _lookup(entity: Entity, cik: int | None, lookup_date: date | None, policy: Policy, edgar: Edgar | None,
             claude: Claude | None, parent_cik: int | None, propublica: ProPublica | None,
-            progress: Progress = _noop) -> LookupResult:
+            progress: Progress = _noop, spend: Spend | None = None) -> LookupResult:
     """`parent_cik` lets a subsidiary without its own filings use its parent's combined filing
     (e.g., FPL's headcount in NextEra's 10-K); Claude extraction scopes the figures to the entity."""
     policy = policy or default_policy()
@@ -106,9 +111,9 @@ def _lookup(entity: Entity, cik: int | None, lookup_date: date | None, policy: P
         return LookupResult(certification=cert, cost_usd=0.0, web_searches=0, web_fetches=0,
                             method="edgar-heuristic", notes=notes)
 
-    known = [] if filing_cik else form990_sources(entity, notes, propublica)
+    known = [] if filing_cik else form990_sources(entity, notes, propublica) + ipeds_sources(entity, notes)
     claude = claude or Claude(policy)
-    spend = Spend(policy)
+    spend = spend or Spend(policy)
     site = website_snippets(entity.website) if entity.website else []
     progress("sweep", "Sweeping the web for other sources")
     found = research_entity(entity, snippets, lookup_date, claude, spend, site=site, known=known,
@@ -191,6 +196,27 @@ def form990_sources(entity: Entity, notes: list[str], propublica: ProPublica | N
     if sources:
         notes.append(f"Form 990 filings found on ProPublica (EIN {match.ein}).")
     return sources
+
+
+_COLLEGE = re.compile(r"(university|college|institute of technology|polytechnic)", re.I)
+
+
+def ipeds_sources(entity: Entity, notes: list[str], ipeds: IPEDS | None = None) -> list:
+    """IPEDS "Total all staff" (tier 2) for a U.S. college or university matched exactly by name."""
+    host = urlsplit(entity.website if "://" in (entity.website or "") else f"https://{entity.website or ''}").hostname or ""
+    if not (_COLLEGE.search(entity.name) or host.endswith(".edu")):
+        return []
+    ipeds = ipeds or IPEDS()
+    try:
+        inst = ipeds.find(entity.name)
+        source = ipeds.staff_source(inst) if inst else None
+    except Exception as e:  # an IPEDS outage shouldn't stop the lookup
+        notes.append(f"IPEDS unavailable: {e}")
+        return []
+    if source is None:
+        return []
+    notes.append(f"IPEDS Human Resources found (unit ID {inst.unitid}, {inst.name}).")
+    return [source]
 
 
 def log_for_review(result: LookupResult) -> None:

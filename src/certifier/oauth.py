@@ -1,9 +1,12 @@
-"""OAuth for the Claude custom connector, backed by access codes.
+"""OAuth for the Claude custom connector (open beta).
 
-Claude registers itself (Dynamic Client Registration), sends the user to /oauth/login where they
-enter their access code, and receives tokens tied to that person. The MCP SDK serves discovery,
-/register, /authorize, /token and /revoke; this provider supplies storage and the login step.
-Tokens are stored hashed; revoking a person's access code invalidates their tokens at once.
+Claude registers itself (Dynamic Client Registration) and sends the person to /oauth/login, which
+runs in their own browser. "Continue as beta guest" binds the issued tokens to a keyed hash of that
+browser's IP ("ip:<key>"), so connector lookups draw on the same daily allowance as the website from
+that IP; reconnecting from the same IP doesn't reset it. An admin code (CERTIFIER_ACCESS_CODES) binds
+the tokens to that admin instead, bypassing the allowances. The MCP SDK serves discovery, /register,
+/authorize, /token and /revoke; this provider supplies storage and the login step. Tokens are stored
+hashed; revoking an admin code invalidates its tokens at once.
 """
 
 from __future__ import annotations
@@ -36,7 +39,7 @@ def _h(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-class AccessCodeOAuthProvider(OAuthAuthorizationServerProvider[AuthorizationCode, RefreshToken, AccessToken]):
+class BetaOAuthProvider(OAuthAuthorizationServerProvider[AuthorizationCode, RefreshToken, AccessToken]):
     def __init__(self, store: Store, codes: AccessCodes, base_url: str):
         self.store = store
         self.codes = codes
@@ -64,10 +67,20 @@ class AccessCodeOAuthProvider(OAuthAuthorizationServerProvider[AuthorizationCode
         return self.store.get("pending", request_id)
 
     def complete_login(self, request_id: str, access_code: str) -> str | None:
-        """Exchange a valid access code for an authorization code; returns the client redirect URL."""
-        pending = self.store.get("pending", request_id)
+        """Admin sign-in: exchange a valid admin code for an authorization code; returns the redirect URL."""
         subject = self.codes.verify(access_code)
-        if pending is None or subject is None:
+        return self._complete(request_id, subject) if subject is not None else None
+
+    def complete_guest(self, request_id: str, ip_key: str) -> str | None:
+        """Beta guest sign-in: bind the tokens to the keyed hash of the signing-in browser's IP."""
+        return self._complete(request_id, "ip:" + ip_key)
+
+    def _active(self, subject: str) -> bool:
+        return subject.startswith("ip:") or self.codes.is_active(subject)
+
+    def _complete(self, request_id: str, subject: str) -> str | None:
+        pending = self.store.get("pending", request_id)
+        if pending is None:
             return None
         self.store.delete("pending", request_id)
         params = AuthorizationParams.model_validate(pending["params"])
@@ -96,7 +109,7 @@ class AccessCodeOAuthProvider(OAuthAuthorizationServerProvider[AuthorizationCode
 
     async def load_refresh_token(self, client: OAuthClientInformationFull, refresh_token: str) -> RefreshToken | None:
         data = self.store.get("refresh", _h(refresh_token))
-        if not data or data["client_id"] != client.client_id or not self.codes.is_active(data.get("subject") or ""):
+        if not data or data["client_id"] != client.client_id or not self._active(data.get("subject") or ""):
             return None
         return RefreshToken.model_validate({**data, "token": refresh_token})
 
@@ -114,7 +127,7 @@ class AccessCodeOAuthProvider(OAuthAuthorizationServerProvider[AuthorizationCode
             return AccessToken(token=token, client_id="access-code", scopes=[SCOPE], expires_at=None,
                                resource=self.resource, subject=subject)
         data = self.store.get("access", _h(token))
-        if not data or not self.codes.is_active(data.get("subject") or ""):
+        if not data or not self._active(data.get("subject") or ""):
             return None
         return AccessToken.model_validate({**data, "token": token})
 
@@ -130,3 +143,4 @@ class AccessCodeOAuthProvider(OAuthAuthorizationServerProvider[AuthorizationCode
         self.store.put("refresh", _h(refresh), {**common, "token": "", "expires_at": now + REFRESH_TTL}, REFRESH_TTL)
         return OAuthToken(access_token=access, token_type="Bearer", expires_in=ACCESS_TTL, scope=" ".join(scopes),
                           refresh_token=refresh)
+

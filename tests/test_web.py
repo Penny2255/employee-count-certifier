@@ -1,5 +1,5 @@
-"""Hosted service: web API, access codes, OAuth sign-in for the Claude connector, MCP over HTTP,
-spend controls and caching. Lookups are replaced with a recorded fixture (no API calls)."""
+"""Hosted service: web API, admin codes, OAuth sign-in for the Claude connector, MCP over HTTP and
+caching. Lookups are replaced with a recorded fixture (no API calls). Open-beta allowances: test_beta.py."""
 
 import base64
 import hashlib
@@ -30,7 +30,10 @@ def env(monkeypatch, tmp_path):
     monkeypatch.setenv("CERTIFIER_DATA_DIR", str(tmp_path))
     monkeypatch.setenv("CERTIFIER_ACCESS_CODES", f"alice:{access.hash_code(CODE)},bob:{access.hash_code(OTHER)}")
     monkeypatch.setenv("PUBLIC_BASE_URL", "http://localhost")
+    monkeypatch.setenv("CERTIFIER_RATE_LIMIT_PER_MIN", "10000")  # rate limiting has its own test
     monkeypatch.delenv("CERTIFIER_REVOKED", raising=False)
+    for name in ("CERTIFIER_VISITOR_USD_PER_DAY", "CERTIFIER_DAILY_USD_CAP", "CERTIFIER_PROXY_HOPS"):
+        monkeypatch.delenv(name, raising=False)
     calls = []
 
     def fake_lookup(entity, progress=None, **kw):
@@ -53,15 +56,19 @@ def client(env):
         yield c
 
 
-def auth(code=CODE):
-    return {"Authorization": f"Bearer {code}"}
+def auth(code=CODE, ip="203.0.113.7"):
+    """Headers for a request: an admin code (or None for a beta visitor) from a client IP behind the proxy."""
+    headers = {"X-Forwarded-For": ip}
+    if code:
+        headers["Authorization"] = f"Bearer {code}"
+    return headers
 
 
 # --- helpers -----------------------------------------------------------------------------------
 
-def stream(client, body, code=CODE):
+def stream(client, body, code=CODE, ip="203.0.113.7"):
     """POST /api/lookup and parse the server-sent events into (event, data) pairs."""
-    r = client.post("/api/lookup", json=body, headers=auth(code))
+    r = client.post("/api/lookup", json=body, headers=auth(code, ip))
     if r.headers.get("content-type", "").startswith("application/json"):
         return r.status_code, [("http-error", r.json())]
     events = []
@@ -87,22 +94,24 @@ def test_health_is_minimal(client):
     assert r.status_code == 200 and r.json() == {"status": "ok"}
 
 
-def test_admin_status_requires_a_code_and_has_no_secrets(client):
+def test_admin_status_requires_an_admin_code_and_has_no_secrets(client):
     assert client.get("/admin/status").status_code == 401
     body = client.get("/admin/status", headers=auth()).json()
-    assert body["access_codes_configured"] == 2 and body["daily_lookups_per_code"] == 10 and body["cache_days"] == 90
+    assert body["admin_codes_configured"] == 2 and body["daily_usd_cap"] == 5.0 and body["visitor_usd_per_day"] == 2.0
+    assert body["cache_days"] == 90
     assert "sk-ant" not in json.dumps(body) and CODE not in json.dumps(body)
 
 
-def test_api_requires_a_valid_access_code(client):
-    assert client.post("/api/lookup", json=SF).status_code == 401
-    r = client.post("/api/lookup", json=SF, headers=auth("ecc_wrong"))
-    assert r.status_code == 401 and r.json()["error"] == "Enter a valid access code."
+def test_visitors_need_no_code(client):
+    status, events = stream(client, SF, code=None)
+    assert status == 200 and result_of(events)["record"]["headline"]["count"] == 83_334
 
 
-def test_revoked_code_is_refused(client, monkeypatch):
+def test_a_wrong_or_revoked_code_is_just_a_visitor(client, monkeypatch):
+    assert client.get("/admin/status", headers=auth("ecc_wrong")).status_code == 401
+    assert result_of(stream(client, SF, code="ecc_wrong")[1])  # still served, as a visitor
     monkeypatch.setenv("CERTIFIER_REVOKED", "alice")
-    assert client.post("/api/lookup", json=SF, headers=auth()).status_code == 401
+    assert client.get("/admin/status", headers=auth()).status_code == 401
 
 
 def test_access_code_cli_round_trip():
@@ -168,7 +177,7 @@ def test_rating_is_stored_with_the_query(client):
     assert client.post(f"/api/lookups/{qid}/rating", json={"rating": "meh"}, headers=auth()).status_code == 400
     rows = web.Store().ratings()
     assert rows[0]["rating"] == "great" and rows[0]["comment"] == "Spot on" and rows[0]["query"] == "Salesforce"
-    assert rows[0]["subject"] == "alice"
+    assert rows[0]["subject"] == "admin:alice"
 
 
 def test_cache_then_refresh(client, env):
@@ -178,33 +187,6 @@ def test_cache_then_refresh(client, env):
     assert "Cached certification" in second["record"]["methodology"]["notes"][0]
     stream(client, {**SF, "refresh": True})
     assert len(env) == 2
-
-
-def test_per_code_daily_limit_and_friendly_message(env, monkeypatch):
-    monkeypatch.setenv("CERTIFIER_DAILY_LOOKUPS_PER_USER", "1")
-    with TestClient(web.create_app(), base_url="http://localhost") as c:
-        assert result_of(stream(c, {"name": "A Corp"})[1])
-        _, events = stream(c, {"name": "B Corp"})
-        err = next(d for e, d in events if e == "error")
-        assert err["kind"] == "limit" and "1 of your 1 new lookups today" in err["message"]
-        assert result_of(stream(c, {"name": "A Corp"})[1])["cached"] is True  # cached: free
-        assert result_of(stream(c, {"name": "B Corp"}, OTHER)[1])  # per code
-
-
-def test_refresh_counts_against_the_limit(env, monkeypatch):
-    monkeypatch.setenv("CERTIFIER_DAILY_LOOKUPS_PER_USER", "1")
-    with TestClient(web.create_app(), base_url="http://localhost") as c:
-        stream(c, {"name": "A Corp"})
-        _, events = stream(c, {"name": "A Corp", "refresh": True})
-        assert next(d for e, d in events if e == "error")["kind"] == "limit"
-
-
-def test_global_daily_dollar_cap(env, monkeypatch):
-    monkeypatch.setenv("CERTIFIER_DAILY_USD_CAP", "0.05")
-    with TestClient(web.create_app(), base_url="http://localhost") as c:
-        assert result_of(stream(c, {"name": "A Corp"})[1])  # spends ~$0.17
-        _, events = stream(c, {"name": "B Corp"}, OTHER)
-        assert "spending cap" in next(d for e, d in events if e == "error")["message"]
 
 
 def test_card_paths_are_validated(client):
@@ -268,7 +250,7 @@ def _pkce():
     return verifier, challenge
 
 
-def _oauth_token(client) -> dict:
+def _oauth_token(client, mode="admin", ip="198.51.100.20") -> dict:
     reg = client.post("/register", json={"redirect_uris": [REDIRECT], "token_endpoint_auth_method": "none",
                                           "grant_types": ["authorization_code", "refresh_token"],
                                           "response_types": ["code"], "client_name": "Claude"})
@@ -282,11 +264,15 @@ def _oauth_token(client) -> dict:
     login = urlsplit(r.headers["location"])
     assert login.path == "/oauth/login"
     request_id = parse_qs(login.query)["request"][0]
-    assert "Access code" in client.get(f"/oauth/login?request={request_id}").text
+    page = client.get(f"/oauth/login?request={request_id}").text
+    assert "Continue as beta guest" in page and "Have an admin code?" in page
 
-    bad = client.post("/oauth/login", data={"request": request_id, "access_code": "ecc_nope"})
-    assert bad.status_code == 400 and "isn't valid" in bad.text
-    ok = client.post("/oauth/login", data={"request": request_id, "access_code": CODE})
+    if mode == "admin":
+        bad = client.post("/oauth/login", data={"request": request_id, "mode": "admin", "access_code": "ecc_nope"})
+        assert bad.status_code == 400 and "isn't valid" in bad.text
+        ok = client.post("/oauth/login", data={"request": request_id, "mode": "admin", "access_code": CODE})
+    else:
+        ok = client.post("/oauth/login", data={"request": request_id, "mode": "guest"}, headers={"X-Forwarded-For": ip})
     assert ok.status_code == 302
     back = urlsplit(ok.headers["location"])
     q = parse_qs(back.query)
@@ -350,26 +336,26 @@ def test_bearer_access_code_works_for_mcp_directly(client):
     assert status == 200 and "result" in init
 
 
-def test_mcp_certify_tool_over_http_applies_cache_and_limits(client, env, monkeypatch):
+def test_mcp_certify_tool_over_http_applies_cache_and_beta_limits(client, env, monkeypatch):
     from certifier import server as mcp_server
     monkeypatch.setattr(mcp_server, "lookup", web.lookup)  # the same recorded fixture
     args = {"name": "Salesforce, Inc.", "website": "https://www.salesforce.com"}
-    _mcp(client, CODE, "initialize", INIT)
-    status, first = _mcp(client, CODE, "tools/call", {"name": "certify_employee_count", "arguments": args}, 3)
+    guest = _oauth_token(client, mode="guest")["access_token"]
+    _mcp(client, guest, "initialize", INIT)
+    status, first = _mcp(client, guest, "tools/call", {"name": "certify_employee_count", "arguments": args}, 3)
     assert status == 200, first
     sc = first["result"]["structuredContent"]
     sc = sc.get("result", sc)
     assert sc["entity"]["record"]["headline"]["count"] == 83_334 and sc["card_url"].startswith("http://localhost/cards/")
-    status, again = _mcp(client, CODE, "tools/call", {"name": "certify_employee_count", "arguments": args}, 4)
+    status, again = _mcp(client, guest, "tools/call", {"name": "certify_employee_count", "arguments": args}, 4)
     sc2 = again["result"]["structuredContent"]
     assert "cached_at" in sc2.get("result", sc2)["entity"] and len(env) == 1
 
-    monkeypatch.setenv("CERTIFIER_DAILY_LOOKUPS_PER_USER", "1")
-    mcp_server._controls.daily_lookups = 1
-    status, limited = _mcp(client, CODE, "tools/call",
+    mcp_server._controls.visitor_usd = 0.6  # room for one $0.50 reservation, already used today
+    status, limited = _mcp(client, guest, "tools/call",
                            {"name": "certify_employee_count", "arguments": {"name": "Another Corp"}}, 5)
     assert limited["result"]["isError"] is True
-    assert "new lookups today" in limited["result"]["content"][0]["text"]
+    assert limited["result"]["content"][0]["text"] == "You've reached today's beta limit. Back tomorrow."
 
 
 def test_page_has_start_over_powered_by_mcp_help_and_glossary(client):

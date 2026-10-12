@@ -88,7 +88,7 @@
   // ---------- API (JSON errors only; never raw parse errors) ----------
   function api(path, opts) {
     opts = opts || {};
-    var headers = { "Authorization": "Bearer " + code() };
+    var headers = authHeaders();
     if (opts.body) headers["Content-Type"] = "application/json";
     return fetch(path, { method: opts.method || "GET", headers: headers, body: opts.body ? JSON.stringify(opts.body) : undefined })
       .then(function (r) {
@@ -104,14 +104,49 @@
         });
       }, function () { throw new Error("Can't reach the service. Check your connection and try again."); });
   }
-  function needCode(message) {
-    $("code-form").hidden = false;
-    $("code-help").textContent = message || "GTM Data Certifier is invite-only. Enter your access code to continue; it's remembered in this browser.";
-    $("code").focus();
-  }
-  function handleAuth(err, retry) {
-    if (err.status === 401) { put("gtm_code", ""); show("home"); needCode("That access code wasn't accepted. Check it and enter it again."); state.retry = retry; return true; }
+  // Open beta: visitors need no code. An admin code (set on /admin) is sent when present.
+  function authHeaders() { return code() ? { "Authorization": "Bearer " + code() } : {}; }
+  function handleAuth(err) {
+    if (err.status === 401 && code()) put("gtm_code", "");  // a stale admin code: carry on as a visitor
     return false;
+  }
+
+  // ---------- allowance (approximate searches left; never dollars) ----------
+  function showAllowance(d) {
+    var n = $("allowance");
+    if (!d) { n.textContent = ""; return; }
+    if (d.admin) n.textContent = "Admin · no limits";
+    else if (d.searches_left > 0) n.textContent = "About " + d.searches_left + " search" + (d.searches_left === 1 ? "" : "es") + " left today · cached and sample results are free";
+    else n.textContent = (d.message || "You've reached today's beta limit. Back tomorrow.") + " Cached and sample results still work.";
+  }
+  function refreshAllowance() { api("/api/allowance").then(showAllowance, function () { showAllowance(null); }); }
+
+  // ---------- samples (free, certified ahead of time) ----------
+  function logoUrl(website) {
+    if (!website) return null;
+    try { return "/logos/" + new URL(/:\/\//.test(website) ? website : "https://" + website).hostname.replace(/^www\./, "") + ".png"; }
+    catch (e) { return null; }
+  }
+  function renderSamples() {
+    api("/api/samples").then(function (d) {
+      var ul = $("sample-list");
+      ul.textContent = "";
+      d.samples.forEach(function (s) {
+        var b = el("button", { type: "button", cls: "sample-card" }, [
+          logo({ name: s.name, logo_url: logoUrl(s.website) }),
+          el("span", { cls: "sc-text" }, [el("span", { cls: "sc-name", text: s.name }),
+            el("span", { cls: "sc-meta", text: (s.count == null ? "not certified" : num(s.count)) + " employees" })]),
+          el("span", { cls: "sc-score s" + s.score, text: s.score + "/5" })]);
+        b.addEventListener("click", function () { openSample(s.slug); });
+        ul.appendChild(el("li", null, [b]));
+      });
+      $("samples").hidden = !d.samples.length;
+    }, function () { $("samples").hidden = true; });
+  }
+  function openSample(slug) {
+    say("home-status", "Opening sample…");
+    api("/api/samples/" + slug).then(function (d) { say("home-status", ""); state.candidate = null; state.theme = null; showResult(d); })
+      .catch(function (err) { say("home-status", err.message, true); });
   }
 
   // ---------- home ----------
@@ -122,16 +157,6 @@
   $("search-form").addEventListener("submit", function (e) { e.preventDefault(); search($("q").value); });
   Array.prototype.forEach.call(document.querySelectorAll("[data-example]"), function (b) {
     b.addEventListener("click", function () { $("q").value = b.getAttribute("data-example"); search(b.getAttribute("data-example")); });
-  });
-  $("code-form").addEventListener("submit", function (e) {
-    e.preventDefault();
-    var value = $("code").value.trim();
-    if (!value) return;
-    put("gtm_code", value);
-    $("code").value = "";
-    $("code-form").hidden = true;
-    var retry = state.retry; state.retry = null;
-    if (retry) retry(); else if ($("q").value.trim()) search($("q").value);
   });
 
   // The confirm page shows a "finding" state until the matches arrive; only the latest search may render,
@@ -165,7 +190,6 @@
     if (!q) { say("home-status", "Enter a company name or website.", true); $("q").focus(); return; }
     if (state.searching === q) return;  // the same search is already running
     state.query = q;
-    if (!code()) { state.retry = function () { search(q); }; needCode(); return; }
     var seq = state.searchSeq = (state.searchSeq || 0) + 1;
     state.searching = q;
     say("home-status", "");
@@ -181,23 +205,25 @@
         return;
       }
       state.candidates = d.candidates;
+      if (d.searches_left != null || d.searches_left === 0) showAllowance({ searches_left: d.searches_left });
       found(q, d.candidates);
       $("confirm-title").focus({ preventScroll: true });
     }).catch(function (err) {
       if (seq !== state.searchSeq) return;
       state.searching = null;
       clearInterval(findTimer);
-      if (handleAuth(err, function () { search(q); })) return;
+      handleAuth(err);
       show("home");
       say("home-status", err.message, true);
+      refreshAllowance();
     });
   }
 
   // ---------- confirm ----------
   function logo(c) {
     var box = el("div", { cls: "logo", "aria-hidden": "true", text: (c.name || "?").slice(0, 1).toUpperCase() });
-    if (c.logo_url && /^https:\/\//.test(c.logo_url)) {
-      var img = el("img", { src: c.logo_url, alt: "", width: "28", height: "28", loading: "lazy", referrerpolicy: "no-referrer" });
+    if (c.logo_url && /^(https:\/\/|\/logos\/)/.test(c.logo_url)) {
+      var img = el("img", { src: c.logo_url, alt: "", width: "28", height: "28", referrerpolicy: "no-referrer" });
       img.addEventListener("load", function () { if (img.naturalWidth > 1) { box.textContent = ""; box.appendChild(img); } });
     }
     return box;
@@ -208,6 +234,7 @@
     list.forEach(function (c) {
       var meta = [c.website ? host(c.website) : null, c.hq].filter(Boolean).join(" · ");
       var parent = c.is_subsidiary && c.legal_parent ? "Part of " + c.legal_parent : null;
+      c = Object.assign({}, c, { logo_url: logoUrl(c.website) || c.logo_url });
       var go = el("button", { type: "button", cls: "primary", text: "Certify" });
       go.addEventListener("click", function () { certify(c, false); });
       root.appendChild(el("article", { cls: "candidate", "aria-label": c.name }, [logo(c),
@@ -336,7 +363,7 @@
                  relationship_to_parent: c.relationship_to_parent, query: state.query, refresh: !!refresh };
     if (state.controller) state.controller.abort();
     var controller = state.controller = window.AbortController ? new AbortController() : null;
-    fetch("/api/lookup", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + code() }, body: JSON.stringify(body),
+    fetch("/api/lookup", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, authHeaders()), body: JSON.stringify(body),
                            signal: controller ? controller.signal : undefined })
       .then(function (r) {
         if (!r.ok || !r.body) {
@@ -368,9 +395,10 @@
       .catch(function (err) {
         stopPhrases();
         if (err && err.name === "AbortError") return;  // the person went Back or started over
-        if (handleAuth(err, function () { certify(c, refresh); })) return;
+        handleAuth(err);
         show("home");
         say("home-status", err.message, true);
+        refreshAllowance();
       });
   }
 
@@ -379,7 +407,7 @@
     state.current = state.last = payload;  // state.last survives Start over, so Back can return to it
     state.rating = null;
     var rec = payload.record;
-    GTMCard.render($("result-card"), rec, { actions: false });
+    GTMCard.render($("result-card"), rec, { actions: false, logo: logoUrl });
     // The expedition's theme signs off on the result it found.
     var done = $("theme-done"), theme = fromHistory ? null : state.theme;
     state.theme = null;
@@ -390,14 +418,16 @@
       done.appendChild(el("span", { text: theme.phrases.certified[0] + " · " + theme.name }));
     }
     var on = $("certified-on");
-    on.textContent = "Certified on " + (payload.certified_on || "–");
-    if (payload.cached) on.appendChild(el("span", { cls: "badge-cache", text: "from the shared cache" }));
-    $("refresh").hidden = !payload.cached || payload.query_id === "demo";
+    on.textContent = (payload.sample ? "Sample result, certified on " : "Certified on ") + (payload.certified_on || "–");
+    if (payload.cached && !payload.sample) on.appendChild(el("span", { cls: "badge-cache", text: "from the shared cache" }));
+    $("refresh").hidden = !payload.cached || payload.sample || payload.query_id === "demo";
+    $("discard").hidden = !!payload.sample;
+    if (payload.searches_left != null) showAllowance({ searches_left: payload.searches_left });
     resetRating();
     say("result-status", "");
     if (fromHistory) show("result"); else go("result", { qid: payload.query_id });
     remember(payload);  // every completed result is saved to Recent lookups
-    $("saved-note").hidden = payload.query_id === "demo";
+    $("saved-note").hidden = payload.query_id === "demo" || !!payload.sample;
   }
   Array.prototype.forEach.call(document.querySelectorAll("[data-action='reset']"), function (b) {
     b.addEventListener("click", function () { reset(false); });
@@ -419,7 +449,7 @@
   function download(format) {
     if (!state.current) return;
     if (state.current.query_id === "demo") { say("result-status", "Downloads are disabled in demo mode."); return; }
-    fetch("/api/lookups/" + state.current.query_id + "/export?format=" + format, { headers: { "Authorization": "Bearer " + code() } })
+    fetch("/api/lookups/" + state.current.query_id + "/export?format=" + format, { headers: authHeaders() })
       .then(function (r) {
         if (!r.ok) return r.text().then(function (t) { var d = null; try { d = JSON.parse(t); } catch (e) {} throw new Error((d && d.error) || "Download failed. Please try again."); });
         var name = (r.headers.get("Content-Disposition") || "").replace(/.*filename="([^"]+)".*/, "$1") || "certification";
@@ -454,7 +484,7 @@
 
   // ---------- recent lookups (this browser only) ----------
   function remember(p) {
-    if (p.query_id === "demo") return;
+    if (p.query_id === "demo" || p.sample) return;
     var h = p.record.headline, c = p.record.confidence;
     var list = get("gtm_recent", []).filter(function (r) { return r.name !== p.record.entity.name; });
     list.unshift({ id: p.query_id, name: p.record.entity.name, count: h.count, qualifier: h.qualifier, score: c.score,
@@ -473,10 +503,9 @@
     });
   }
   function openStored(id, fromHistory) {
-    if (!code()) { state.retry = function () { openStored(id); }; needCode(); return; }
     say("home-status", "Opening…");
     api("/api/lookups/" + id).then(function (d) { say("home-status", ""); state.candidate = null; showResult(d, fromHistory); })
-      .catch(function (err) { if (!handleAuth(err, function () { openStored(id); })) say("home-status", err.message, true); });
+      .catch(function (err) { handleAuth(err); say("home-status", err.message, true); });
   }
 
   // ---------- navigation and panels ----------
@@ -492,7 +521,8 @@
   Array.prototype.forEach.call(document.querySelectorAll("dialog"), function (d) {
     d.addEventListener("click", function (e) { if (e.target === d) d.close(); });  // click on the backdrop
   });
-  $("forget-code").addEventListener("click", function () { put("gtm_code", ""); $("forget-code").textContent = "Access code forgotten"; });
+  $("forget-wrap").hidden = !code();
+  $("forget-code").addEventListener("click", function () { put("gtm_code", ""); $("forget-code").textContent = "Admin code forgotten"; refreshAllowance(); });
 
   // ---------- demo mode (CERTIFIER_DEMO=1; used for screenshots) ----------
   function demo() {
@@ -522,8 +552,11 @@
       $("dlg-about").showModal();
     } else if (view === "how") {
       $("dlg-how").showModal();
-    } else if (view === "code") {
-      needCode();
+    } else if (view === "limit") {
+      showAllowance({ searches_left: 0, message: "You've reached today's beta limit. Back tomorrow." });
+      say("home-status", "You've reached today's beta limit. Back tomorrow.", true);
+    } else if (view === "sample") {
+      openSample(p.get("slug") || "salesforce");
     } else if (view === "home") {
       put("gtm_recent", [{ id: "demo", name: "Salesforce, Inc.", count: 83334, score: 5, level: "Certified, corroborated", date: "2026-10-11" },
                          { id: "demo", name: "Stripe, Inc.", count: 8500, score: 1, level: "Unverified", date: "2026-10-11" }]);
@@ -532,5 +565,7 @@
   }
 
   renderRecent();
+  renderSamples();
+  if (!window.GTM_DEMO || new URLSearchParams(location.search).get("demo") !== "limit") refreshAllowance();
   if (window.GTM_DEMO) demo();
 })();

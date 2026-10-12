@@ -464,7 +464,7 @@ def bottom_line(score: int, count: int | None) -> str:
 # Typical lag from the as-of date to the next edition, in days (fiscal year plus filing time).
 _NEXT_EDITION = {"10-K": (365 + 60, "10-K"), "20-F": (365 + 120, "20-F"), "40-F": (365 + 90, "40-F"),
                  "sec_filing": (365 + 90, "annual SEC filing"), "annual_report": (365 + 90, "annual report"),
-                 "acfr": (365 + 180, "ACFR"), "form_990": (365 + 320, "Form 990"), "ipeds": (365 + 300, "IPEDS release")}
+                 "acfr": (365 + 180, "ACFR"), "form_990": (365 + 320, "Form 990"), "ipeds": (365 + 400, "IPEDS release")}
 
 
 def next_update(selected: Source | None, lookup_date: date) -> tuple[date | None, str | None]:

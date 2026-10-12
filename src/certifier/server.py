@@ -10,13 +10,14 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import Any
+from contextlib import contextmanager
+from typing import Any, Iterator
 
 import anyio
 from mcp.server.apps import Apps
 from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.mcpserver import MCPServer
-from mcp.server.mcpserver.exceptions import ToolError
+from mcp_types import CallToolResult, TextContent
 
 from . import hosted
 from .card import APP_URI, app_html, save_card
@@ -56,9 +57,21 @@ def configure_hosting(controls: hosted.Controls | None, public_base_url: str | N
     _controls, _public_base_url = controls, (public_base_url or "").rstrip("/") or None
 
 
-def _subject() -> str | None:
+def _who() -> hosted.Who | None:
+    """The beta guest (bound to their sign-in IP) or admin behind this request; None for local use."""
     token = get_access_token()
-    return token.subject if token is not None else None
+    if token is None or _controls is None:
+        return None
+    return _controls.resolve(token.subject)
+
+
+def _plain_error(message: str) -> Any:
+    return CallToolResult(content=[TextContent(type="text", text=message)], is_error=True)
+
+
+@contextmanager
+def _local_spend() -> Iterator[Spend]:
+    yield Spend(default_policy())
 
 
 def _summary(cert: Certification) -> str:
@@ -89,16 +102,13 @@ async def find_entity(name: str, website: str | None = None) -> dict[str, Any]:
         name: Organization name as the user gave it.
         website: The organization's website, if the user knows it (improves matching).
     """
-    subject = _subject()
-    if subject is not None and _controls is not None:
-        try:
-            _controls.check_spend()
-        except hosted.LimitExceeded as e:
-            raise ToolError(str(e)) from e
+    who = _who()
     policy = default_policy()
-    spend = Spend(policy)
-    candidates = await anyio.to_thread.run_sync(lambda: find_entities(name, website, Claude(policy), spend))
-    hosted.charge(subject, _controls, spend.usd)
+    try:
+        with (_controls.metered(who, hosted.FIND_RESERVE_USD) if _controls else _local_spend()) as spend:
+            candidates = await anyio.to_thread.run_sync(lambda: find_entities(name, website, Claude(policy), spend))
+    except hosted.LimitExceeded as e:  # plain-language beta message, shown as is
+        return _plain_error(str(e))  # the beta message as is, without the SDK's tool-error prefix
     return {"candidates": [c.model_dump(mode="json") for c in candidates], "cost_usd": round(spend.usd, 4),
             "next_step": "Ask the user to confirm which organization they mean (and note any global parent) "
                          "before calling certify_employee_count."}
@@ -133,13 +143,13 @@ async def certify_employee_count(name: str, website: str | None = None, hq: str 
     if include_parent and legal_parent:
         jobs.append(hosted.Job(Entity(name=legal_parent, website=parent_website), cik=parent_cik))
 
-    subject = _subject()
+    who = _who()
     run = lambda e, **kw: lookup(e, **kw)  # resolves the module-level `lookup` at call time (tests replace it)
     try:
         outcomes = await anyio.to_thread.run_sync(
-            lambda: hosted.run_lookups(jobs, run, subject=subject, controls=_controls, refresh=refresh))
+            lambda: hosted.run_lookups(jobs, run, who=who, controls=_controls, refresh=refresh))
     except hosted.LimitExceeded as e:  # shown to the user as is
-        raise ToolError(str(e)) from e
+        return _plain_error(str(e))  # the beta message as is, without the SDK's tool-error prefix
     records = [record_from_lookup(o.result) for o in outcomes]
     out: dict[str, Any] = {"entity": _result(outcomes[0], records[0])}
     if len(outcomes) > 1:

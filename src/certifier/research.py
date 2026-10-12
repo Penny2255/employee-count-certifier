@@ -44,17 +44,16 @@ class XSource(BaseModel):
                                               "it describes (e.g. 'before taking the layoffs into account')")
     restates: bool = Field(description="True if this source repeats another source's figure (e.g. Wikipedia, "
                                        "Bullfincher or an aggregator quoting the 10-K) rather than reporting its own")
-    document_type: Literal["10-K", "20-F", "40-F", "annual_report", "acfr", "fact_sheet", "form_990", "ipeds",
-                           "non_financial_report", "press_release", "company_document", "website_about",
-                           "website_other", "linkedin_description", "news", "data_provider", "other"] | None = Field(
-        default=None,
-        description="What the document is. annual_report: full annual/integrated report with financial statements; "
-                    "acfr: a government's Annual Comprehensive Financial Report; fact_sheet: the company's official "
-                    "Corporate Fact Sheet or 'company facts' page/PDF; non_financial_report: impact/sustainability/"
-                    "annual review report; company_document: other company-published document (brochure, packet); "
-                    "website_about: the About/Company page; news: a news article; data_provider: a headcount database")
-    publisher: str | None = Field(default=None, description="Outlet or provider name for news and data providers, "
-                                                            "e.g. 'Reuters', 'ZoomInfo'; null otherwise")
+    # A plain string, not an enum, and no separate publisher field: the structured-output grammar sits near the
+    # API's size limit (400 "compiled grammar is too large"). to_source() normalizes this against
+    # taxonomy.DOCUMENT_TYPES; the publisher comes from the URL (taxonomy.publisher_of).
+    document_type: str | None = Field(
+        description="What the document is, one of: 10-K, 20-F, 40-F, annual_report (full annual/integrated report "
+                    "with financial statements), acfr (government Annual Comprehensive Financial Report), fact_sheet "
+                    "(the company's official Corporate Fact Sheet or 'company facts' page/PDF), form_990, ipeds, "
+                    "non_financial_report (impact/sustainability/annual review), press_release, company_document "
+                    "(other company-published document), website_about, website_other, linkedin_description, news, "
+                    "data_provider, other")
     excerpt: str = Field(description="Verbatim quote containing the figure")
     context: str = Field(description="Detailed excerpt: the verbatim passage around the figure, 2-4 sentences")
     section: str | None = Field(description="Heading or part of the page/document where the figure appears, "
@@ -301,11 +300,22 @@ def to_source(x: XSource) -> Source:
         if x.as_of_date is None and x.as_of_estimate is not None else None,
         published_date=x.published_date,
         modified_date=x.modified_date, restates=x.restates, predates_change=x.predates_change,
-        document_type=x.document_type, publisher=x.publisher,
+        document_type=_document_type(x.document_type),
         contractors_included=x.contractors_included or None,
         separately_reported={c.category: c.count for c in x.separately_reported} or None,
         notes=[x.note] if x.note else [],
     )
+
+
+def _document_type(value: str | None) -> str | None:
+    """Research's free-text document type, normalized to a taxonomy key (unknown values are inferred later)."""
+    from .taxonomy import DOCUMENT_TYPES
+
+    if not value:
+        return None
+    key = value.strip().lower().replace(" ", "_").replace("-", "_")
+    key = {"10_k": "10-K", "20_f": "20-F", "40_f": "40-F", "form990": "form_990", "990": "form_990"}.get(key, key)
+    return key if key in DOCUMENT_TYPES else None
 
 
 def _location(x: XSource) -> Location:

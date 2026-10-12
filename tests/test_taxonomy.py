@@ -129,3 +129,33 @@ def test_record_json_carries_labels_for_export():
 def certify_one():
     from certifier.models import Entity
     return certify(Entity(name="Acme"), [src(4, 900, url="https://acme.example/about")], lookup_date=LOOKUP)
+
+
+def test_extraction_schema_stays_small_for_structured_outputs():
+    """A 17-value enum in XSource made the API reject every extraction ("compiled grammar is too large").
+    Keep enums short and every field required (nullable instead of optional), as the API compiles them all."""
+    from certifier.research import Extraction
+
+    schema = Extraction.model_json_schema()
+
+    def walk(node, path="Extraction"):
+        if isinstance(node, dict):
+            if "enum" in node:
+                assert len(node["enum"]) <= 8, f"{path}: enum of {len(node['enum'])} values"
+            if node.get("type") == "object" and "properties" in node:
+                missing = set(node["properties"]) - set(node.get("required", []))
+                assert not missing, f"{path}: optional fields {missing}"
+            for k, v in node.items():
+                walk(v, f"{path}.{k}")
+        elif isinstance(node, list):
+            for v in node:
+                walk(v, path)
+    walk(schema)
+    for name, sub in schema.get("$defs", {}).items():
+        walk(sub, name)
+
+
+def test_research_document_type_is_normalized():
+    from certifier.research import _document_type
+    assert _document_type("Fact Sheet") == "fact_sheet" and _document_type("10-K") == "10-K"
+    assert _document_type("press release") == "press_release" and _document_type("blog") is None

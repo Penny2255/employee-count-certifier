@@ -35,10 +35,17 @@
         <h1 id="home-title">GTM Data Certifier</h1>
         <p class="tagline">__TAGLINE__</p>
         <p class="mission">Giving you transparency &amp; trust to take real action</p>
+        <div class="metrics" role="group" aria-label="What to certify">
+          <button type="button" class="metric on" aria-pressed="true"><span class="m-dot" aria-hidden="true"></span>Employee count</button>
+          <button type="button" class="metric soon" aria-disabled="true" data-soon="Revenue">Revenue <em>soon</em></button>
+          <button type="button" class="metric soon" aria-disabled="true" data-soon="Company hierarchy">Hierarchy <em>soon</em></button>
+          <button type="button" class="metric soon" aria-disabled="true" data-soon="Industry">Industry <em>soon</em></button>
+          <button type="button" class="metric soon" aria-disabled="true" data-soon="Address">Address <em>soon</em></button>
+        </div>
         <form id="search-form" class="search" role="search" autocomplete="off">
-          <label class="sr-only" for="q">Company name or website</label>
+          <label class="sr-only" for="q">Company name or website to certify its employee count</label>
           <input id="q" name="q" type="search" placeholder="Company or website" required maxlength="120">
-          <button class="primary" type="submit">Certify</button>
+          <button class="primary" type="submit">Certify<span class="btn-more"> employees</span></button>
         </form>
         <div class="chips" aria-label="Examples">
           <span class="muted small">Try</span>
@@ -67,7 +74,11 @@
   <!-- 2. Confirm -->
   <section id="view-confirm" class="view" aria-labelledby="confirm-title" hidden>
     <h1 id="confirm-title" class="view-title">Which one do you mean?</h1>
-    <p class="muted">Choose the organization to certify. One lookup covers one organization.</p>
+    <p id="confirm-help" class="muted">Choose the organization to certify. One lookup covers one organization.</p>
+    <div id="finding" class="finding" hidden>
+      <div class="track searching" aria-hidden="true"><span class="pod"></span></div>
+      <p id="finding-status" class="small muted" role="status" aria-live="polite"></p>
+    </div>
     <div id="candidates" class="candidates"></div>
     <p><button type="button" class="link" id="search-again">Not the right one? Search again</button></p>
   </section>

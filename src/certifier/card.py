@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Company card: the certification record rendered for people.
 
 One renderer (CARD_JS, exposing `window.GTMCard.render`) serves three routes:
@@ -14,6 +15,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .notice import OWNER_LINE, ROBOTS_META
 from .record import CertificationRecord
 
 OUTPUTS_DIR = Path(__file__).resolve().parents[2] / "outputs"
@@ -223,6 +225,7 @@ CARD_CSS = r"""
 .cert .dl-hint { font-size: 12px; font-weight: 500; color: var(--muted); }
 .cert .dl-group { margin: 6px 10px 2px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .cert .footer-actions { margin-top: 12px; }
+.cert .owner-notice { margin: 12px 0 0; font-size: 11px; line-height: 1.45; color: var(--muted); }
 .cert .footer-actions .dl-items { top: auto; bottom: calc(100% + 6px); }
 .cert .crm-form label { display: block; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
 .cert .crm-row { display: flex; gap: 8px; max-width: 420px; }
@@ -333,6 +336,7 @@ CARD_CSS = r"""
 CARD_JS = r"""
 (function () {
   "use strict";
+  var OWNER_LINE = __OWNER_LINE__;
   var STATUS = { green: ["✓", "Green"], yellow: ["!", "Yellow"], red: ["✕", "Red"] };
   var QUAL = { exact: "", approximately: "approx.", more_than: "more than", up_to: "up to" };
   var ROLE = { selected: "Used: key source", corroborates: "Used: corroborates", derived_input: "Used: derived",
@@ -1011,10 +1015,14 @@ CARD_JS = r"""
           ["Cost", "$" + Number(m.cost_usd).toFixed(2) + " · " + m.web_searches + " searches, " + m.web_fetches + " fetches"],
           ["Run", (m.run_at ? m.run_at.replace("T", " ").slice(0, 19) + " UTC" : m.lookup_date) + (m.duration_s != null ? " · " + m.duration_s + " s" : "")]])];
     parts.push(el("div", { cls: "row footer-actions" }, [downloadMenu(r, opts)]));
+    parts.push(el("p", { cls: "owner-notice", text: OWNER_LINE }));
     return el("footer", { cls: "block" }, parts);
   }
 
-  function json(all) { return JSON.stringify(all.length === 1 ? all[0] : all, function (k, v) { return k === "__k" || k === "__links" ? undefined : v; }, 2); }
+  function json(all) {
+    var body = all.length === 1 ? Object.assign({ notice: OWNER_LINE }, all[0]) : { notice: OWNER_LINE, records: all };
+    return JSON.stringify(body, function (k, v) { return k === "__k" || k === "__links" ? undefined : v; }, 2);
+  }
   function download(all) {
     var name = (all[0].entity.name || "certification").replace(/[^a-z0-9]+/gi, "-").toLowerCase() + ".json";
     try {
@@ -1063,6 +1071,8 @@ CARD_JS = r"""
 """
 
 # Boot for the standalone file and the MCP App: render embedded data, or data pushed by the host.
+CARD_JS = CARD_JS.replace("__OWNER_LINE__", json.dumps(OWNER_LINE, ensure_ascii=False))
+
 BOOT_JS = r"""
 (function () {
   "use strict";
@@ -1112,7 +1122,7 @@ main { max-width: 860px; margin: 0 auto; padding: var(--gap); }
 TEMPLATE = (
     "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
     "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
-    "<meta name=\"color-scheme\" content=\"light dark\">\n<title>__TITLE__</title>\n<style>"
+    "<meta name=\"color-scheme\" content=\"light dark\">\n" + ROBOTS_META + "\n<title>__TITLE__</title>\n<style>"
     + TOKENS_CSS + _STANDALONE_BASE_CSS + CARD_CSS
     + "</style>\n</head>\n<body>\n<main id=\"root\" class=\"cert\"><p class=\"muted\">Waiting for the certification…</p></main>\n"
     "<script type=\"application/json\" id=\"record-data\">__DATA__</script>\n<script>"

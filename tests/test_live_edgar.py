@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Live EDGAR check of the golden set. Network required: run with RUN_LIVE=1."""
 
 import os

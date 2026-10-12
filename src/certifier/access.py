@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Per-user access codes for the hosted service.
 
 Each person gets an access code (shown once). The service stores only its SHA-256 hash, in the

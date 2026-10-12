@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Hosted service: web API, admin codes, OAuth sign-in for the Claude connector, MCP over HTTP and
 caching. Lookups are replaced with a recorded fixture (no API calls). Open-beta allowances: test_beta.py."""
 
@@ -163,7 +164,8 @@ def test_exports(client):
     assert j.status_code == 200 and json.loads(j.text)["headline"]["count"] == 83_334
     summary = client.get(f"/api/lookups/{qid}/export?format=summary_csv", headers=auth())
     lines = summary.text.strip().splitlines()
-    assert lines[0].startswith("entity_name,website") and len(lines) == 2 and "83334" in lines[1]
+    assert lines[0].startswith("entity_name,website") and len(lines) == 3 and "83334" in lines[1]
+    assert lines[2].startswith("\"# © 2026 Matthew Beltrano. All rights reserved.")  # the notice row
     assert 'filename="salesforce-inc-summary.csv"' in summary.headers["content-disposition"]
     sources = client.get(f"/api/lookups/{qid}/export?format=sources_csv", headers=auth()).text.strip().splitlines()
     assert sources[0].startswith("entity_name,source_id,tier") and len(sources) > 2

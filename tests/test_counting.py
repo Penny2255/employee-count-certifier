@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 from certifier import certify
 from certifier.rules import apply_counting_rules, qualifier_range
 

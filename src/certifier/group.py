@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Multi-entity results (SPEC.md: Entity groups). Example: a university (IPEDS), its health
 system, and a grand total across both. Each entity is certified on its own; this module picks
 which entry is the primary reported metric and builds an estimated grand total when needed.

@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """SEC EDGAR: tier 1 annual filings (10-K, 20-F, 40-F) for U.S.-listed companies.
 
 Finds a company, pulls its recent annual filings, and returns the employee-related

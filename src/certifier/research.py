@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Research (build step 3): gather candidate sources across tiers with Claude, then extract
 them into engine Sources. EDGAR snippets, when available, are passed in as tier 1 evidence."""
 

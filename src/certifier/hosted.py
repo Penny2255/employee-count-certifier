@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Open-beta allowances and caching for the hosted service, shared by the web app and the MCP tools.
 
 - No codes for visitors. Each visitor has a daily allowance of lookup spend (CERTIFIER_VISITOR_USD_PER_DAY,

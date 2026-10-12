@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Rule-based extraction of headcount sources from filing snippets.
 
 The offline fallback when no Claude extraction is available, and a cross-check on it.

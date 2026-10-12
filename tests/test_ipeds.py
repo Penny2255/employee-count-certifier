@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """IPEDS reader: College Navigator match by exact name, then "Total all staff (excludes graduate
 assistants)" from the institution profile's Human Resources data (recorded responses, no network)."""
 

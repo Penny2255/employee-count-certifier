@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Company card and MCP App wiring, using recorded live lookups (no API calls)."""
 
 import asyncio

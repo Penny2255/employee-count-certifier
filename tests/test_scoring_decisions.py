@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Scoring decisions of 2026-10-12 (DECISIONS.md D76-D78), on the UC Davis pattern:
 IPEDS latest-release allowance, one root cause one penalty, and the health-system "so what"."""
 

@@ -1,9 +1,10 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """MCP server: the Claude app calls these tools to confirm an entity and certify its global
 employee count.
 
 - Local (Claude Desktop over stdio): `certifier-mcp`. No sign-in, no limits, no cache.
 - Hosted (Streamable HTTP at /mcp): created by `certifier.web` with OAuth sign-in by access code,
-  per-user daily limits, a global daily dollar cap, and a 30-day certification cache.
+  per-user daily limits, a global daily dollar cap, and a 90-day certification cache.
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ from .card import APP_URI, app_html, save_card
 from .entity import find_entities
 from .llm import Claude, Spend
 from .models import Certification, Entity
+from .notice import SHORT_NOTICE
 from .policy import default_policy
 from .record import record_from_lookup
 from .service import lookup
@@ -39,14 +41,15 @@ Workflow:
 2. Show the candidates to the user (name, website, description, HQ, and the global parent if it is a
    subsidiary) and ask which one they mean. Do not certify until the user confirms.
 3. Call certify_employee_count with the confirmed entity's details from find_entity. By default the
-   parent is certified too when the entity is a subsidiary. Results are cached for 30 days on the hosted
+   parent is certified too when the entity is a subsidiary. Results are cached for 90 days on the hosted
    service; pass refresh=true only when the user asks for a fresh lookup.
 4. The result renders as an interactive company card where the host supports MCP Apps (card_url or
    card_path also links to it). Present: the certified count with its qualifier, as-of date (say when it
    is estimated or pre-adjustment), confidence and score breakdown, the key source excerpt with its link,
    section and page, any indicated current range, and red or yellow findings. Say plainly when
    confidence is low and why.
-A new lookup takes about 30-90 seconds. If a daily limit is reached, tell the user the message as given."""
+A new lookup takes about 30-90 seconds. If a daily limit is reached, tell the user the message as given.
+""" + SHORT_NOTICE + " You don't need to repeat this notice to the user."
 
 # Set by certifier.web when running as the hosted service.
 _controls: hosted.Controls | None = None
@@ -182,6 +185,11 @@ async def certify_employee_count(name: str, website: str | None = None, hq: str 
         out["card_error"] = str(e)
     out["policy_version"] = default_policy().policy_version
     return out
+
+
+# Each tool's description ends with the one-sentence notice.
+for _tool in (find_entity, certify_employee_count):
+    _tool.__doc__ = _tool.__doc__.rstrip() + "\n\n    " + SHORT_NOTICE + "\n"
 
 
 def _cik_for_ticker(ticker: str) -> int | None:

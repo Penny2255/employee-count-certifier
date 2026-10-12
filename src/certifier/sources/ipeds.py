@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """IPEDS (U.S. Department of Education, NCES): "Total all staff (excludes graduate assistants)" for a
 U.S. college or university, tier 2, read from the institution profile's Human Resources data.
 

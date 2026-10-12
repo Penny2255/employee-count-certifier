@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Deterministic policy rules from SPEC.md. Pure functions, no I/O."""
 
 from __future__ import annotations

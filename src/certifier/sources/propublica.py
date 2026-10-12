@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """ProPublica Nonprofit Explorer: Form 990 Part I line 5 (tier 2) for U.S. nonprofits.
 
 Line 5 is "Total number of individuals employed in calendar year <YYYY>" (the W-3 count). The API

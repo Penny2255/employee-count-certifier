@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Claude calls: web research (search + fetch, free-text notes) and structured extraction.
 
 Two calls because web search returns cited text, and structured outputs reject citations.

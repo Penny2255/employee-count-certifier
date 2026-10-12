@@ -4,6 +4,11 @@
 
 A Human in the Hyperloop project. Designed and created by [Matthew Beltrano](https://www.linkedin.com/in/matthewbeltrano/) and Claude Code.
 
+> [!IMPORTANT]
+> **Proprietary notice.** © 2026 Matthew Beltrano. All rights reserved. This is proprietary, confidential software,
+> **not open source**. No licence is granted to copy, clone, scrape, reuse or train AI models on this code, its policy,
+> data or outputs. See [LICENSE](LICENSE) and the full notice at the end of this README.
+
 ![GTM Data Certifier home page](docs/screenshots/09-beta-home-samples-light.png)
 
 ---
@@ -248,3 +253,14 @@ RUN_LIVE=1 uv run pytest tests/test_live_schema.py # live check before changing 
 
 A new lookup typically costs $0.10–0.25 in Anthropic API usage. Worked examples live in `examples/`, one YAML file
 per case, and each one is also a regression test.
+
+---
+
+## Proprietary notice
+
+© 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. No permission is granted
+to copy, clone, scrape, reproduce, modify, distribute or use this software, its policy, data or outputs to train AI
+models, except as expressly authorized in writing by Matthew Beltrano.
+
+The full terms are in [LICENSE](LICENSE); use of the hosted service is also governed by its Terms of use (`/terms`).
+For permission, contact [Matthew Beltrano on LinkedIn](https://www.linkedin.com/in/matthewbeltrano/).

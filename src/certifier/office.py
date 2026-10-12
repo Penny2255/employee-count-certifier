@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Slide and document downloads of a certification record: a 4-slide PowerPoint deck (light or dark, in the
 GTM Data Certifier brand) and a Word document with the supporting detail. Built from the record JSON only,
 so they match the card exactly."""
@@ -19,6 +20,8 @@ from pptx.enum.dml import MSO_LINE_DASH_STYLE
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Emu, Inches, Pt
+
+from .notice import COPYRIGHT, OWNER_LINE
 
 LOGO = Path(__file__).resolve().parents[2] / "assets" / "brand" / "hyperloop-logo.png"
 DISCLAIMER = "Certified under policy v{v} from public sources. Verify before contractual use."
@@ -307,6 +310,7 @@ def deck(record: dict, theme: str = "light") -> bytes:
 
     _brand_links(prs, t["accent"])
     out = io.BytesIO()
+    prs.core_properties.author, prs.core_properties.comments = "Matthew Beltrano", COPYRIGHT
     prs.save(out)
     return out.getvalue()
 
@@ -527,6 +531,10 @@ def document(record: dict) -> bytes:
     _hyperlink(credit, "Matthew Beltrano", CREDIT_URL)
     run = credit.add_run(" & Claude Code · A Human in the Hyperloop project.")
     run.font.color.rgb, run.font.size = muted, DPt(9)
+    notice = doc.add_paragraph()
+    run = notice.add_run(OWNER_LINE)
+    run.font.color.rgb, run.font.size = muted, DPt(8)
+    doc.core_properties.author, doc.core_properties.comments = "Matthew Beltrano", COPYRIGHT
     for t in doc.tables:
         t.alignment = WD_TABLE_ALIGNMENT.LEFT
     out = io.BytesIO()

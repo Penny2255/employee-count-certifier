@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Source locations: section, page number, detailed excerpt and deep link (offline)."""
 
 import json

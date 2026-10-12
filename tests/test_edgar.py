@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """EDGAR client and heuristic extraction, offline with a fake fetcher (real filing excerpts)."""
 
 import json

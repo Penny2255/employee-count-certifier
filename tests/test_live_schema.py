@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Live check that the extraction schema compiles under the API's structured-output grammar limit.
 Near-zero cost (tiny prompt). Run with RUN_LIVE=1 before shipping any change to research.py's schemas."""
 

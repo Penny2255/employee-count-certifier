@@ -1,3 +1,5 @@
+<sub>© 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See [LICENSE](LICENSE).</sub>
+
 # Feedback backlog
 
 Running backlog of feedback from reviews. Each item shows its status and where it was addressed.

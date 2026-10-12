@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 case: City government reporting full-time equivalents in its annual financial report
 entity: {name: City of Livermore, website: "https://www.livermoreca.gov", hq: "Livermore, CA, USA"}
 lookup_date: 2026-10-11

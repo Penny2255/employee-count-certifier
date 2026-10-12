@@ -376,6 +376,7 @@ def test_page_has_start_over_powered_by_mcp_help_and_glossary(client):
     page = client.get("/").text
     assert 'data-action="reset"' in page and "Search another company" in page and 'id="discard"' in page
     assert "Not the right one? Search again" in page
+    assert "Giving you transparency &amp; trust to take real action" in page
     assert "Powered by Claude · Custom-built MCP service" in page and "Model Context Protocol (MCP)" in page
     assert "http://localhost/mcp" in page and "Add custom connector" in page
     assert "Corporate Fact Sheet" in page and "The annual report U.S. public companies must file with the SEC" in page

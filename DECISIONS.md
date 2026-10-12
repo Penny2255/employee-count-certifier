@@ -430,3 +430,16 @@ The first Salesforce rerun scored 4/5 because of the Informatica flag. D52 fixed
 
 ### D61. Drifting sample cards removed from the home page
 On review the faint cards looked static (they drifted about 15 px over 26-34 seconds at a fixed faint opacity), so they read as clutter rather than motion. The home page is now the logo, tagline, search, example chips and recent lookups.
+
+### D62. Visual round: softer card, label/value facts, a findings log, and some fun
+- **Answer:**
+  - the count ticks up once, and a rubber-stamp seal (Certified, Supported, Estimated, Unverified) lands beside it
+  - the stamp is green, amber or red, matching the bottom line; sparkles show for 4-5
+  - a facts table follows, with labels on the left and values on the right: Employees, Range, As of, Confidence, Key source, Found in, Direction, Known change, Newer data, Next update
+- **Findings:** a one-line log per item, with a status symbol (check, !, x, plus screen-reader text), the headline and its so-what inline, and a short impact chip on the right ("-1 confidence", "base 4/5", "no effect"). Click a line for the full rationale and evidence.
+- **Softer look:** larger radii, lighter borders and soft shadows, section headers with line icons and a chevron, and a loop-gradient confidence meter that fills in. Sections fade in once.
+- **Expedition:** a hyperloop track whose pod, styled on the mark, travels the stages. The result carries the expedition's sign-off ("Surfacing with a certified answer · Deep Sea Dive"). A loop-gradient line sits under the header.
+- **Motion:** every animation stops under prefers-reduced-motion. Demo screenshots render the settled state; phone screenshots use a real 390 px viewport via Playwright and the installed Edge.
+
+### D63. Mission line
+"Giving you transparency & trust to take real action" sits under the tagline on the home page and opens the About panel. It uses the accent color rather than a green-blue gradient, because loop green on white fails contrast (about 2:1).

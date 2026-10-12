@@ -269,6 +269,7 @@
       else { li.removeAttribute("aria-current"); st.textContent = i < idx || stage === "certified" ? "✓" : "○"; }
     });
     $("exp-live").textContent = STAGE_LABEL[stage] + (stage === "certified" ? "." : " in progress.");
+    $("track").style.setProperty("--p", String(Math.max(0, idx) / (STAGES.length - 1)));
     var phrases = theme.phrases[stage] || [STAGE_LABEL[stage]], n = 0;
     function roll() { var p = $("phrase"); p.classList.remove("roll"); void p.offsetWidth; p.textContent = phrases[n++ % phrases.length] + (stage === "certified" ? "" : "…"); p.classList.add("roll"); }
     clearInterval(phraseTimer); roll(); phraseTimer = setInterval(roll, 2600);
@@ -278,6 +279,7 @@
   function certify(c, refresh) {
     state.candidate = c;
     var theme = THEMES[Math.floor(Math.random() * THEMES.length)];
+    state.theme = theme;
     setupExpedition(theme, c.name);
     show("expedition");
     markStage(theme, "resolve");
@@ -329,6 +331,15 @@
     state.rating = null;
     var rec = payload.record;
     GTMCard.render($("result-card"), rec, { actions: false });
+    // The expedition's theme signs off on the result it found.
+    var done = $("theme-done"), theme = fromHistory ? null : state.theme;
+    state.theme = null;
+    done.textContent = "";
+    done.hidden = !theme;
+    if (theme) {
+      done.appendChild(svg(theme.icons.certified));
+      done.appendChild(el("span", { text: theme.phrases.certified[0] + " · " + theme.name }));
+    }
     var on = $("certified-on");
     on.textContent = "Certified on " + (payload.certified_on || "–");
     if (payload.cached) on.appendChild(el("span", { cls: "badge-cache", text: "from the shared cache" }));
@@ -437,6 +448,7 @@
   function demo() {
     var p = new URLSearchParams(location.search), view = p.get("demo");
     if (!view) return;
+    if (p.get("motion") !== "on") document.documentElement.classList.add("still");  // screenshots show the settled state
     var mode = p.get("mode");
     if (mode === "light" || mode === "dark") { document.documentElement.setAttribute("data-theme", mode); syncToggle(); }
     if (view === "confirm") {
@@ -454,7 +466,8 @@
       stopPhrases();
       $("elapsed").textContent = "24 s · a new lookup usually takes 30 to 90 seconds";
     } else if (view === "result") {
-      fetch("/demo/record/" + (p.get("slug") || "salesforce")).then(function (r) { return r.json(); }).then(showResult);
+      state.theme = THEMES.filter(function (t) { return t.id === p.get("theme"); })[0] || null;
+      fetch("/demo/record/" + (p.get("slug") || "salesforce")).then(function (r) { return r.json(); }).then(function (d) { showResult(d); });
     } else if (view === "about") {
       $("dlg-about").showModal();
     } else if (view === "how") {

@@ -331,7 +331,7 @@ The engine's `Certification` object, which the record is built from, has these f
 
 The web app at `/` is a single page (`src/certifier/static/`), branded GTM Data Certifier by Human in the Hyperloop. Principle: radically simple; fun in the process, sober results.
 
-- **Home:** a search box, three example chips, drifting sample results, and recent lookups (last 10, in this browser only). The access code is asked for only when needed, then remembered in the browser.
+- **Home:** a search box, three example chips, and recent lookups (last 10, in this browser only). The access code is asked for only when needed, then remembered in the browser.
 - **Confirm:** entity cards ("Which one do you mean?"). One lookup covers one organization.
 - **Expedition:** live progress over the real stages (resolve, SEC and official filings, web sweep, corroboration, scoring, certified), streamed as server-sent events, in one of five themes: Deep Sea Dive, Treasure Map, Galaxy Star-Gazing, Detective's Clues, Frontier Voyage.
 - **Result:** the certification card, with "Key Source". A cached result shows "Certified on [date]" and a Refresh button. Downloads: JSON (record v1.1), summary CSV, sources CSV. "How did we do?" (Great, Good, Okay or Off, plus a comment) is stored with the query.

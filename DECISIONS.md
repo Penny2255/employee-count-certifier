@@ -427,3 +427,6 @@ The first Salesforce rerun scored 4/5 because of the Informatica flag. D52 fixed
 ### D60. "Powered by Claude" as text, not a logo
 - **What:** "Powered by Claude · Custom-built MCP service" is a text badge in the footer and the About panel.
 - **Why no logo:** a search found no published Anthropic guideline that permits third parties to use the Claude or Anthropic logo, so the default applies. The About panel explains the MCP server and how to add it in Claude: a custom connector, a URL ending in `/mcp`, and sign-in with an access code. The URL is filled in from `PUBLIC_BASE_URL`.
+
+### D61. Drifting sample cards removed from the home page
+On review the faint cards looked static (they drifted about 15 px over 26-34 seconds at a fixed faint opacity), so they read as clutter rather than motion. The home page is now the logo, tagline, search, example chips and recent lookups.

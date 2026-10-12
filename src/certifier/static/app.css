@@ -227,3 +227,22 @@ code { font-size: 13px; padding: 1px 5px; border-radius: 4px; background: var(--
 /* Mission line */
 .mission { margin: -18px 0 28px; font-size: 15px; font-weight: 600; letter-spacing: .01em; color: var(--accent); }
 .about-mission { margin: 0 0 12px; font-size: 16px; }
+
+/* Confirm page: finding matches */
+.finding { margin: 18px 0 8px; }
+.finding .track { margin: 0 0 10px; max-width: none; }
+.track.searching .pod { animation: pod-search 1.8s ease-in-out infinite alternate; }
+@keyframes pod-search { from { left: 4%; } to { left: 96%; } }
+@media (prefers-reduced-motion: reduce) { .track.searching .pod { animation: none; left: 50%; } }
+
+/* What to certify: employee count today, more soon */
+.metrics { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; margin: 0 -24px 12px; }
+.metric { display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: default; }
+.metric.on { border-color: var(--loop-blue); background: var(--accent-soft); }
+.metric .m-dot { width: 8px; height: 8px; border-radius: 50%; background: linear-gradient(90deg, var(--loop-green), var(--loop-blue)); }
+.metric.soon { color: var(--muted); opacity: .75; cursor: not-allowed; font-weight: 500; }
+.metric.soon em { font-style: normal; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; padding: 0 6px; border-radius: 999px;
+  border: 1px dashed var(--line); }
+@media (max-width: 520px) { .btn-more { display: none; } }
+@media (max-width: 760px) { .metrics { margin: 0 0 12px; } }

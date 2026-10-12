@@ -35,8 +35,9 @@ def test_rule1_research_estimate_is_kept():
                 published_date=date(2025, 3, 1), modified_date=None, restates=False, predates_change=False,
                 excerpt="about 8,500 employees",
                 context="about 8,500 employees", section=None, page_number=None, contractors_included=None,
-                separately_reported=[], note="")
+                separately_reported=[], note="", document_type="News")
     s = to_source(x)
+    assert s.document_type == "news"
     assert (s.as_of_date, s.as_of_estimated, s.as_of_basis) == (date(2025, 2, 15), True, "says 'as of early 2025'")
 
 

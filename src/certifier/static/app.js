@@ -45,8 +45,8 @@
   window.addEventListener("popstate", function (e) {
     var st = e.state || { view: "home" };
     cancelLookup();
-    if (st.view === "confirm" && state.candidates) { renderCandidates(state.candidates); show("confirm"); }
-    else if (st.view === "result" && st.qid && state.current && state.current.query_id === st.qid) showResult(state.current, true);
+    if (st.view === "confirm" && state.candidates) { found(state.query, state.candidates); show("confirm"); }
+    else if (st.view === "result" && st.qid && state.last && state.last.query_id === st.qid) showResult(state.last, true);
     else if (st.view === "result" && st.qid && st.qid !== "demo") openStored(st.qid, true);
     else show("home");
   });
@@ -58,6 +58,7 @@
   function reset(keepQuery) {
     cancelLookup();
     state.current = null; state.candidate = null; state.candidates = null; state.rating = null;
+    state.searchSeq = (state.searchSeq || 0) + 1; state.searching = null; clearInterval(findTimer);
     $("q").value = keepQuery ? state.query : "";
     $("candidates").textContent = ""; $("stages").textContent = ""; $("result-card").textContent = "";
     say("home-status", ""); say("result-status", "");
@@ -114,6 +115,10 @@
   }
 
   // ---------- home ----------
+  // Only employee count is certified today; the other metrics say so instead of doing nothing.
+  Array.prototype.forEach.call(document.querySelectorAll(".metric.soon"), function (b) {
+    b.addEventListener("click", function () { say("home-status", b.getAttribute("data-soon") + " certification is coming soon. Today GTM Data Certifier certifies employee count."); });
+  });
   $("search-form").addEventListener("submit", function (e) { e.preventDefault(); search($("q").value); });
   Array.prototype.forEach.call(document.querySelectorAll("[data-example]"), function (b) {
     b.addEventListener("click", function () { $("q").value = b.getAttribute("data-example"); search(b.getAttribute("data-example")); });
@@ -129,19 +134,63 @@
     if (retry) retry(); else if ($("q").value.trim()) search($("q").value);
   });
 
+  // The confirm page shows a "finding" state until the matches arrive; only the latest search may render,
+  // so a double submit (Enter plus a click) can't show one list and then replace it with another.
+  var findTimer = null;
+  function finding(q) {
+    $("confirm-title").textContent = "Finding “" + q + "”…";
+    $("confirm-help").textContent = "Checking official registries and the web for organizations that match.";
+    $("candidates").textContent = "";
+    $("search-again").hidden = true;
+    $("finding").hidden = false;
+    var started = Date.now();
+    clearInterval(findTimer);
+    $("finding-status").textContent = "Searching… usually 5 to 20 seconds";
+    findTimer = setInterval(function () {
+      $("finding-status").textContent = "Searching… " + Math.round((Date.now() - started) / 1000) + " s · usually 5 to 20 seconds";
+    }, 1000);
+  }
+  function found(q, list) {
+    clearInterval(findTimer);
+    $("finding").hidden = true;
+    $("search-again").hidden = false;
+    $("confirm-title").textContent = "Which one do you mean?";
+    $("confirm-help").textContent = "Found " + list.length + " match" + (list.length === 1 ? "" : "es") + " for “" + q +
+      "”. Choose the organization to certify; one lookup covers one organization.";
+    renderCandidates(list);
+    $("finding-status").textContent = "Done: " + list.length + " match" + (list.length === 1 ? "" : "es") + " found.";
+  }
   function search(q) {
     q = (q || "").trim();
     if (!q) { say("home-status", "Enter a company name or website.", true); $("q").focus(); return; }
+    if (state.searching === q) return;  // the same search is already running
     state.query = q;
     if (!code()) { state.retry = function () { search(q); }; needCode(); return; }
-    say("home-status", "Finding matching organizations…");
+    var seq = state.searchSeq = (state.searchSeq || 0) + 1;
+    state.searching = q;
+    say("home-status", "");
+    finding(q);
+    go("confirm");
     api("/api/find", { method: "POST", body: { query: q } }).then(function (d) {
-      say("home-status", "");
-      if (!d.candidates.length) { say("home-status", "No matching organization found. Try the website instead (e.g. stripe.com).", true); return; }
+      if (seq !== state.searchSeq) return;
+      state.searching = null;
+      if (!d.candidates.length) {
+        clearInterval(findTimer);
+        history.back();
+        say("home-status", "No matching organization found. Try the website instead (e.g. stripe.com).", true);
+        return;
+      }
       state.candidates = d.candidates;
-      renderCandidates(d.candidates);
-      go("confirm");
-    }).catch(function (err) { if (!handleAuth(err, function () { search(q); })) say("home-status", err.message, true); });
+      found(q, d.candidates);
+      $("confirm-title").focus({ preventScroll: true });
+    }).catch(function (err) {
+      if (seq !== state.searchSeq) return;
+      state.searching = null;
+      clearInterval(findTimer);
+      if (handleAuth(err, function () { search(q); })) return;
+      show("home");
+      say("home-status", err.message, true);
+    });
   }
 
   // ---------- confirm ----------
@@ -327,7 +376,7 @@
 
   // ---------- result ----------
   function showResult(payload, fromHistory) {
-    state.current = payload;
+    state.current = state.last = payload;  // state.last survives Start over, so Back can return to it
     state.rating = null;
     var rec = payload.record;
     GTMCard.render($("result-card"), rec, { actions: false });
@@ -357,6 +406,7 @@
   $("discard").addEventListener("click", function () {
     var cur = state.current;
     if (cur) put("gtm_recent", get("gtm_recent", []).filter(function (r) { return r.id !== cur.query_id; }));
+    state.last = null;
     reset(false);
     say("home-status", "Removed from Recent lookups.");
   });
@@ -456,7 +506,7 @@
       state.candidates = [
         { name: "Stripe, Inc.", website: "https://stripe.com", hq: "South San Francisco, CA, USA", description: "Online payments infrastructure for businesses.", org_type: "private_company" },
         { name: "Stripe Payments Europe, Ltd.", website: "https://stripe.com/ie", hq: "Dublin, Ireland", description: "European operating subsidiary of Stripe.", is_subsidiary: true, legal_parent: "Stripe, Inc." }];
-      renderCandidates(state.candidates);
+      if (p.get("stage") === "finding") finding("Disney"); else found("Stripe", state.candidates);
       show("confirm");
     } else if (view === "expedition") {
       var theme = THEMES.filter(function (t) { return t.id === p.get("theme"); })[0] || THEMES[0];

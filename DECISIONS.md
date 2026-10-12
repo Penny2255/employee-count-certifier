@@ -443,3 +443,29 @@ On review the faint cards looked static (they drifted about 15 px over 26-34 sec
 
 ### D63. Mission line
 "Giving you transparency & trust to take real action" sits under the tagline on the home page and opens the About panel. It uses the accent color rather than a green-blue gradient, because loop green on white fails contrast (about 2:1).
+
+### D64. Hotfix: extraction schema too large for the API (production outage)
+- **What happened:** D55 added a 17-value `document_type` enum and an optional `publisher` to the extraction schema. The API compiles strict structured-output schemas into a grammar, and this one passed its size limit. Every new lookup failed at the extraction step with 400 "compiled grammar is too large" (the Disney report).
+- **Fix:**
+  - `document_type` is a plain nullable string, normalized in code
+  - `publisher` is gone; it comes from the URL
+  - probes against the live API showed the schema sits right at the limit: either field alone compiles, both don't
+- **Guards:**
+  - an offline test fails on any enum over 8 values or any optional field in the schema
+  - a live test (`RUN_LIVE=1 pytest tests/test_live_schema.py`, near-zero cost) compiles the real schema; run it before shipping any schema change
+- **Verified:** live with Disney: 231,000, 4/5, Tier 1 · Financial Filing · 10-K, $0.19.
+- **Headroom:** there's little left. Adding extraction fields will need room made first, e.g. by turning date fields into strings.
+
+### D65. Confirm page shows its progress; double submits can't race
+"Finding '<query>'..." now shows at once, with the hyperloop pod sweeping and an elapsed timer, until the matches arrive. Then it says "Found N matches for ...". Only the latest search may render, and the same search can't start twice. Before this, Enter plus a click could show 2 matches and then replace them with 4.
+
+### D66. The home page says it certifies employee count
+Pills above the search box read **Employee count** (selected), then Revenue, Hierarchy, Industry and Address, greyed out with a "soon" tag. Clicking one says it's coming soon. The button reads "Certify employees" ("Certify" on phones, where the pills carry the meaning). Pills keep every option visible without opening a menu, which a dropdown wouldn't.
+
+### D67. Interactive flows are now tested in a real browser
+A Playwright script clicks through the demo with the installed Edge:
+- Copy for CRM, the trust-strip jumps, expanding a finding and "What is this?"
+- Search another company, Back, Discard and Search again
+- the finding state, the soon pills, and no page errors
+
+It found one bug: Back after "Search another company" no longer restored the result. Fixed by keeping the last result for history.

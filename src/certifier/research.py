@@ -190,7 +190,13 @@ that site's URL, not sec.gov's. Mark restates true when the source repeats anoth
 figure (Wikipedia, Bullfincher, data sites quoting the 10-K). For events, give the close date.
 Exclude targets, plans, goals and forecasts ("aims to reach 10,000 by end of 2025",
 "plans to hire 2,000"): they are not headcounts. Exclude figures that are not headcounts (customers'
-employees, layoffs, hires, survey participants, share counts). A LinkedIn member count ("N
+employees, layoffs, hires, survey participants, share counts, people a programme or initiative
+"reaches", employees affected by a restructuring). The goal is the whole organization's total: when
+one document gives several figures, report its organization-wide total (a "Total Headcount" table
+row, "N people who work for X") as global and mark smaller programme, gender, age, country or
+management figures partial or leave them out. Snippets joined with " · " are table cells or stat
+tiles read in order; a label applies to the figure right after it, and in a multi-year table the
+first figure is the latest year. A LinkedIn member count ("N
 associated members", "N employees" on LinkedIn pages) goes in linkedin.member_count, never in
 sources; tier 5 is only headcount text the company wrote in its LinkedIn description.
 

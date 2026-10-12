@@ -10,11 +10,11 @@ from .models import Basis, Qualifier
 from .policy import Policy, default_policy
 
 _NUMBER = re.compile(
-    r"(?<![\w.,])(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)(?:\s*(million|thousand|k)\b)?(?![\w,]*%)",
+    r"(?<![\w.,])(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)(?:\s*(million|thousand|k)\b)?(?![\w,]*%)(?!(?:st|nd|rd|th)\b)",  # not "75th percentile"
     re.I,
 )
 _HEAD_NOUNS = re.compile(
-    r"^\W*(?:\w+\W+){0,3}?(people|persons|employees|team\s+members|teammates|staff|workers|"
+    r"^[^\w·]*(?:[A-Za-z][\w-]*[^\w·]+){0,3}?(people|persons|employees|team\s+members|teammates|staff|workers|"
     r"associates|colleagues|full-time|personnel|fte)",
     re.I,
 )
@@ -22,7 +22,8 @@ _HEAD_NOUNS = re.compile(
 # not "Employees purchased 1.1 million shares".
 _HEAD_VERBS = re.compile(
     r"\b(employ(?:s|ed|ing)?|(?:employees|workforce|headcount|staff(?:ing)?|personnel)\W+(?:\w+\W+){0,2}?"
-    r"(?:totaling|totalling|of|was|were|is|numbered|to|reached)|totaling|totalling)\W+(?:\w+\W+){0,3}$",
+    r"(?:totaling|totalling|of|was|were|is|numbered|to|reached)|totaling|totalling|"
+    r"total\s+(?:headcount|employees|workforce|staff))\W+(?:\w+\W+){0,3}$",
     re.I,
 )
 # A day number right after a month ("employed as of November 28") is a date, not a headcount.
@@ -72,6 +73,8 @@ def parse_figure(text: str, policy: Policy | None = None) -> Figure | None:
         if not (_HEAD_NOUNS.match(after) or verb_led):
             continue
         value = float(raw.replace(",", "")) * _MULTIPLIERS.get((unit or "").lower(), 1)
+        if value < 1:
+            continue
         basis = "fte" if _FTE.match(after) or _FTE_BEFORE.search(before[-60:]) else "headcount"
         return Figure(int(round(value)), _qualifier_before(before, policy), basis)
     return None

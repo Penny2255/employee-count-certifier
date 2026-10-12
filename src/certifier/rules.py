@@ -507,17 +507,33 @@ def independence(candidate: Source, selected: Source, candidate_value: int, sele
     return None
 
 
+# A prior year more than 5x away from the certified figure is a misread (a note number, a ratio, an empty
+# table cell), not a trend: real workforces rarely move that far in five years.
+TREND_PLAUSIBLE = 5
+
+
 def trend_points(selected: Source, sources: list[Source], effective: dict[int, int], limit: int = 5) -> list[TrendPoint]:
     """Same-tier, same-basis dated figures (e.g. consecutive 10-Ks), oldest to newest, ending at
-    the selected figure."""
+    the selected figure. Each date's figure is chosen as the headline is (the largest restated total,
+    then the most specific), and implausible figures are left out."""
     if selected.as_of_date is None:
         return []
-    by_date: dict[date, Source] = {}
+    candidates: dict[date, list[Source]] = {}
     for s in sources:
         if (s.tier == selected.tier and s.basis == selected.basis and s.scope == "global"
-                and not s.corroboration_only and s.as_of_date and s.as_of_date <= selected.as_of_date):
-            current = by_date.get(s.as_of_date)
-            if s is selected or current is None or (current is not selected and specificity(s) > specificity(current)):
-                by_date[s.as_of_date] = s
+                and not s.corroboration_only and s.as_of_date and s.as_of_date <= selected.as_of_date
+                and s.value > 0 and 1 / TREND_PLAUSIBLE <= s.value / selected.value <= TREND_PLAUSIBLE):
+            candidates.setdefault(s.as_of_date, []).append(s)
+    by_date: dict[date, Source] = {}
+    for d, group in candidates.items():
+        by_date[d] = selected if selected in group else _cluster_pick(group)
+    by_date[selected.as_of_date] = selected
     points = [TrendPoint(as_of_date=d, value=effective[id(s)], tier=s.tier, url=s.url) for d, s in sorted(by_date.items())]
     return points[-limit:]
+
+
+def _cluster_pick(group: list[Source]) -> Source:
+    """The most specific figure among those near the largest (a total, not one of its parts)."""
+    largest = max(s.value for s in group)
+    near = [s for s in group if relative_diff(s.value, largest) <= 0.25]
+    return max(near, key=specificity)

@@ -894,26 +894,35 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
 FORECAST_YEARS = 4
 
 
+FORECAST_MAX_RATE = 0.15  # the yearly change a forecast may carry forward, either way
+
+
 def _forecast(points: list[TrendRow]) -> list[TrendRow]:
-    """A linear trend over at least 3 dated points, projected FORECAST_YEARS ahead. The range starts from the
-    historical year-over-year variation and widens with the square root of the years ahead."""
+    """The trend over at least 3 dated points, projected FORECAST_YEARS ahead from the latest figure. The fitted
+    yearly change is applied as a rate, capped at FORECAST_MAX_RATE, so a one-off drop (a divestment) can't
+    project the workforce to zero. The range starts from the historical year-over-year variation and widens with
+    the square root of the years ahead."""
     if len(points) < 3:
         return []
     xs = [p.as_of_date.toordinal() for p in points]
     ys = [p.value for p in points]
-    slope, intercept = statistics.linear_regression(xs, ys)
-    changes = [b - a for a, b in zip(ys, ys[1:])]
-    spread = statistics.pstdev(changes) if len(changes) > 1 else 0
+    slope, _ = statistics.linear_regression(xs, ys)
+    last = ys[-1]
+    rate = max(-FORECAST_MAX_RATE, min(FORECAST_MAX_RATE, slope * 365.25 / last))
+    changes = [(b - a) / a for a, b in zip(ys, ys[1:]) if a]
+    spread = min(statistics.pstdev(changes), FORECAST_MAX_RATE) if len(changes) > 1 else 0
+    capped = rate != slope * 365.25 / last
     out = []
     for k in range(1, FORECAST_YEARS + 1):
         when = points[-1].as_of_date + timedelta(days=round(365.25 * k))
-        value = round(slope * when.toordinal() + intercept)
-        width = round(spread * math.sqrt(k))
+        value = round(last * (1 + rate) ** k)
+        width = round(value * spread * math.sqrt(k))
         out.append(TrendRow(as_of_date=when, value=value, tier=None, url=None, estimated=True,
                             low=max(0, value - width), high=value + width,
-                            rationale=f"Estimated, year {k} of {FORECAST_YEARS}: a linear trend over {len(points)} "
-                                      "reported points, with a range from their year-over-year variation that widens "
-                                      "each year; not a reported figure."))
+                            rationale=f"Estimated, year {k} of {FORECAST_YEARS}: the trend over {len(points)} reported "
+                                      f"points ({rate:+.1%} a year{', capped' if capped else ''}) from the latest "
+                                      "figure, with a range from their year-over-year variation that widens each "
+                                      "year; not a reported figure."))
     return out
 
 

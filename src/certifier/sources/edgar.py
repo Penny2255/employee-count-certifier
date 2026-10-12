@@ -149,20 +149,64 @@ def title_address(text: str) -> str:
 def html_to_text(raw: str) -> str:
     raw = re.sub(r"(?is)<(script|style)[^>]*>.*?</\1>", " ", raw)
     raw = re.sub(r"(?i)<br\s*/?>|</(p|div|tr|li|h\d)>", ". ", raw)  # block ends act as sentence breaks
-    text = html.unescape(re.sub(r"<[^>]+>", " ", raw)).replace("\xa0", " ")
+    text = html.unescape(html.unescape(re.sub(r"<[^>]+>", " ", raw))).replace("\xa0", " ")
     text = re.sub(r"\s+", " ", text)
     return re.sub(r"(\.\s*){2,}", ". ", text)
 
 
 _KEYWORDS = re.compile(r"\b(employ(?:ed|ees|s)?|workforce|headcount|team members|teammates|associates|"
-                       r"full[- ]time[- ]equivalents?|FTEs?|personnel|staff)\b", re.I)
+                       r"full[- ]time[- ]equivalents?|FTEs?|personnel|staff|people\W+who\W+work|talented\W+people)\b", re.I)
 _HAS_NUMBER = re.compile(r"\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?\s*(?:million|thousand)", re.I)
 
 
+_FRAGMENT = 60  # table cells and stat tiles come through as runs of very short "sentences"
+_WINDOW = 170   # characters kept either side of a worker word inside a rejoined run
+
+
+def _rejoin(sentences: list[str]) -> list[str]:
+    """Rejoin runs of short fragments (table rows, stat tiles) so a label and its figure sit together:
+    "Total Headcount (a) ." "96,092 ." -> "... Total Headcount (a) · 96,092 · 120,040 ...". Each worker word in a
+    run yields one window around it; overlapping windows are merged."""
+    out: list[str] = []
+    run: list[str] = []
+
+    def flush():
+        if len(run) < 3:
+            out.extend(run)
+        else:
+            joined = " · ".join(f.strip().rstrip(" .").strip() for f in run)
+            spans: list[list[int]] = []
+            for m in _KEYWORDS.finditer(joined):
+                a, b = max(0, m.start() - _WINDOW), min(len(joined), m.end() + _WINDOW)
+                if spans and a <= spans[-1][1] and b - spans[-1][0] <= 3 * _WINDOW:
+                    spans[-1][1] = b
+                else:
+                    spans.append([a, b])
+            for a, b in spans:  # snap both ends to fragment boundaries
+                if a:
+                    k = joined.find(" · ", a)
+                    a = k + 3 if k != -1 else a
+                if b < len(joined):
+                    k = joined.rfind(" · ", a, b)
+                    b = k if k > a else b
+                out.append(joined[a:b])
+        run.clear()
+
+    for sentence in sentences:
+        if len(sentence.strip()) <= _FRAGMENT:
+            run.append(sentence)
+        else:
+            flush()
+            out.append(sentence)
+    flush()
+    return out
+
+
 def employee_snippets(text: str, max_snippets: int = 80) -> list[str]:
-    """Sentences that mention workers and contain a number, in document order, de-duplicated."""
+    """Sentences that mention workers and contain a number, in document order, de-duplicated. Short fragments
+    from tables and stat tiles are rejoined first, so "Total Headcount 96,092" survives as one snippet."""
     out, seen = [], set()
-    for sentence in re.split(r"(?<=[.!?])\s+(?=[A-Z0-9\"(])", text):
+    for sentence in _rejoin(re.split(r"(?<=[.!?])\s+(?=[A-Z0-9\"(])", text)):
         if len(sentence) > 600:
             m = _KEYWORDS.search(sentence)
             if not m:

@@ -719,3 +719,46 @@ The record's entity carries `address` and `address_source`, shown as **HQ addres
   The instructions now say the hosted cache lasts 90 days (it did; the text said 30).
 - **Limits:** robots rules and headers are honoured only by well-behaved crawlers. The rate limit and daily allowances
   remain the real protection for the service. A public repository can still be read and cloned, whatever its licence.
+
+## Total-organisation figures, chart and deck polish (2026-10-12)
+
+### D93. Read tables and stat tiles; never certify a programme's reach (the Unilever case)
+- **What happened:** Unilever's FY2025 20-F gives its total as a stat tile ("96,000 people who work for Unilever") and in
+  two Total Headcount tables (96,092). Converted to text, every table cell and tile line became its own "sentence", so
+  neither statement reached extraction. The only full sentence with a figure was a wellness programme's reach ("more
+  than 59,000 employees"), which was certified at 2/5.
+- **Fix:** runs of short fragments are rejoined into one snippet ("Total Headcount (a) · 96,092 · 120,040"). People a
+  programme or initiative reaches, or a restructuring affects, aren't headcounts (checked near the figure only, so a
+  total followed by "...continue to develop initiatives" still counts). Gender, age, country and management splits are
+  slices. Note numbers ("4 · Employees"), ordinals ("75th percentile") and zeros are never headcounts. Extraction is
+  told to report the organization-wide total and to read " · " snippets as table cells.
+- **Result (live):** 96,092 at 5/5, corroborated by the 96,000 tile and Revelio; the trend is 148,000 → 127,000 →
+  128,000 → 120,040 → 96,092.
+- **Locations:** filings rendered page by page (fixed-height page containers) are split into pages, a page number in
+  the running header counts as printed, and a table quote links from its label cell to its figure cell.
+
+### D94. Trend hygiene and a forecast that can't go negative
+- Each trend year takes its total the same way the headline does (the largest restated figure, then the most
+  specific), and a year more than 5x away from the certified figure is left out as a misread.
+- The forecast runs from the latest figure at the fitted yearly rate, capped at ±15% a year, so a one-off drop such as
+  a divestment can't project the workforce below zero.
+
+### D95. Every chart spans nine years
+- Five reported years and four forecast years, always. A missing year is an ✕ on a dotted line (level with the nearest
+  figure, or on the line between its neighbours), with "no data" and "no forecast" labels, so every chart reads the same.
+
+### D96. Compare with your CRM, beside Download, drawn on the chart
+- The comparison moved from its own section to a compact box beside Download, with a one-line verdict and a "Copy"
+  link. Entering a number redraws the trend chart with the recommended range (a soft green band) and the CRM's number
+  (an orange dashed line, labelled at the clearer end). A number far off the scale is pinned to the edge rather than
+  squashing the chart. A suggestion other than the certified figure is marked with a ring.
+
+### D97. PowerPoint deck, second round
+- **No overlaps:** text that can run long sits in table cells or a single text frame, which grow with their content;
+  findings and sources are capped with a "+N more" line.
+- **Answer:** a hero card with the confidence meter and stamp, the bottom line, a key-source card with the quote and link,
+  and an "At a glance" table.
+- **Trend:** a native, editable chart over the nine-year span (with placeholders and the forecast range), no automatic
+  title, a scaled axis, and three stat cards: certified, forecast and change.
+- **Brand:** the tagline under the product name, a step indicator ("02 / 04 · History and outlook"), loop-coloured
+  accent stripes, and the credit and notice on every slide.

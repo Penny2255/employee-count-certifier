@@ -120,10 +120,12 @@ From top to bottom:
    - the likely **direction** since the as-of date (higher, lower or in line)
    - any known changes, such as layoffs announced after the filing
    - when the **next update** is expected, for example the next 10-K
-3. **Download ▾:** Copy for CRM (a clean block with count, as-of date, confidence, source and URL, and a one-line
-   rationale), slides, a document and data files.
-4. **Trend and forecast:** up to five reported years from the same kind of source, plus a four-year forecast with a
-   widening range. Forecasts are always marked as estimates.
+3. **Download ▾ and Compare with your CRM:** Download offers Copy for CRM (a clean block with count, as-of date,
+   confidence, source and URL, and a one-line rationale), slides, a document and data files. Beside it, a compact box
+   takes your CRM's number and gives a one-line recommendation (see 7).
+4. **Trend and forecast:** always nine years on the same scale: five reported years from the same kind of source and a
+   four-year forecast with a widening range. A year with no reported figure is shown as an ✕ on a dotted line, so
+   every chart reads the same. Forecasts are always marked as estimates, and never fall below zero.
 5. **Why you can trust this:** key source, as-of date, independent confirmations, adjustments to the count, and items
    needing attention, each one click from its detail.
 6. **Findings:** a one-line log in three groups:
@@ -132,9 +134,13 @@ From top to bottom:
    - **Background:** technical detail, collapsed
 
    Every finding has a plain-English **"so what"** telling you whether to act.
-7. **Compare with your CRM (optional):** enter your CRM's number and get a recommendation. Inside the lane around the
-   certified figure (narrow at high confidence, wide at low), keep it. Outside it, move it in: to the certified
-   figure at 4–5/5, halfway at 3/5, just to the edge at 1–2/5, and more firmly when the likely direction agrees.
+7. **Compare with your CRM (optional, beside Download):** enter your CRM's number and get a recommendation. Inside the
+   recommended range around the certified figure (narrow at high confidence, wide at low), keep it. Outside it, move
+   it in: to the certified figure at 4–5/5, halfway at 3/5, just to the edge at 1–2/5, and more firmly when the likely
+   direction agrees. The trend chart then shows the recommended range as a soft band and your CRM's number as an
+   orange dashed line.
+
+   ![Compare with your CRM on the trend chart](docs/screenshots/14-chart-crm-overlay-light.png)
 8. **Key source, sources, adjustments, events:** the full evidence: every source found, used or excluded and why, with
    the detailed passage and location.
 9. **Download** (top and bottom of the card, and in Claude): Copy for CRM, a **4-slide PowerPoint** (light or dark, in the brand), a **Word document** with the full supporting detail, a summary CSV, a sources CSV, and JSON (the full certification record).

@@ -6,12 +6,14 @@ so they match the card exactly."""
 from __future__ import annotations
 
 import io
+import math
 from pathlib import Path
 
 from docx import Document
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.shared import Pt as DPt
 from docx.shared import RGBColor as DRGB
+from lxml import etree
 from pptx import Presentation
 from pptx.chart.data import CategoryChartData
 from pptx.dml.color import RGBColor
@@ -19,6 +21,7 @@ from pptx.enum.chart import XL_CHART_TYPE, XL_LABEL_POSITION, XL_LEGEND_POSITION
 from pptx.enum.dml import MSO_LINE_DASH_STYLE
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+from pptx.oxml.ns import qn
 from pptx.util import Emu, Inches, Pt
 
 from .notice import COPYRIGHT, OWNER_LINE
@@ -99,8 +102,15 @@ def _trend(r: dict) -> tuple[list[dict], list[dict]]:
 
 # --- PowerPoint -----------------------------------------------------------------------------------
 
+TAGLINE = "Giving you transparency & trust to take real action"
+TONE = {"ready": "green", "usable": "yellow", "directional": "red"}
+NO_STYLE = "{2D5ABB26-0587-4C30-8999-92F81FD0307C}"  # PowerPoint's "No Style, No Grid" table style
+HISTORY_YEARS, FORECAST_YEARS = 5, 4
+
+
 def deck(record: dict, theme: str = "light") -> bytes:
-    """Four slides: the answer, trend and forecast, why you can trust this, sources."""
+    """Four slides: the answer, trend and forecast, why you can trust this, sources. Text that can run long
+    sits in table cells or a single text frame, which grow with their content, so nothing overlaps."""
     t = THEMES.get(theme, THEMES["light"])
     prs = Presentation()
     prs.slide_width, prs.slide_height = Inches(13.333), Inches(7.5)
@@ -108,211 +118,421 @@ def deck(record: dict, theme: str = "light") -> bytes:
     r = record
     h, c, p, e = r["headline"], r["confidence"], r["primary_source"], r["entity"]
     band = _band(c["score"])
+    tone = TONE[band]
     certified_on = (r["methodology"].get("run_at") or r["methodology"].get("lookup_date") or "")[:10]
+    total = 4
 
     def rgb(key):
-        return RGBColor.from_string(t[key])
+        return RGBColor.from_string(t.get(key, key))
 
-    def slide(title: str):
+    def rect(s, x, y, w, hh, fill, shape=MSO_SHAPE.RECTANGLE, line=None, radius=None):
+        b = s.shapes.add_shape(shape, Inches(x), Inches(y), Inches(w), Inches(hh))
+        if radius is not None:
+            b.adjustments[0] = radius
+        b.fill.solid()
+        b.fill.fore_color.rgb = rgb(fill)
+        if line:
+            b.line.color.rgb, b.line.width = rgb(line), Pt(0.75)
+        else:
+            b.line.fill.background()
+        b.shadow.inherit = False
+        return b
+
+    def text(s, x, y, w, hh, value, size, color="text", bold=False, align=None, italic=False):
+        box = _text(s, Inches(x), Inches(y), Inches(w), Inches(hh), value, size, rgb(color), bold=bold, align=align)
+        box.text_frame.paragraphs[0].runs[0].font.italic = italic
+        return box
+
+    def slide(n: int, title: str, kicker: str):
         s = prs.slides.add_slide(blank)
-        bg = s.background.fill
-        bg.solid()
-        bg.fore_color.rgb = rgb("bg")
-        # Brand band: logo chip, product name, slide title, and a loop-gradient rule.
-        chip = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.45), Inches(0.32), Inches(0.95), Inches(0.55))
-        chip.fill.solid()
-        chip.fill.fore_color.rgb = RGBColor.from_string("FFFFFF")
-        chip.line.fill.background()
+        s.background.fill.solid()
+        s.background.fill.fore_color.rgb = rgb("bg")
+        # Brand band: logo chip, product name and tagline, step and slide title, the loop-gradient rule.
+        rect(s, 0.45, 0.32, 0.95, 0.55, "FFFFFF", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.22)
         if LOGO.is_file():
             s.shapes.add_picture(str(LOGO), Inches(0.52), Inches(0.40), height=Inches(0.39))
-        _text(s, Inches(1.55), Inches(0.28), Inches(6), Inches(0.35), "GTM Data Certifier", 13, rgb("text"), bold=True)
-        _text(s, Inches(1.55), Inches(0.58), Inches(6), Inches(0.3), "Human in the Hyperloop · Certified employee count",
-              10, rgb("muted"))
-        _text(s, Inches(7.4), Inches(0.36), Inches(5.5), Inches(0.45), title, 18, rgb("text"), bold=True, align=PP_ALIGN.RIGHT)
-        for i, (key, w) in enumerate((("brand_green", 4.6), ("blue", 7.833))):
-            bar = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.45 + (4.6 if i else 0)), Inches(1.02),
-                                     Inches(w if not i else 7.833), Emu(38100))
-            bar.fill.solid()
-            bar.fill.fore_color.rgb = rgb(key)
-            bar.line.fill.background()
-        _text(s, Inches(0.45), Inches(7.02), Inches(8.4), Inches(0.3),
-              f"{e['name']} · certified on {certified_on} · " + DISCLAIMER.format(v=r["methodology"]["policy_version"]),
-              9, rgb("muted"))
-        credit = _text(s, Inches(8.9), Inches(7.02), Inches(4.0), Inches(0.3), "Designed and created by ", 9, rgb("muted"),
-                       align=PP_ALIGN.RIGHT)
+        text(s, 1.58, 0.30, 5.6, 0.32, "GTM Data Certifier", 14, bold=True)
+        text(s, 1.58, 0.60, 5.6, 0.28, TAGLINE, 10, "muted", italic=True)
+        text(s, 7.2, 0.27, 5.68, 0.24, f"{n:02d} / {total:02d}  ·  {kicker.upper()}", 9, "brand_green", bold=True, align=PP_ALIGN.RIGHT)
+        text(s, 7.2, 0.50, 5.68, 0.45, title, 22, bold=True, align=PP_ALIGN.RIGHT)
+        rect(s, 0.45, 1.04, 4.6, 0.045, "brand_green")
+        rect(s, 5.05, 1.04, 7.833, 0.045, "blue")
+        # Footer: a hairline, the certification line on the left, the credit and notice on the right.
+        rect(s, 0.45, 6.93, 12.433, 0.01, "line")
+        text(s, 0.45, 7.04, 7.6, 0.28, f"{e['name']} · certified on {certified_on} · "
+             + DISCLAIMER.format(v=r["methodology"]["policy_version"]), 8.5, "muted")
+        credit = text(s, 8.1, 7.04, 4.78, 0.28, "Designed and created by ", 8.5, "muted", align=PP_ALIGN.RIGHT)
         para = credit.text_frame.paragraphs[0]
-        for txt, url in (("Matthew Beltrano", CREDIT_URL), (" & Claude Code", None)):
+        for txt, url in (("Matthew Beltrano", CREDIT_URL), (" & Claude Code · © 2026 · Proprietary", None)):
             run = para.add_run()
             run.text = txt
-            run.font.size, run.font.name = Pt(9), "Segoe UI"
+            run.font.size, run.font.name = Pt(8.5), "Segoe UI"
             run.font.color.rgb = rgb("accent" if url else "muted")
             if url:
                 run.hyperlink.address = url
         return s
 
-    def card(s, x, y, w, hgt, fill="card"):
-        box = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, y, w, hgt)
-        box.adjustments[0] = 0.06
-        box.fill.solid()
-        box.fill.fore_color.rgb = rgb(fill)
-        box.line.color.rgb = rgb("line")
-        box.line.width = Pt(0.75)
-        box.shadow.inherit = False
-        return box
+    def table(s, x, y, w, rows: int, cols: int, widths, row_h=0.36):
+        shape = s.shapes.add_table(rows, cols, Inches(x), Inches(y), Inches(w), Inches(row_h * rows))
+        tbl = shape.table
+        tbl.first_row = tbl.horz_banding = False
+        style = shape._element.graphic.graphicData.tbl.tblPr.find(qn("a:tableStyleId"))
+        if style is not None:
+            style.text = NO_STYLE
+        for i, wd in enumerate(widths):
+            tbl.columns[i].width = Inches(wd)
+        for row in tbl.rows:
+            row.height = Inches(row_h)
+        return tbl
 
-    # 1. The answer
-    s = slide("The answer")
-    _text(s, Inches(0.55), Inches(1.3), Inches(7.6), Inches(0.6), e["name"], 26, rgb("text"), bold=True)
-    sub = " · ".join(x for x in (e.get("website"), e.get("relationship")) if x)
-    _text(s, Inches(0.55), Inches(1.85), Inches(7.6), Inches(0.35), sub, 11, rgb("muted"))
+    def cell(cl, runs, fill="card", align=PP_ALIGN.LEFT, rule=True, top=False):
+        """`runs`: (text, size, bold, color[, italic]) tuples; a "\n" text starts a new paragraph."""
+        _rule(cl, t["line"] if rule else None)
+        cl.fill.solid()
+        cl.fill.fore_color.rgb = rgb(fill)
+        cl.margin_left = cl.margin_right = Inches(0.1)
+        cl.margin_top = cl.margin_bottom = Inches(0.05)
+        cl.vertical_anchor = MSO_ANCHOR.TOP if top else MSO_ANCHOR.MIDDLE
+        tf = cl.text_frame
+        tf.clear()
+        tf.word_wrap = True
+        para = tf.paragraphs[0]
+        para.alignment = align
+        for value, size, bold, color, *rest in runs:
+            if value == "\n":
+                para = tf.add_paragraph()
+                para.alignment = align
+                continue
+            run = para.add_run()
+            run.text = str(value)
+            run.font.size, run.font.bold, run.font.name = Pt(size), bold, "Segoe UI"
+            run.font.italic = bool(rest and rest[0])
+            run.font.color.rgb = rgb(color)
+
+    def frame(shape, paragraphs, anchor=MSO_ANCHOR.TOP, margin=0.22):
+        """Paragraphs of runs inside one shape: (space_before, [(text, size, bold, color, italic, link)])."""
+        tf = shape.text_frame
+        tf.clear()
+        tf.word_wrap = True
+        tf.vertical_anchor = anchor
+        tf.margin_left = tf.margin_right = Inches(margin)
+        tf.margin_top = tf.margin_bottom = Inches(0.14)
+        for i, (space, runs) in enumerate(paragraphs):
+            para = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+            para.alignment = PP_ALIGN.LEFT
+            para.space_before = Pt(space)
+            for value, size, bold, color, italic, url in runs:
+                run = para.add_run()
+                run.text = value
+                run.font.size, run.font.bold, run.font.italic, run.font.name = Pt(size), bold, italic, "Segoe UI"
+                run.font.color.rgb = rgb(color)
+                if url:
+                    run.hyperlink.address = url
+
+    # 1. The answer ------------------------------------------------------------------------------
+    s = slide(1, "The answer", "Certified employee count")
+    name = e["name"]
+    text(s, 0.55, 1.28, 7.3, 0.6, name, 26 if len(name) <= 30 else 22 if len(name) <= 44 else 18, bold=True)
+    text(s, 0.55, 1.86, 7.3, 0.3, " · ".join(x for x in (e.get("website"), e.get("relationship")) if x), 11, "muted")
+    rect(s, 0.55, 2.3, 7.3, 1.85, "card", MSO_SHAPE.ROUNDED_RECTANGLE, line="line", radius=0.08)
+    rect(s, 0.55, 2.42, 0.07, 1.61, "brand_green")
     count = (QUAL.get(h.get("qualifier") or "exact", "") + _num(h["count"])) if h.get("count") is not None else "Not certified"
-    _text(s, Inches(0.55), Inches(2.3), Inches(5.5), Inches(1.2), count, 60, rgb("text"), bold=True)
-    _text(s, Inches(0.6), Inches(3.45), Inches(5.5), Inches(0.35),
-          "employees · " + ("as of " + h["as_of_date"] if h.get("as_of_date") else "undated"), 13, rgb("muted"))
-    stamp = s.shapes.add_shape(MSO_SHAPE.OVAL, Inches(5.95), Inches(2.25), Inches(1.75), Inches(1.75))
+    text(s, 0.88, 2.36, 5.0, 0.95, count, 54 if len(count) <= 9 else 40, bold=True)
+    text(s, 0.92, 3.3, 5.0, 0.3, ("full-time equivalents" if h.get("count_basis") == "fte" else "employees") + " · "
+         + ("as of " + h["as_of_date"] if h.get("as_of_date") else "undated")
+         + (" (estimated)" if h.get("as_of_estimated") else ""), 12, "muted")
+    for i in range(5):  # the confidence meter, as on the card
+        rect(s, 0.92 + i * 0.4, 3.75, 0.32, 0.12, "brand_green" if i < c["score"] else "line", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.5)
+    text(s, 3.0, 3.66, 2.9, 0.3, f"{c['score']}/5 · {c['level']}", 11, bold=True)
+    stamp = s.shapes.add_shape(MSO_SHAPE.OVAL, Inches(6.05), Inches(2.42), Inches(1.6), Inches(1.6))
     stamp.fill.solid()
-    stamp.fill.fore_color.rgb = rgb({"ready": "green_bg", "usable": "yellow_bg", "directional": "red_bg"}[band])
-    stamp.line.color.rgb = rgb({"ready": "green", "usable": "yellow", "directional": "red"}[band])
-    stamp.line.width = Pt(3)
-    stamp.rotation = -8
-    tf = stamp.text_frame
-    tf.clear()
-    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
-    for txt, size in ((c["level"].split(",")[0].upper(), 11), (f"{c['score']}/5", 24)):
-        para = tf.paragraphs[0] if not tf.paragraphs[0].runs else tf.add_paragraph()
+    stamp.fill.fore_color.rgb = rgb(tone + "_bg")
+    stamp.line.color.rgb, stamp.line.width, stamp.rotation = rgb(tone), Pt(3), -8
+    stamp.shadow.inherit = False
+    frame(stamp, [(0, [("CERTIFIED" if band != "directional" else c["level"].split(",")[0].upper(), 10, True, tone, False, None)]),
+                  (0, [(f"{c['score']}/5", 24, True, tone, False, None)])], anchor=MSO_ANCHOR.MIDDLE, margin=0.05)
+    for para in stamp.text_frame.paragraphs:
         para.alignment = PP_ALIGN.CENTER
-        run = para.add_run()
-        run.text = txt
-        run.font.size, run.font.bold = Pt(size), True
-        run.font.color.rgb = rgb({"ready": "green", "usable": "yellow", "directional": "red"}[band])
-    bl = card(s, Inches(0.55), Inches(4.05), Inches(7.15), Inches(0.75),
-              fill={"ready": "green_bg", "usable": "yellow_bg", "directional": "red_bg"}[band])
-    bl.line.fill.background()
-    _text_in(bl, [("Bottom line: ", True), (h.get("bottom_line") or "", False)], 14,
-             rgb({"ready": "green", "usable": "yellow", "directional": "red"}[band]))
+    bl = rect(s, 0.55, 4.35, 7.3, 0.62, tone + "_bg", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.18)
+    frame(bl, [(0, [({"ready": "✓  ", "usable": "!  ", "directional": "✕  "}[band], 14, True, tone, False, None),
+                    ("Bottom line: ", 14, True, tone, False, None), (h.get("bottom_line") or "", 14, False, tone, False, None)])],
+          anchor=MSO_ANCHOR.MIDDLE)
+    ks = rect(s, 0.55, 5.15, 7.3, 1.6, "soft", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.08)
     if p.get("source_id"):
-        _text(s, Inches(0.55), Inches(4.95), Inches(7.15), Inches(0.3), "Key source", 10, rgb("muted"), bold=True)
-        box = _text(s, Inches(0.55), Inches(5.22), Inches(7.15), Inches(0.4), _source_label(p), 13, rgb("text"), bold=True)
-        para = box.text_frame.add_paragraph()
-        run = para.add_run()
-        run.text = "Open the source at the quote ↗"
-        run.font.size, run.font.color.rgb = Pt(12), rgb("accent")
-        run.hyperlink.address = (p.get("location") or {}).get("deep_link") or p["url"]
-    facts = card(s, Inches(8.05), Inches(1.3), Inches(4.85), Inches(5.55))
-    _facts_box(s, facts, [f for f in _facts(r) if f[0] not in ("Employees", "Confidence", "Key source")], t)
-
-    # 2. Trend and forecast
-    s = slide("Trend and forecast")
-    reported, forecast = _trend(r)
-    if h.get("direction"):
-        d = card(s, Inches(0.55), Inches(1.3), Inches(12.35), Inches(0.62), fill="soft")
-        d.line.fill.background()
-        _text_in(d, [(DIRECTION.get(h["direction"], "") + " · ", True), (h.get("direction_reason") or "", False)], 12, rgb("text"))
-    if reported:
-        cats = [x["as_of_date"][:4] for x in reported + forecast]
-        data = CategoryChartData()
-        data.categories = cats
-        data.add_series("Reported", [x["value"] for x in reported] + [None] * len(forecast))
-        if forecast:
-            data.add_series("Forecast (estimate)", [None] * (len(reported) - 1) + [reported[-1]["value"]] +
-                            [x["value"] for x in forecast])
-        frame = s.shapes.add_chart(XL_CHART_TYPE.LINE_MARKERS, Inches(0.55), Inches(2.1), Inches(12.35), Inches(4.2), data)
-        ch = frame.chart
-        ch.has_legend = True
-        ch.legend.position, ch.legend.include_in_layout = XL_LEGEND_POSITION.BOTTOM, False
-        ch.legend.font.size, ch.legend.font.color.rgb = Pt(11), rgb("muted")
-        ch.font.color.rgb = rgb("muted")
-        ch.value_axis.has_major_gridlines = True
-        ch.value_axis.major_gridlines.format.line.color.rgb = rgb("line")
-        ch.value_axis.tick_labels.number_format, ch.value_axis.tick_labels.number_format_is_linked = "#,##0", False
-        ch.value_axis.format.line.fill.background()
-        ch.category_axis.format.line.color.rgb = rgb("line")
-        for axis in (ch.value_axis, ch.category_axis):
-            axis.tick_labels.font.size, axis.tick_labels.font.color.rgb = Pt(11), rgb("muted")
-        for i, series in enumerate(ch.plots[0].series):
-            series.smooth = True
-            series.format.line.width = Pt(3 if i == 0 else 2.25)
-            series.format.line.color.rgb = rgb("blue")
-            if i:
-                series.format.line.dash_style = MSO_LINE_DASH_STYLE.DASH
-            series.marker.style, series.marker.size = XL_MARKER_STYLE.CIRCLE, 8
-            series.marker.format.fill.solid()
-            series.marker.format.fill.fore_color.rgb = rgb("blue" if i == 0 else "card")
-            series.marker.format.line.color.rgb = rgb("blue")
-            labels = series.data_labels
-            labels.show_value, labels.number_format, labels.number_format_is_linked = True, "#,##0", False
-            labels.position = XL_LABEL_POSITION.ABOVE if i == 0 else XL_LABEL_POSITION.BELOW
-            labels.font.size, labels.font.bold = Pt(11), i == 0
-            labels.font.color.rgb = rgb("text" if i == 0 else "muted")
-            if i:  # the forecast starts at the certified point, which the reported series already labels
-                series.points[len(reported) - 1].data_label.text_frame.text = ""
-        if forecast:
-            f = forecast[-1]
-            _text(s, Inches(0.55), Inches(6.38), Inches(12.35), Inches(0.35),
-                  f"Forecast to {f['as_of_date'][:4]}: {_num(f['value'])} (range {_num(f['low'])}–{_num(f['high'])}). "
-                  "A linear trend over the reported years; an estimate, not a reported figure.", 11, rgb("muted"))
+        loc = p.get("location") or {}
+        paras = [(0, [("KEY SOURCE", 9, True, "muted", False, None)]),
+                 (2, [(_source_label(p), 13, True, "text", False, None)])]
+        if p.get("excerpt"):
+            paras.append((4, [("“" + _short(p["excerpt"], h.get("count"), 150) + "”", 11, False, "text", True, None)]))
+        paras.append((4, [("Open the source at the quote ↗", 10.5, True, "accent", False, loc.get("deep_link") or p["url"]),
+                          (("  ·  " + _line_in_source(p)) if _line_in_source(p) else "", 10, False, "muted", False, None)]))
+        frame(ks, paras)
     else:
-        _text(s, Inches(0.55), Inches(2.3), Inches(12), Inches(0.5), r["trend"].get("none_reason") or "No trend available.",
-              14, rgb("muted"))
+        frame(ks, [(0, [("KEY SOURCE", 9, True, "muted", False, None)]),
+                   (2, [(p.get("none_reason") or "No key source.", 12, False, "text", False, None)])])
+    rect(s, 8.15, 1.28, 4.73, 5.47, "card", MSO_SHAPE.ROUNDED_RECTANGLE, line="line", radius=0.05)
+    text(s, 8.42, 1.46, 4.2, 0.26, "AT A GLANCE", 9, "muted", bold=True)
+    facts = [f for f in _facts(r) if f[0] not in ("Employees", "Confidence", "Key source", "Excerpt")]
+    tbl = table(s, 8.32, 1.78, 4.4, len(facts), 2, (1.3, 3.1), row_h=0.42)
+    for i, (label, value) in enumerate(facts):
+        last_row = i == len(facts) - 1
+        cell(tbl.cell(i, 0), [(label.upper(), 8.5, True, "muted")], rule=not last_row, top=True)
+        cell(tbl.cell(i, 1), [(value, 11.5, False, "text")], rule=not last_row, top=True)
 
-    # 3. Why you can trust this
-    s = slide("Why you can trust this")
+    # 2. Trend and forecast ------------------------------------------------------------------------
+    s = slide(2, "Trend and forecast", "History and outlook")
+    reported, forecast = _trend(r)
+    top = 1.3
+    if h.get("direction"):
+        d = rect(s, 0.55, top, 12.33, 0.62, "soft", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.18)
+        frame(d, [(0, [(DIRECTION.get(h["direction"], "") + "  ·  ", 12, True, "text", False, None),
+                       (_short(h.get("direction_reason") or "", None, 190), 11.5, False, "text", False, None)])], anchor=MSO_ANCHOR.MIDDLE)
+        top += 0.8
+    if reported:
+        _trend_chart(s, reported, forecast, t, 0.55, top, 8.5, 6.2 - top)
+        legend = [("●", "blue", "Reported"), ("◯", "blue", "Forecast (estimate)" if forecast else None),
+                  ("┅", "muted", "Forecast range" if forecast else None), ("✕", "muted", "No reported figure")]
+        box = text(s, 0.65, 6.3, 8.4, 0.28, "", 10, "muted")
+        para = box.text_frame.paragraphs[0]
+        para.runs[0].text = ""
+        for sym, color, label in legend:
+            if not label:
+                continue
+            for value, col, bold in ((sym + " ", color, True), (label + "      ", "muted", False)):
+                run = para.add_run()
+                run.text, run.font.size, run.font.bold, run.font.name = value, Pt(10), bold, "Segoe UI"
+                run.font.color.rgb = rgb(col)
+        if forecast:
+            text(s, 0.65, 6.58, 8.4, 0.28, "The forecast carries the reported trend forward from the latest figure; an estimate, "
+                 "not a reported figure.", 9, "muted", italic=True)
+        last = reported[-1]
+        first = reported[0]
+        f = forecast[-1] if forecast else None
+        years = int(last["as_of_date"][:4]) - int(first["as_of_date"][:4])
+        change = (last["value"] - first["value"]) / first["value"] if first["value"] and years else None
+        stats = [("CERTIFIED", _num(last["value"]), "as of " + last["as_of_date"], "brand_green"),
+                 (f"FORECAST {f['as_of_date'][:4]}" if f else "FORECAST", _num(f["value"]) if f else "No forecast",
+                  f"range {_num(f['low'])}–{_num(f['high'])}" if f else "needs 3 reported years", "blue"),
+                 (f"CHANGE OVER {years} YEAR{'S' if years != 1 else ''}" if change is not None else "CHANGE",
+                  f"{change:+.1%}" if change is not None else "–",
+                  f"{_num(first['value'])} → {_num(last['value'])}" if change is not None else "one reported year", "accent")]
+        gap = (6.2 - top - 3 * 1.2) / 2
+        for i, (label, value, sub, stripe) in enumerate(stats):
+            y = top + i * (1.2 + gap)
+            box = rect(s, 9.3, y, 3.58, 1.2, "card", MSO_SHAPE.ROUNDED_RECTANGLE, line="line", radius=0.08)
+            rect(s, 9.3, y + 0.14, 0.07, 0.92, stripe)
+            frame(box, [(0, [(label, 9, True, "muted", False, None)]), (1, [(value, 22, True, "text", False, None)]),
+                        (0, [(sub, 10, False, "muted", False, None)])], anchor=MSO_ANCHOR.MIDDLE, margin=0.3)
+    else:
+        text(s, 0.55, top + 0.2, 12, 0.5, r["trend"].get("none_reason") or "No trend available.", 14, "muted")
+
+    # 3. Why you can trust this -----------------------------------------------------------------------
+    s = slide(3, "Why you can trust this", "Evidence and checks")
     corr = sum(1 for x in r["sources"]["items"] if x["role"] == "corroborates")
     adj = sum(1 for a in r["adjustments"]["items"] if a.get("change"))
     red = sum(1 for f in r["findings"]["items"] if f["status"] == "red")
-    tiles = [("Key source", f"Tier {p['tier']} · {p.get('source_type') or p.get('tier_name')}" if p.get("source_id") else "none"),
-             ("As of", h.get("as_of_date") or "undated"), ("Independent confirmations", str(corr)),
-             ("Adjustments to the count", str(adj)), ("Needs attention", str(red))]
-    for i, (label, value) in enumerate(tiles):
-        tile = card(s, Inches(0.55 + i * 2.5), Inches(1.3), Inches(2.3), Inches(1.05), fill="soft")
-        _text_in(tile, [(label + "\n", False), (value, True)], 12, rgb("text"), first_size=10, first_color=rgb("muted"))
-    y = 2.6
-    for group, title in (("affects", "Affects the answer"), ("worth_knowing", "Worth knowing")):
-        items = [f for f in r["findings"]["items"] if f.get("group") == group][: 5 if group == "affects" else 4]
-        if not items:
-            continue
-        _text(s, Inches(0.55), Inches(y), Inches(12), Inches(0.32), title.upper(), 10, rgb("muted"), bold=True)
-        y += 0.36
-        for f in items:
-            sym = {"green": ("✓", "green"), "yellow": ("!", "yellow"), "red": ("✕", "red")}[f["status"]]
-            _text(s, Inches(0.6), Inches(y), Inches(0.35), Inches(0.36), sym[0], 13, rgb(sym[1]), bold=True)
-            box = _text(s, Inches(0.95), Inches(y), Inches(9.6), Inches(0.36), f["title"], 12, rgb("text"), bold=True)
-            run = box.text_frame.paragraphs[0].add_run()
-            run.text = " — " + f.get("so_what", "")
-            run.font.size, run.font.color.rgb, run.font.bold = Pt(11), rgb("muted"), False
-            _text(s, Inches(10.7), Inches(y), Inches(2.2), Inches(0.36), f.get("impact", ""), 10, rgb("muted"),
-                  align=PP_ALIGN.RIGHT)
-            y += 0.42
-        y += 0.15
+    key_sub = _clip(p.get("source_type") or p.get("tier_name") or "", 26) if p.get("source_id") else None
+    tiles = [("KEY SOURCE", f"Tier {p['tier']}" if p.get("source_id") else "none", "blue", key_sub),
+             ("AS OF", h.get("as_of_date") or "undated", "blue", "estimated" if h.get("as_of_estimated") else None),
+             ("CONFIRMATIONS", str(corr), "brand_green" if corr else "line", "independent sources"),
+             ("ADJUSTMENTS", str(adj), "blue", "to the count"), ("NEEDS ATTENTION", str(red), "red" if red else "brand_green",
+                                                                  "red findings" if red else "nothing red")]
+    for i, (label, value, stripe, sub_text) in enumerate(tiles):
+        x = 0.55 + i * 2.5
+        tile = rect(s, x, 1.3, 2.33, 1.0, "soft", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.1)
+        rect(s, x, 1.42, 0.06, 0.76, stripe)
+        paras = [(0, [(label, 8.5, True, "muted", False, None)]), (1, [(value, 16, True, "text", False, None)])]
+        if sub_text:
+            paras.append((0, [(sub_text, 9.5, False, "muted", False, None)]))
+        frame(tile, paras, anchor=MSO_ANCHOR.MIDDLE, margin=0.22)
+    groups = [(g, title, [f for f in r["findings"]["items"] if f.get("group") == g])
+              for g, title in (("affects", "Affects the answer"), ("worth_knowing", "Worth knowing"))]
+    budget, rows = 6, []
+    for g, title, items in groups:
+        take = items[: max(0, min(len(items), budget - (1 if g == "affects" and groups[1][2] else 0)))]
+        budget -= len(take)
+        if take:
+            rows.append(("head", title))
+            rows += [("item", f) for f in take]
+    shown = sum(1 for kind, _ in rows if kind == "item")
+    if rows:
+        tbl = table(s, 0.55, 2.55, 12.33, len(rows), 3, (0.45, 9.55, 2.33), row_h=0.4)
+        for i, (kind, item) in enumerate(rows):
+            if kind == "head":
+                tbl.cell(i, 0).merge(tbl.cell(i, 2))
+                cell(tbl.cell(i, 0), [(item.upper(), 9, True, "muted")], fill="bg", rule=False)
+                continue
+            sym = {"green": ("✓", "green"), "yellow": ("!", "yellow"), "red": ("✕", "red")}[item["status"]]
+            cell(tbl.cell(i, 0), [(sym[0], 14, True, sym[1])], align=PP_ALIGN.CENTER)
+            cell(tbl.cell(i, 1), [(_clip(item["title"], 95), 12, True, "text"),
+                                  ("  —  " + _clip(item.get("so_what", ""), 110), 10.5, False, "muted")])
+            cell(tbl.cell(i, 2), [(item.get("impact", ""), 10, False, "muted")], align=PP_ALIGN.RIGHT)
+    hidden = len(r["findings"]["items"]) - shown
+    if hidden > 0:
+        text(s, 0.55, 6.55, 12.33, 0.28, f"+{hidden} more finding{'s' if hidden != 1 else ''} on the card and in the Word document.",
+             10, "muted", italic=True)
 
-    # 4. Sources
-    s = slide("Sources")
-    rows = r["sources"]["items"][:9]
-    tbl = s.shapes.add_table(len(rows) + 1, 5, Inches(0.55), Inches(1.3), Inches(12.35),
-                             Inches(0.42 * (len(rows) + 1))).table
-    widths = (0.6, 5.6, 1.6, 1.6, 2.95)
-    for i, w in enumerate(widths):
-        tbl.columns[i].width = Inches(w)
+    # 4. Sources -------------------------------------------------------------------------------------
+    s = slide(4, "Sources", "Every source considered")
+    items = r["sources"]["items"]
+    rows = items[:10]
+    tbl = table(s, 0.55, 1.3, 12.33, len(rows) + 1, 5, (0.55, 5.6, 1.6, 1.45, 3.13), row_h=0.4)
     for j, head in enumerate(("ID", "Source", "Value", "As of", "Status")):
-        _cell(tbl.cell(0, j), head, t, header=True)
+        cell(tbl.cell(0, j), [(head.upper(), 9, True, "muted")], fill="soft", rule=False,
+             align=PP_ALIGN.RIGHT if j == 2 else PP_ALIGN.LEFT)
     for i, x in enumerate(rows, start=1):
+        key = x["role"] == "selected"
         status = _status(x, p)
-        vals = (x["id"], f"Tier {x['tier']} · {x.get('source_type') or x['tier_name']}",
-                QUAL.get(x["qualifier"], "") + _num(x["value"]), x.get("as_of_date") or "undated", status)
-        for j, v in enumerate(vals):
-            _cell(tbl.cell(i, j), v, t, bold=(x["role"] == "selected"))
+        color = "green" if x["used"] else "accent" if status.startswith("Prior") else "muted"
+        mark = "◆ " if key else "✓ " if x["used"] else "↺ " if status.startswith("Prior") else "○ "
+        fill = "green_bg" if key else "card"
+        cell(tbl.cell(i, 0), [(x["id"], 10.5, key, "muted")], fill=fill)
+        cell(tbl.cell(i, 1), [(f"Tier {x['tier']}  ", 10.5, True, "accent"),
+                              (_clip(x.get("source_type") or x["tier_name"], 60), 11, key, "text")], fill=fill)
+        cell(tbl.cell(i, 2), [(QUAL.get(x["qualifier"], "") + _num(x["value"]), 11, key, "text")], fill=fill, align=PP_ALIGN.RIGHT)
+        cell(tbl.cell(i, 3), [(x.get("as_of_date") or "undated", 10.5, False, "text" if x.get("as_of_date") else "muted")], fill=fill)
+        cell(tbl.cell(i, 4), [(mark + status, 10.5, key or x["used"], color)], fill=fill)
     m = r["methodology"]
-    _text(s, Inches(0.55), Inches(1.45 + 0.42 * (len(rows) + 1)), Inches(12.35), Inches(0.8),
-          f"{len(r['sources']['items'])} sources found, {sum(1 for x in r['sources']['items'] if x['used'])} used. "
-          f"Method: {m['method']} · policy {m['policy_version']} · record {m['record_version']}. "
-          "The policy ranks every source by tier, recency and independence; the AI gathers evidence but never "
-          "chooses the answer.", 11, rgb("muted"))
+    more = len(items) - len(rows)
+    text(s, 0.55, min(6.3, 1.45 + 0.42 * (len(rows) + 1)), 12.33, 0.55,
+         f"{len(items)} sources found, {sum(1 for x in items if x['used'])} used"
+         + (f" ({more} more listed on the card and in the Word document)" if more > 0 else "") + ". "
+         f"Method: {m['method']} · policy {m['policy_version']} · record {m['record_version']}. "
+         "The policy ranks every source by tier, recency and independence; the AI gathers evidence but never "
+         "chooses the answer.", 10.5, "muted")
 
     _brand_links(prs, t["accent"])
     out = io.BytesIO()
     prs.core_properties.author, prs.core_properties.comments = "Matthew Beltrano", COPYRIGHT
     prs.save(out)
     return out.getvalue()
+
+
+def _clip(value: str, limit: int) -> str:
+    value = " ".join((value or "").split())
+    return value if len(value) <= limit else value[: limit - 1].rsplit(" ", 1)[0].rstrip(",;:") + "…"
+
+
+def _nice_step(span: float) -> float:
+    raw = max(span, 1) / 4
+    mag = 10 ** math.floor(math.log10(raw))
+    return next(m * mag for m in (1, 2, 2.5, 5, 10) if m * mag >= raw)
+
+
+def _trend_chart(s, reported: list[dict], forecast: list[dict], t: dict, x, y, w, hh) -> None:
+    """A native, editable line chart over a fixed nine years (five reported, four forecast). Years without a
+    reported figure (and a missing forecast) are ✕ markers on a dotted line, as on the card."""
+    rgb = lambda key: RGBColor.from_string(t[key])  # noqa: E731
+    last = reported[-1]
+    ly = int(last["as_of_date"][:4])
+    years = list(range(ly - HISTORY_YEARS + 1, ly + FORECAST_YEARS + 1))
+    rep = {int(p["as_of_date"][:4]): p["value"] for p in reported if int(p["as_of_date"][:4]) in years}
+    fc = {int(p["as_of_date"][:4]): p for p in forecast}
+    known = sorted(rep)
+
+    def held(year):  # a placeholder sits on the line between its neighbours, or level with the nearest figure
+        prev = max((k for k in known if k < year), default=None)
+        nxt = min((k for k in known if k > year), default=None)
+        if prev is not None and nxt is not None:
+            return rep[prev] + (rep[nxt] - rep[prev]) * (year - prev) / (nxt - prev)
+        return rep[prev if prev is not None else nxt]
+
+    gaps = [yr for yr in years[:HISTORY_YEARS] if yr not in rep] + ([] if fc else years[HISTORY_YEARS:])
+    placeholder: list[float | None] = [None] * len(years)
+    for i, yr in enumerate(years):
+        if yr in gaps:
+            placeholder[i] = held(yr)
+            for j in (i - 1, i + 1):  # reach the neighbouring reported point so the dotted line connects
+                if 0 <= j < len(years) and years[j] in rep:
+                    placeholder[j] = rep[years[j]]
+    data = CategoryChartData()
+    data.categories = [str(yr) for yr in years]
+    series_spec = [("No reported figure", placeholder)]
+    if fc:
+        lead = [None] * (HISTORY_YEARS - 1) + [last["value"]]
+        series_spec += [("Forecast high", lead + [fc[yr]["high"] if yr in fc else None for yr in years[HISTORY_YEARS:]]),
+                        ("Forecast low", lead + [fc[yr]["low"] if yr in fc else None for yr in years[HISTORY_YEARS:]]),
+                        ("Forecast", lead + [fc[yr]["value"] if yr in fc else None for yr in years[HISTORY_YEARS:]])]
+    series_spec.append(("Reported", [rep.get(yr) for yr in years]))
+    for name, values in series_spec:
+        data.add_series(name, values)
+    frame = s.shapes.add_chart(XL_CHART_TYPE.LINE_MARKERS, Inches(x), Inches(y), Inches(w), Inches(hh), data)
+    ch = frame.chart
+    ch.has_title = False
+    ch.has_legend = False
+    ch.font.size, ch.font.name, ch.font.color.rgb = Pt(10.5), "Segoe UI", rgb("muted")
+    vals = [v for _, values in series_spec for v in values if v is not None]
+    lo, hi = min(vals), max(vals)
+    step = _nice_step((hi - lo) or hi * 0.2)
+    va = ch.value_axis
+    va.minimum_scale = max(0, math.floor((lo - step * 0.6) / step) * step)
+    va.maximum_scale = math.ceil((hi + step * 0.6) / step) * step
+    va.major_unit = step
+    va.has_major_gridlines = True
+    va.major_gridlines.format.line.color.rgb = rgb("line")
+    va.tick_labels.number_format, va.tick_labels.number_format_is_linked = "#,##0", False
+    va.format.line.fill.background()
+    ch.category_axis.format.line.color.rgb = rgb("line")
+    for axis in (va, ch.category_axis):
+        axis.tick_labels.font.size, axis.tick_labels.font.color.rgb = Pt(10.5), rgb("muted")
+    final = len(years) - 1
+    for series in ch.plots[0].series:
+        series.smooth = series.name in ("Reported", "Forecast", "Forecast high", "Forecast low")
+        line = series.format.line
+        marker = series.marker
+        if series.name == "No reported figure":
+            line.width, line.color.rgb, line.dash_style = Pt(1.5), rgb("muted"), MSO_LINE_DASH_STYLE.ROUND_DOT
+            marker.style, marker.size = XL_MARKER_STYLE.X, 9
+            marker.format.line.color.rgb = rgb("muted")
+            for i, yr in enumerate(years):
+                if placeholder[i] is not None and yr not in gaps:
+                    series.points[i].marker.style = XL_MARKER_STYLE.NONE
+        elif series.name in ("Forecast high", "Forecast low"):
+            line.width, line.color.rgb, line.dash_style = Pt(1), rgb("blue"), MSO_LINE_DASH_STYLE.SQUARE_DOT
+            marker.style = XL_MARKER_STYLE.NONE
+        else:
+            reported_series = series.name == "Reported"
+            line.width, line.color.rgb = Pt(3.25 if reported_series else 2.5), rgb("blue")
+            if not reported_series:
+                line.dash_style = MSO_LINE_DASH_STYLE.DASH
+            marker.style, marker.size = XL_MARKER_STYLE.CIRCLE, 9 if reported_series else 8
+            marker.format.fill.solid()
+            marker.format.fill.fore_color.rgb = rgb("blue" if reported_series else "card")
+            marker.format.line.color.rgb = rgb("blue")
+            for i, yr in enumerate(years):
+                label_it = (reported_series and yr in rep) or (not reported_series and i == final)
+                if not label_it:
+                    continue
+                dl = series.points[i].data_label
+                dl.position = XL_LABEL_POSITION.ABOVE if reported_series else XL_LABEL_POSITION.BELOW
+                tf = dl.text_frame
+                tf.text = _num(rep[yr] if reported_series else fc[yr]["value"])
+                run = tf.paragraphs[0].runs[0]
+                run.font.size, run.font.bold = Pt(11 if yr != ly else 12.5), reported_series
+                run.font.color.rgb = rgb("green" if yr == ly else "text" if reported_series else "muted")
+            if reported_series and ly in rep:  # the certified point: a green ring
+                pt = series.points[years.index(ly)]
+                pt.marker.size = 12
+                pt.marker.format.fill.solid()
+                pt.marker.format.fill.fore_color.rgb = rgb("blue")
+                pt.marker.format.line.color.rgb, pt.marker.format.line.width = rgb("brand_green"), Pt(3)
+
+
+def _rule(cell, color: str | None) -> None:
+    """A hairline under the cell (or none), and no other borders. Borders precede the fill in the XML."""
+    tcPr = cell._tc.get_or_add_tcPr()
+    for tag in ("a:lnL", "a:lnR", "a:lnT", "a:lnB"):
+        for old in tcPr.findall(qn(tag)):
+            tcPr.remove(old)
+    for i, tag in enumerate(("a:lnL", "a:lnR", "a:lnT", "a:lnB")):
+        visible = tag == "a:lnB" and color
+        ln = etree.Element(qn(tag), w="9525" if visible else "0")
+        if visible:
+            fill = etree.SubElement(ln, qn("a:solidFill"))
+            etree.SubElement(fill, qn("a:srgbClr"), val=color)
+        else:
+            etree.SubElement(ln, qn("a:noFill"))
+        tcPr.insert(i, ln)
 
 
 def _status(x: dict, primary: dict) -> str:
@@ -352,57 +572,6 @@ def _text(slide, x, y, w, h, text, size, color, bold=False, align=None):
     run.font.size, run.font.bold, run.font.color.rgb = Pt(size), bold, color
     run.font.name = "Segoe UI"
     return box
-
-
-def _text_in(shape, parts, size, color, first_size=None, first_color=None):
-    tf = shape.text_frame
-    tf.clear()
-    tf.word_wrap = True
-    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
-    tf.margin_left = tf.margin_right = Inches(0.18)
-    para = tf.paragraphs[0]
-    for i, (txt, bold) in enumerate(parts):
-        run = para.add_run()
-        run.text = txt
-        run.font.bold = bold
-        run.font.size = Pt(first_size if (i == 0 and first_size) else size)
-        run.font.color.rgb = first_color if (i == 0 and first_color) else color
-        run.font.name = "Segoe UI"
-
-
-def _facts_box(slide, box, rows, t):
-    tf = box.text_frame
-    tf.clear()
-    tf.word_wrap = True
-    tf.vertical_anchor = MSO_ANCHOR.TOP
-    tf.margin_left = tf.margin_right = Inches(0.25)
-    tf.margin_top = Inches(0.2)
-    first = True
-    for label, value in rows:
-        para = tf.paragraphs[0] if first else tf.add_paragraph()
-        para.alignment = PP_ALIGN.LEFT
-        first = False
-        run = para.add_run()
-        run.text = label.upper()
-        run.font.size, run.font.bold, run.font.color.rgb = Pt(9), True, RGBColor.from_string(t["muted"])
-        para2 = tf.add_paragraph()
-        para2.alignment = PP_ALIGN.LEFT
-        run = para2.add_run()
-        run.text = value
-        run.font.size, run.font.color.rgb = Pt(12), RGBColor.from_string(t["text"])
-        para2.space_after = Pt(8)
-
-
-def _cell(cell, text, t, header=False, bold=False):
-    cell.fill.solid()
-    cell.fill.fore_color.rgb = RGBColor.from_string(t["soft"] if header else t["card"])
-    tf = cell.text_frame
-    tf.clear()
-    run = tf.paragraphs[0].add_run()
-    run.text = str(text)
-    run.font.size = Pt(10 if header else 11)
-    run.font.bold = header or bold
-    run.font.color.rgb = RGBColor.from_string(t["muted"] if header else t["text"])
 
 
 # --- Word -------------------------------------------------------------------------------------------

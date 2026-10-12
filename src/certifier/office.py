@@ -278,7 +278,17 @@ def deck(record: dict, theme: str = "light", logo: bytes | None = None, site_url
     frame(bl, [(0, [({"ready": "✓  ", "usable": "!  ", "directional": "✕  "}[band], 14, True, tone, False, None),
                     ("Bottom line: ", 14, True, tone, False, None), (h.get("bottom_line") or "", 14, False, tone, False, None)])],
           anchor=MSO_ANCHOR.MIDDLE)
-    ks = rect(s, 0.55, 5.1, 7.3, 1.72, "soft", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.06)
+    ks_top = 5.1
+    if h.get("peer_note"):
+        rare = h.get("peer_level") == "rare"
+        note = rect(s, 0.55, 5.03, 7.3, 0.42, "green_bg" if rare else "soft", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.3)
+        frame(note, [(0, [("✦ " if rare else "◆ ", 11, True, "green" if rare else "accent", False, None),
+                          ((f"Rare for a private company: a {c['score']}/5 without public filings. Worth celebrating."
+                            if rare else "Strong for a private company: 3/5 is about as good as it gets without public "
+                            "filings; 4-5 is rare."), 10, rare, "green" if rare else "text", False, None)])],
+              anchor=MSO_ANCHOR.MIDDLE, margin=0.16)
+        ks_top = 5.55
+    ks = rect(s, 0.55, ks_top, 7.3, 6.82 - ks_top, "soft", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.06)
     if p.get("source_id"):
         loc = p.get("location") or {}
         paras = [(0, [("KEY SOURCE", 9, True, "muted", False, None)]),
@@ -324,14 +334,19 @@ def deck(record: dict, theme: str = "light", logo: bytes | None = None, site_url
                 run.text, run.font.size, run.font.bold, run.font.name = value, Pt(10), bold, "Segoe UI"
                 run.font.color.rgb = rgb(col)
         if forecast:
-            text(s, 0.65, 6.58, 8.4, 0.28, "The forecast carries the reported trend forward from the latest figure; an estimate, "
-                 "not a reported figure.", 9, "muted", italic=True)
+            why = forecast[-1].get("rationale") or ""
+            note = ("Best-guess forecast (short history): " + why.split(": ", 1)[-1].split(", with a range")[0]
+                    .replace(", since LinkedIn over-represents office staff", "") + "; the range widens each year."
+                    if why.startswith("Best-guess") else
+                    "The forecast carries the reported trend forward from the latest figure; an estimate, not a reported figure.")
+            text(s, 0.65, 6.58, 8.4, 0.28, note, 9, "muted", italic=True)
         last = reported[-1]
         first = reported[0]
         f = forecast[-1] if forecast else None
         years = int(last["as_of_date"][:4]) - int(first["as_of_date"][:4])
         change = (last["value"] - first["value"]) / first["value"] if first["value"] and years else None
-        stats = [("CERTIFIED", _num(last["value"]), "as of " + last["as_of_date"], "brand_green"),
+        stats = [("CERTIFIED", _num(last["value"]), ("as of " + last["as_of_date"]) if h.get("as_of_date")
+                  else "undated source · shown at " + last["as_of_date"], "brand_green"),
                  (f"FORECAST {f['as_of_date'][:4]}" if f else "FORECAST", "≈" + _num(round_forecast(f["value"])) if f else "No forecast",
                   f"range {_num(round_forecast(f['low']))}–{_num(round_forecast(f['high']))}" if f else "needs 3 reported years", "blue"),
                  (f"CHANGE OVER {years} YEAR{'S' if years != 1 else ''}" if change is not None else "CHANGE",

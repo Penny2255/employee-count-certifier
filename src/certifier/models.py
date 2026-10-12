@@ -111,6 +111,8 @@ class LinkedInCheck(BaseModel):
     status: LinkedInStatus
     note: str
     gap: float | None = None            # how far apart, as a fraction (0.5 = 50%)
+    growth_1y: float | None = None      # LinkedIn headcount growth, when research found it (0.19 = 19%)
+    growth_2y: float | None = None
     not_penalized: str | None = None    # why a flag didn't lower confidence, when it didn't
 
 

@@ -815,3 +815,20 @@ The record's entity carries `address` and `address_source`, shown as **HQ addres
   the page generically.
 - **Result (live):** more than 10,000 from the careers page, 2/5 (tier 4, undated); the data providers' 6,000-7,200
   are recorded as supporting.
+
+### D105. Always a chart and a forecast, even with a short history
+- With no dated figures of the same kind, the certified figure is still charted (at its as-of date, or at the
+  certification date when the source is undated, and labelled so), with the missing years shown as ✕.
+- With fewer than three reported points the forecast is a best guess: half of LinkedIn's yearly headcount growth when
+  research finds it (LinkedIn over-represents office staff, so only half carries over), else half the change between
+  two reported figures, else level. The range starts at ±8% and widens each year, capped at ±15% a year of change,
+  and is always marked as an estimate. Research is asked to look for LinkedIn's 6m/1y/2y growth and to treat
+  construction, manufacturing and similar field workforces as blue-collar (a low member count is expected).
+- Forecast labels sit on the open side of the line: rising, the yearly labels below and the final above; falling, the
+  reverse.
+
+### D106. Context for private companies
+- When no tier 1-2 source exists (no annual report, regulatory filing, Form 990 or IPEDS), the organization is treated
+  as private. At 3/5 the card and deck say it's a strong result for a private company; at 4-5/5 they celebrate it as
+  rare (a sparkle and a short burst of confetti on the card, which respects reduced motion). Public filers,
+  nonprofits and universities get no such note.

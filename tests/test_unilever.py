@@ -115,3 +115,42 @@ def test_deck_shows_placeholder_years_when_history_is_missing():
     chart = next(sh.chart for sh in prs.slides[1].shapes if sh.has_chart)
     names = [s.name for s in chart.plots[0].series]
     assert "No reported figure" in names and len(list(chart.plots[0].categories)) == 9
+
+
+def test_short_history_still_gets_a_best_guess_forecast():
+    from certifier.models import LinkedInCheck
+    from certifier.record import _short_forecast
+    point = [TrendRow(as_of_date=date(2026, 10, 12), value=10_000, tier=4, url=None, estimated=False,
+                      rationale="The certified figure, shown at the certification date.")]
+    level = _short_forecast(point, None)
+    assert [f.value for f in level] == [10_000] * 4 and all(f.low < f.value < f.high for f in level)
+    widths = [f.high - f.low for f in level]
+    assert widths == sorted(widths) and "level" in level[0].rationale
+    li = LinkedInCheck(member_count=5_974, size_range=None, workforce_profile="blue_collar", implied_range=None,
+                       size_range_agrees=None, status="pass", note="Pass.", growth_1y=0.19)
+    grown = _short_forecast(point, li)
+    assert grown[0].value == 10_950 and "half of LinkedIn's +19%" in grown[0].rationale
+
+
+def test_an_undated_certified_figure_is_still_charted():
+    from certifier.record import build_record
+    cert = certify(Entity(name="M. A. Mortenson Company"),
+                   [src(4, 10_000, as_of=None, qualifier="more_than", url="https://www.mortenson.com/careers")],
+                   lookup_date=date(2026, 10, 12))
+    rec = build_record(cert, lookup_date=date(2026, 10, 12))
+    items = rec.trend.items
+    assert items[0].as_of_date == date(2026, 10, 12) and not items[0].estimated and "undated" in items[0].rationale
+    assert sum(t.estimated for t in items) == 4
+
+
+def test_private_companies_get_context_for_their_score():
+    from certifier.record import private_company_note
+    site = [src(4, 1_500, as_of=None, url="https://www.gong.io/about")]
+    three = certify(Entity(name="Gong"), site, lookup_date=date(2026, 10, 12))
+    assert three.confidence_score == 2 or private_company_note(three)[0] in (None, "strong")
+    strong = three.model_copy(update={"confidence_score": 3})
+    rare = three.model_copy(update={"confidence_score": 4})
+    assert private_company_note(strong)[0] == "strong" and "4-5 is rare" in private_company_note(strong)[1]
+    assert private_company_note(rare)[0] == "rare" and "Worth celebrating" in private_company_note(rare)[1]
+    filed = certify(Entity(name="Salesforce"), [src(1, 83_334)], lookup_date=date(2026, 10, 12))
+    assert private_company_note(filed) == (None, None)  # a public filer gets no private-company note

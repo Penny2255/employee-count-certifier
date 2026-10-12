@@ -97,6 +97,10 @@ class Headline(BaseModel):
     direction: Literal["higher", "lower", "in_line", "unknown"] | None = None
     direction_reason: str | None = None
     bottom_line: str  # one line mapped to confidence: ready to use / usable / directional only
+    # Private companies (no public filing found) rarely publish a well-supported headcount: 3/5 is a strong
+    # result for them and 4-5 is rare. "strong" or "rare" when it applies, with the sentence to show.
+    peer_level: Literal["strong", "rare"] | None = None
+    peer_note: str | None = None
     next_expected_update: date | None = None  # e.g. when the next 10-K is due
     next_update_note: str | None = None
     none_reason: str | None = None
@@ -456,6 +460,21 @@ def _plain(text: str) -> str:
 
 def _type_of(s: Source) -> str:
     return taxonomy.classify(s)[1]
+
+
+def private_company_note(cert: Certification) -> tuple[str | None, str | None]:
+    """Context for a private company: no tier 1-2 source (annual report, regulatory filing, Form 990, IPEDS) was
+    found, so the evidence is what the company chose to publish plus third parties."""
+    if cert.certified_count is None or any(s.tier in (1, 2) for s in cert.sources):
+        return None, None
+    score = cert.confidence_score
+    if score >= 4:
+        return "rare", (f"Rare for a private company: without public filings, a {score}/5 this well supported is "
+                        "uncommon. Worth celebrating.")
+    if score == 3:
+        return "strong", ("A strong result for a private company: without public filings, 3/5 is about as good as it "
+                          "usually gets, and 4-5 is rare.")
+    return None, None
 
 
 def bottom_line(score: int, count: int | None) -> str:
@@ -843,7 +862,14 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
     trend_rows = [TrendRow(as_of_date=p.as_of_date, value=p.value, tier=p.tier, url=p.url, estimated=False,
                            rationale=f"Reported in a tier {p.tier} source as of {p.as_of_date.isoformat()}.")
                   for p in cert.trend]
-    trend_rows += _forecast(trend_rows)
+    if not trend_rows and cert.certified_count is not None:  # still chart the certified figure on its own
+        when = cert.as_of_date or lookup_date
+        trend_rows = [TrendRow(as_of_date=when, value=cert.certified_count, tier=cert.policy_tier, url=None, estimated=False,
+                               rationale=(f"The certified figure as of {when.isoformat()}; no other dated figures of the same "
+                                          "kind were found." if cert.as_of_date else
+                                          f"The certified figure, shown at the certification date ({when.isoformat()}) "
+                                          "because its source is undated."))]
+    trend_rows += _forecast(trend_rows) if len(trend_rows) >= 3 else _short_forecast(trend_rows, cert.linkedin_check)
 
     events = [EventRow(description=e.description, url=e.url, close_date=e.close_date, penalized=e.penalized,
                        rationale=e.reason) for e in cert.events]
@@ -870,6 +896,7 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
                                          for e in cert.events if e.after_as_of and e.close_date],
                           indicated_current_range=indicated_row,
                           bottom_line=bottom_line(cert.confidence_score, cert.certified_count),
+                          peer_level=private_company_note(cert)[0], peer_note=private_company_note(cert)[1],
                           next_expected_update=upcoming[0], next_update_note=upcoming[1],
                           none_reason=None if cert.certified_count is not None else "No usable source was found."),
         confidence=ConfidenceSection(score=cert.confidence_score, level=cert.confidence_level, breakdown=lines,
@@ -899,6 +926,40 @@ FORECAST_YEARS = 4
 
 
 FORECAST_MAX_RATE = 0.15  # the yearly change a forecast may carry forward, either way
+SHORT_SPREAD = 0.08        # a best-guess forecast's yearly range (±8%, widening) when history is short
+LINKEDIN_WEIGHT = 0.5      # LinkedIn over-represents office staff: half of its growth carries into the forecast
+
+
+def _short_forecast(points: list[TrendRow], li) -> list[TrendRow]:
+    """A best-guess forecast when there are fewer than 3 reported points: level, or following LinkedIn's headcount
+    growth (half of it, capped) when research found it, or the change between two points (half, capped). The range
+    starts at ±8% and widens with the square root of the years ahead. Always marked as an estimate."""
+    if not points:
+        return []
+    last = points[-1]
+    growth = li.growth_1y if li is not None and li.growth_1y is not None else (
+        li.growth_2y / 2 if li is not None and li.growth_2y is not None else None)
+    if growth is not None:
+        rate = max(-FORECAST_MAX_RATE, min(FORECAST_MAX_RATE, growth * LINKEDIN_WEIGHT))
+        basis = (f"half of LinkedIn's {growth:+.0%} yearly headcount growth ({rate:+.1%} a year), since LinkedIn "
+                 "over-represents office staff")
+    elif len(points) == 2 and points[0].value:
+        years = max(0.5, (points[1].as_of_date - points[0].as_of_date).days / 365.25)
+        change = (points[1].value / points[0].value) ** (1 / years) - 1
+        rate = max(-FORECAST_MAX_RATE, min(FORECAST_MAX_RATE, change * 0.5))
+        basis = f"half the change between the two reported figures ({rate:+.1%} a year)"
+    else:
+        rate, basis = 0.0, "level, since there is no earlier figure or growth signal"
+    out = []
+    for k in range(1, FORECAST_YEARS + 1):
+        when = last.as_of_date + timedelta(days=round(365.25 * k))
+        value = round(last.value * (1 + rate) ** k)
+        width = round(value * SHORT_SPREAD * math.sqrt(k))
+        out.append(TrendRow(as_of_date=when, value=value, tier=None, url=None, estimated=True,
+                            low=max(0, value - width), high=value + width,
+                            rationale=f"Best-guess estimate, year {k} of {FORECAST_YEARS}: {basis}, with a range of "
+                                      f"±{SHORT_SPREAD:.0%} that widens each year; not a reported figure."))
+    return out
 
 
 def _forecast(points: list[TrendRow]) -> list[TrendRow]:

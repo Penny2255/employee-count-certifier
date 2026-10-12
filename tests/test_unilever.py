@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Unilever FY2025: the total-organisation figure must win. The 20-F states it as a stat tile ("96,000 people who
 work for Unilever") and in Total Headcount tables (96,092), both of which arrive as one-cell fragments; the only
 full sentence with a figure is a wellness programme's reach ("more than 59,000 employees")."""
@@ -81,3 +82,36 @@ def test_forecast_after_a_divestment_never_goes_negative():
     assert len(forecast) == 4
     assert all(0 < f.low <= f.value <= f.high for f in forecast)
     assert forecast[-1].value >= round(96_092 * 0.85 ** 4)  # at most 15% a year down
+
+
+def test_table_quotes_are_located_and_linked_cell_to_cell():
+    from certifier.locate import _find, _printed_number, filing_pages, text_fragment_link
+    pages = filing_pages('<div style="content-visibility:auto;height:595pt">Unilever Annual Report on Form 20-F 2025 . 3 . '
+                         '<p>96,000</p><p>people who</p><p>work for Unilever</p></div>'
+                         '<div style="content-visibility:auto;height:595pt">Unilever Annual Report on Form 20-F 2025 . 47 . '
+                         '<p>Total Headcount (a)</p><p>96,092</p><p>120,040</p></div>')
+    assert [p.printed for p in pages] == ["3", "47"]
+    assert _find(pages, "Total Headcount (a) · 96,092 · 120,040", 96_092)[0] == 1
+    url = "https://www.sec.gov/Archives/edgar/data/217410/x/ul-20251231.htm"
+    assert text_fragment_link(url, "Total Headcount (a) · 96,092 · 120,040", 96_092).endswith(
+        "#:~:text=Total%20Headcount%20%28a%29,96%2C092")
+    assert text_fragment_link(url, "96,000 . people who . work for Unilever", 96_000).endswith("#:~:text=96%2C000,people%20who")
+    assert _printed_number("Some page text that ends with a page number 12") == "12"
+
+
+def test_deck_shows_placeholder_years_when_history_is_missing():
+    import io
+    import json as _json
+    from pathlib import Path as _Path
+
+    from pptx import Presentation
+
+    from certifier import office
+    from certifier.record import record_from_lookup
+    from certifier.service import LookupResult
+    raw = (_Path(__file__).resolve().parents[1] / "samples" / "stripe.json").read_text(encoding="utf-8")
+    rec = _json.loads(record_from_lookup(LookupResult.model_validate_json(raw)).model_dump_json())
+    prs = Presentation(io.BytesIO(office.deck(rec, "dark")))
+    chart = next(sh.chart for sh in prs.slides[1].shapes if sh.has_chart)
+    names = [s.name for s in chart.plots[0].series]
+    assert "No reported figure" in names and len(list(chart.plots[0].categories)) == 9

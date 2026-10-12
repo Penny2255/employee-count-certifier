@@ -15,8 +15,9 @@ from urllib.parse import quote as urlquote
 from .models import Location, Source
 from .sources.edgar import Edgar, html_to_text
 
-_PAGE_BREAK = re.compile(r"<[^>]+(?:page-break-(?:before|after)\s*:\s*always|break-(?:before|after)\s*:\s*page)[^>]*>",
-                         re.I)
+# CSS page breaks, or (in filings rendered page by page, e.g. Unilever's 20-F) each fixed-height page container.
+_PAGE_BREAK = re.compile(r"<[^>]+(?:page-break-(?:before|after)\s*:\s*always|break-(?:before|after)\s*:\s*page)[^>]*>"
+                         r"|<div[^>]*content-visibility\s*:\s*auto[^>]*height\s*:\s*[\d.]+pt[^>]*>", re.I)
 _ITEM = re.compile(r"\bITEM[\s ​.]*(\d{1,2}[A-D]?)\b[\s ​.:–-]*([A-Z][A-Z ,’'&()–-]{2,70}?)(?=\s*\.|\s{2}|$)")
 _SUBHEADING = re.compile(
     r"(?:^|\.\s)((?:Human Capital(?: Management| Resources)?|Our (?:People|Employees|Workforce)|People(?: and Culture)?|"
@@ -43,17 +44,23 @@ def filing_pages(raw_html: str) -> list[Page]:
 
 
 def _printed_number(text: str) -> str | None:
-    """Footer page number: a small number (or roman numeral) at the very end of the page."""
+    """Footer page number: a small number (or roman numeral) at the very end of the page; else a running header
+    with the number after the report title ("Unilever Annual Report on Form 20-F 2025 . 3")."""
     tail = re.sub(r"[\s.​]+$", "", text[-60:])
     m = re.search(r"(?:^|\s)(\d{1,3}|[ivxlc]{1,6}|[A-Z]-\d{1,3})$", tail)
-    if not m or re.fullmatch(r"(19|20)\d\d", m.group(1)):
-        return None
-    return m.group(1)
+    if m and not re.fullmatch(r"(19|20)\d\d", m.group(1)):
+        return m.group(1)
+    head = re.search(r"(?:Annual Report|Form 20-F|Form 10-K)[^.]{0,40}?(?:19|20)\d\d\s*[.·]?\s*(\d{1,3})\b(?!,)", text[:160])
+    return head.group(1) if head else None
 
 
 def _norm(text: str) -> str:
     text = text.replace("​", "").replace("’", "'").replace("“", '"').replace("”", '"').replace(" ", " ")
     return re.sub(r"\s+", " ", text).strip().lower()
+
+
+def _cells(text: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"(?:^|\s)[.·](?=\s|$)", " ", text)).strip()
 
 
 def _find(pages: list[Page], quote: str, value: int | None) -> tuple[int, int] | None:
@@ -64,6 +71,13 @@ def _find(pages: list[Page], quote: str, value: int | None) -> tuple[int, int] |
             k = _norm(p.text).find(key)
             if k >= 0:
                 return p_i, _offset_in(p.text, key, k)
+    if "·" in quote:  # a rejoined table row or stat tile
+        key = _cells(_norm(quote))[:80]
+        for p_i, p in enumerate(pages):
+            flat = _cells(_norm(p.text))
+            k = flat.find(key)
+            if k >= 0:
+                return p_i, int(k * len(p.text) / max(1, len(flat)))
     if value is not None:
         figure = f"{value:,}"
         for p_i, p in enumerate(pages):
@@ -128,12 +142,27 @@ def _heading_case(text: str) -> str:
     return " ".join(words)
 
 
-def text_fragment_link(url: str, quote: str) -> str | None:
-    """A URL that scrolls to (and highlights) the quote in browsers that support text fragments."""
+def text_fragment_link(url: str, quote: str, value: int | None = None) -> str | None:
+    """A URL that scrolls to (and highlights) the quote in browsers that support text fragments. A table quote
+    ("Total Headcount (a) · 96,092 · 120,040") links from its label cell to the figure's cell, since a text
+    fragment can span table cells only as a start,end range."""
+    enc = lambda s: urlquote(s, safe="").replace("-", "%2D")
+    quote = re.sub(r"\s\.\s", " · ", quote)  # cells copied with the filing's " . " separators
+    if "·" in quote:
+        cells = [c.strip(" .") for c in quote.split("·") if c.strip(" .")]
+        figure = f"{value:,}" if value is not None else None
+        end = next((i for i, c in enumerate(cells) if figure and figure in c), None)
+        start = next((i for i in range((end if end is not None else len(cells)) - 1, -1, -1)
+                      if re.search(r"[A-Za-z]{3}", cells[i])), None)
+        if start is not None and end is not None:
+            return f"{url.split('#')[0]}#:~:text={enc(cells[start])},{enc(cells[end])}"
+        after = next((i for i in range((end or 0) + 1, len(cells)) if re.search(r"[A-Za-z]{3}", cells[i])), None)
+        if end is not None and after is not None:  # a stat tile: the figure first, its label after
+            return f"{url.split('#')[0]}#:~:text={enc(cells[end])},{enc(cells[after])}"
+        return None
     words = re.sub(r"\s+", " ", quote.replace("​", "")).strip().split(" ")
     if len(words) < 4:
         return None
-    enc = lambda s: urlquote(s, safe="").replace("-", "%2D")
     if len(words) <= 10:
         frag = enc(" ".join(words))
     else:
@@ -163,7 +192,7 @@ def edgar_location(edgar: Edgar, source: Source) -> Location | None:
     if section is None:
         note += " No section heading was identified before the quote."
     return Location(section=section, page=page_no, page_basis=basis, context=context,
-                    deep_link=text_fragment_link(source.url, source.excerpt), note=note)
+                    deep_link=text_fragment_link(source.url, source.excerpt, source.value), note=note)
 
 
 def locate_sources(sources: list[Source], edgar: Edgar | None = None) -> list[Source]:

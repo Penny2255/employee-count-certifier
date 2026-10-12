@@ -151,7 +151,7 @@ CARD_CSS = r"""
 .cert .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 6px; }
 .cert .lg { display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: -1px; border-radius: 50%; }
 .cert .lg.solid { background: var(--meter); }
-.cert .lg.hollow { border: 2.5px solid var(--meter); background: var(--card); box-shadow: 14px 0 0 -2px rgba(89, 154, 245, .25); }
+.cert .lg.hollow { border: 2.5px solid var(--meter); background: var(--card); box-shadow: 14px 0 0 -2px rgba(89, 154, 245, .25); margin-right: 20px; }
 .cert .lg.key { background: var(--meter); box-shadow: 0 0 0 3px var(--loop-green); }
 .cert svg.chart .pt-est { fill: var(--muted); }
 .cert .lg.box { border-radius: 2px; border: 1px dashed var(--loop-green); background: rgba(63, 207, 142, .18); }
@@ -227,26 +227,29 @@ CARD_CSS = r"""
 .cert .footer-actions { margin-top: 12px; }
 .cert .owner-notice { margin: 12px 0 0; font-size: 11px; line-height: 1.45; color: var(--muted); }
 .cert .footer-actions .dl-items { top: auto; bottom: calc(100% + 6px); }
-.cert .crm-form label { display: block; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
-.cert .crm-row { display: flex; gap: 8px; max-width: 420px; }
-.cert .crm-row input { flex: 1; min-width: 0; font: inherit; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); }
-.cert .crm-out { margin-top: 12px; }
-.cert .crm-verdict { margin: 0 0 6px; padding: 10px 12px; border-radius: 10px; font-size: 14px; }
+.cert .crm-inline { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 3px 4px 3px 10px;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--soft); }
+.cert .crm-lbl { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted); }
+.cert .crm-lbl svg { width: 15px; height: 15px; }
+.cert .crm-inline input { width: 118px; font: inherit; font-size: 14px; padding: 5px 9px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--card); color: var(--text); }
+.cert .crm-inline button { padding: 5px 12px; font-size: 13px; }
+.cert .crm-out:empty { display: none; }
+.cert .crm-out { margin-top: 8px; }
+.cert .crm-verdict { margin: 0; padding: 8px 12px; border-radius: 10px; font-size: 13.5px; }
 .cert .crm-verdict.keep { background: var(--green-bg); color: var(--green); }
 .cert .crm-verdict.strong { background: var(--red-bg); color: var(--red); }
 .cert .crm-verdict.moderate { background: var(--yellow-bg); color: var(--yellow); }
 .cert .crm-verdict.light { background: var(--soft); color: var(--text); }
-.cert .lane { position: relative; height: 14px; margin: 34px 0 34px; border-radius: 999px; background: var(--soft); border: 1px solid var(--line); }
-.cert .lane-band { position: absolute; top: -1px; bottom: -1px; border-radius: 999px; background: linear-gradient(90deg, rgba(63, 207, 142, .35), rgba(89, 154, 245, .35));
-  border: 1.5px solid var(--loop-green); }
-.cert .lane-mark { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; border: 3px solid var(--card); }
-.cert .lane-mark b { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 11.5px; font-weight: 700; }
-.cert .cert-mark { background: var(--loop-green); box-shadow: 0 0 0 2px var(--loop-green); }
-.cert .cert-mark b { bottom: 18px; color: var(--green); }
-.cert .crm-mark { background: var(--muted); }
-.cert .crm-mark b { top: 18px; color: var(--muted); }
-.cert .target-mark { background: var(--loop-blue); }
-.cert .target-mark b { bottom: 18px; color: var(--accent); }
+.cert .crm-copy { font-weight: 700; text-decoration: underline; color: inherit; padding: 0; font-size: inherit; background: none; border: 0; }
+.cert .crm-see { opacity: .8; }
+.cert .chart .gap-label { font-size: 11px; fill: var(--muted); font-style: italic; }
+.cert .chart .ov-label { font-size: 11.5px; font-weight: 700; }
+.cert .legend .lg.gap { width: auto; height: auto; border: 0; background: none; color: var(--muted); font-style: normal; font-weight: 700; font-size: 11px; }
+.cert .legend .lg.range { background: rgba(63, 207, 142, .22); border: 1px dashed var(--loop-green); border-radius: 2px; }
+.cert .legend .lg.crm { height: 0; border-radius: 0; border: 0; border-top: 2px dashed #E8833A; background: none; }
+.cert .legend .lg.target { background: none; border: 2px solid #E8833A; border-radius: 50%; }
 .cert .hint { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; padding: 2px 10px 2px 8px; border-radius: 999px;
   font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-soft); white-space: nowrap; }
 .cert .hint i { width: 8px; height: 8px; border-radius: 50%; background: var(--loop-green); animation: cert-ping 1.6s ease-out infinite; }
@@ -622,6 +625,7 @@ CARD_JS = r"""
       ["Next update", h.next_update_note]
     ]);
 
+    var crm = h.count != null ? crmCheck(r) : null;
     var table = el("table", { cls: "lines" });
     c.breakdown.forEach(function (line) {
       table.appendChild(el("tr", null, [el("td", { cls: "pts", text: (line.points > 0 && line !== c.breakdown[0] ? "+" : "") + line.points }),
@@ -631,8 +635,9 @@ CARD_JS = r"""
     return el("div", { cls: "block answer " + b }, [
       el("div", { cls: "hero-row" }, [hero, seal(c)]),
       bottom, facts,
-      el("div", { cls: "row answer-actions" }, [downloadMenu(r, opts),
-        el("details", { cls: "breakdown" }, [el("summary", null, [el("span", { text: "How the score adds up" })]), table])])]);
+      el("div", { cls: "row answer-actions" }, [downloadMenu(r, opts), crm ? crm.form : null,
+        el("details", { cls: "breakdown" }, [el("summary", null, [el("span", { text: "How the score adds up" })]), table])]),
+      crm ? crm.out : null]);
   }
 
   // "Why you can trust this": five facts, each opening its detail.
@@ -658,21 +663,54 @@ CARD_JS = r"""
         item("Needs attention", String(attention), k + "-findings", attention ? "bad" : "good", attention ? "⚑" : "✓")])]);
   }
 
-  // Trend and forecast: reported points solid, estimates hollow, forecast as a shaded band, indicated range as a box.
-  function chart(r) {
+  // Trend and forecast. The chart always spans five reported years and four forecast years: a year with no
+  // reported figure is an ✕ on a dotted line, so every chart reads the same. A CRM comparison adds the
+  // recommended range (a soft band) and the CRM's number (an orange dashed line).
+  var HISTORY_YEARS = 5, FORECAST_YEARS = 4, CRM_COLOR = "#E8833A";
+  function yearDate(year, md) { return year + (md === "-02-29" ? "-02-28" : md); }
+  function chart(r, overlay) {
     var h = r.headline, items = r.trend.items.slice(), ir = h.indicated_current_range;
     if (!items.length && h.count != null && h.as_of_date) items = [{ as_of_date: h.as_of_date, value: h.count, estimated: false }];
     if (!items.length && !ir) return null;
     // Drawn at roughly the on-screen width, so labels stay readable on phones.
     var W = Math.max(320, Math.min(640, (document.documentElement.clientWidth || 640) - 72));
-    var H = W < 480 ? 230 : 240, L = W < 480 ? 52 : 64, R = 20, T = 30, B = 40, ns = "http://www.w3.org/2000/svg";
+    var H = W < 480 ? 236 : 250, L = W < 480 ? 52 : 64, R = 20, T = 30, B = 40, ns = "http://www.w3.org/2000/svg";
     var t = function (d) { return new Date(d + "T00:00:00Z").getTime(); };
-    var xs = items.map(function (p) { return t(p.as_of_date); }), vals = [];
+    var reported = items.filter(function (p) { return !p.estimated; }), last = reported[reported.length - 1];
+    var future = items.filter(function (p) { return p.estimated && p.low != null; });
+
+    // Placeholder years: missing history years (and the forecast, when there isn't one).
+    var gaps = [];
+    if (last) {
+      var md = last.as_of_date.slice(4), lastYear = +last.as_of_date.slice(0, 4), have = {};
+      reported.forEach(function (p) { have[+p.as_of_date.slice(0, 4)] = true; });
+      for (var gy = lastYear - HISTORY_YEARS + 1; gy < lastYear; gy++) if (!have[gy]) gaps.push({ as_of_date: yearDate(gy, md), kind: "history" });
+      if (!future.length) for (gy = lastYear + 1; gy <= lastYear + FORECAST_YEARS; gy++) gaps.push({ as_of_date: yearDate(gy, md), kind: "forecast" });
+      gaps.forEach(function (g) {  // on the line between its neighbours, or level with the nearest figure
+        var ms = t(g.as_of_date), prev = null, next = null;
+        reported.forEach(function (p) { var pm = t(p.as_of_date); if (pm < ms) prev = p; else if (!next && pm > ms) next = p; });
+        if (prev && next) {
+          var f = (ms - t(prev.as_of_date)) / (t(next.as_of_date) - t(prev.as_of_date));
+          g.value = prev.value + f * (next.value - prev.value);
+        } else g.value = (prev || next).value;
+      });
+    }
+
+    var xs = items.map(function (p) { return t(p.as_of_date); }).concat(gaps.map(function (g) { return t(g.as_of_date); })), vals = [];
     items.forEach(function (p) { vals.push(p.value); if (p.low != null) { vals.push(p.low); vals.push(p.high); } });
     if (ir) { xs.push(t(ir.earliest), t(ir.latest)); vals.push(ir.low, ir.high); }
+    // The CRM overlay joins the scale only when it's near the data; a far-off number is pinned to the edge.
+    var crmPinned = null;
+    if (overlay) {
+      vals.push(overlay.lo, overlay.hi);
+      var span0 = Math.max.apply(null, vals) - Math.min.apply(null, vals) || Math.max.apply(null, vals) * 0.1;
+      if (overlay.crm > Math.max.apply(null, vals) + span0 * 0.8) crmPinned = "above";
+      else if (overlay.crm < Math.min.apply(null, vals) - span0 * 0.8) crmPinned = "below";
+      else vals.push(overlay.crm);
+    }
     var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), day = 864e5;
     if (x1 - x0 < 300 * day) { x0 -= 180 * day; x1 += 180 * day; }
-    var pad = (x1 - x0) * 0.06; x0 -= pad; x1 += pad;
+    var pad = (x1 - x0) * 0.05; x0 -= pad; x1 += pad;
     var v0 = Math.min.apply(null, vals), v1 = Math.max.apply(null, vals);
     var vpad = (v1 - v0) * 0.15 || Math.max(1, v1 * 0.08); v0 = Math.max(0, v0 - vpad); v1 += vpad;
     var step = Math.pow(10, Math.floor(Math.log10((v1 - v0) / 3))); [1, 2, 5, 10].some(function (m) { if ((v1 - v0) / (step * m) <= 4) { step *= m; return true; } });
@@ -682,13 +720,16 @@ CARD_JS = r"""
     var svgEl = document.createElementNS(ns, "svg");
     svgEl.setAttribute("viewBox", "0 0 " + W + " " + H); svgEl.setAttribute("class", "chart"); svgEl.setAttribute("role", "img");
     svgEl.setAttribute("aria-label", "Headcount over time: " + items.map(function (p) { return p.as_of_date + " " + num(p.value) + (p.estimated ? " (forecast, " + num(p.low) + " to " + num(p.high) + ")" : " (reported)"); }).join("; ") +
-      (ir ? "; indicated current range " + num(ir.low) + " to " + num(ir.high) : ""));
+      (gaps.length ? "; no reported figure for " + gaps.map(function (g) { return g.as_of_date.slice(0, 4); }).join(", ") : "") +
+      (ir ? "; indicated current range " + num(ir.low) + " to " + num(ir.high) : "") +
+      (overlay ? "; your CRM " + num(overlay.crm) + ", recommended range " + num(overlay.lo) + " to " + num(overlay.hi) : ""));
+    svgEl.__gaps = gaps.length;
     function add(tag, attrs, text) { var n = document.createElementNS(ns, tag); for (var a in attrs) n.setAttribute(a, attrs[a]); if (text != null) n.textContent = text; svgEl.appendChild(n); return n; }
     for (var v = Math.ceil(v0 / step) * step; v <= v1; v += step) {
       add("line", { x1: L, x2: W - R, y1: Y(v), y2: Y(v), stroke: "var(--line)", "stroke-width": 1 });
       add("text", { x: L - 8, y: Y(v) + 4, "text-anchor": "end", "class": "axis" }, num(Math.round(v)));
     }
-    var y0 = new Date(x0).getUTCFullYear(), y1 = new Date(x1).getUTCFullYear(), every = Math.max(1, Math.ceil((y1 - y0 + 1) / 7));
+    var y0 = new Date(x0).getUTCFullYear(), y1 = new Date(x1).getUTCFullYear(), every = Math.max(1, Math.ceil((y1 - y0 + 1) / (W < 480 ? 5 : 10)));
     for (var yr = y0; yr <= y1 + 1; yr += every) {
       var ms = Date.UTC(yr, 0, 1); if (ms < x0 || ms > x1) continue;
       add("line", { x1: X(ms), x2: X(ms), y1: H - B, y2: H - B + 5, stroke: "var(--muted)" });
@@ -697,6 +738,12 @@ CARD_JS = r"""
     add("line", { x1: L, x2: W - R, y1: H - B, y2: H - B, stroke: "var(--muted)", "stroke-width": 1 });
     add("text", { x: 4, y: 12, "class": "axis-title", "text-anchor": "start" }, "Employees");
     add("text", { x: L + (W - L - R) / 2, y: H - 4, "class": "axis-title", "text-anchor": "middle" }, "As-of date");
+    if (overlay) {  // recommended range: a soft band behind everything else
+      add("rect", { x: L, y: Y(overlay.hi), width: W - L - R, height: Math.max(2, Y(overlay.lo) - Y(overlay.hi)), fill: "var(--loop-green)", "fill-opacity": .12, "class": "ov-band" });
+      [overlay.lo, overlay.hi].forEach(function (b) {
+        add("line", { x1: L, x2: W - R, y1: Y(b), y2: Y(b), stroke: "var(--loop-green)", "stroke-width": 1, "stroke-opacity": .7, "stroke-dasharray": "2 4" });
+      });
+    }
     if (ir) {
       var rx = X(t(ir.earliest)), rw = Math.max(16, X(t(ir.latest)) - rx), rh = Math.max(10, Y(ir.low) - Y(ir.high));
       var ry = Y(ir.high) - (rh === 10 ? 5 - (Y(ir.low) - Y(ir.high)) / 2 : 0);
@@ -705,7 +752,6 @@ CARD_JS = r"""
       add("text", { x: rx + (rw === 16 ? 0 : rw / 2), y: ry - 6, "text-anchor": "middle", "class": "pt-label ir-label" },
         ir.low === ir.high ? "≈" + num(ir.low) : num(ir.low) + "–" + num(ir.high));
     }
-    var reported = items.filter(function (p) { return !p.estimated; }), last = reported[reported.length - 1];
     var pts = reported.map(function (p) { return [X(t(p.as_of_date)), Y(p.value)]; });
     if (!svgEl.querySelector("defs")) {
       var defs = document.createElementNS(ns, "defs");
@@ -713,12 +759,38 @@ CARD_JS = r"""
         '<stop offset="1" stop-color="var(--loop-blue)" stop-opacity="0"/></linearGradient>';
       svgEl.insertBefore(defs, svgEl.firstChild);
     }
-    if (pts.length > 1) {  // soft area under a smooth (monotone) line through the reported points
-      var line = smooth(pts);
-      add("path", { d: line + " L " + pts[pts.length - 1][0] + " " + (H - B) + " L " + pts[0][0] + " " + (H - B) + " Z", fill: "url(#" + gid + ")", stroke: "none" });
+    // Reported years in runs; a missing year breaks the run and is bridged by a dotted line.
+    var runs = [[]], gapAt = gaps.filter(function (g) { return g.kind === "history"; }).map(function (g) { return t(g.as_of_date); });
+    reported.forEach(function (p, i) {
+      if (i && gapAt.some(function (gm) { return gm > t(reported[i - 1].as_of_date) && gm < t(p.as_of_date); })) runs.push([]);
+      runs[runs.length - 1].push(pts[i]);
+    });
+    runs.forEach(function (run) {
+      if (run.length < 2) return;
+      var line = smooth(run);
+      add("path", { d: line + " L " + run[run.length - 1][0] + " " + (H - B) + " L " + run[0][0] + " " + (H - B) + " Z", fill: "url(#" + gid + ")", stroke: "none" });
       add("path", { d: line, fill: "none", stroke: "var(--meter)", "stroke-width": 3, "stroke-linecap": "round", "stroke-linejoin": "round" });
+    });
+    if (gaps.length) {
+      var chain = gaps.map(function (g) { return { ms: t(g.as_of_date), y: Y(g.value), gap: g }; })
+        .concat(reported.map(function (p, i) { return { ms: t(p.as_of_date), y: pts[i][1] }; }))
+        .sort(function (a, b) { return a.ms - b.ms; });
+      for (var ci = 1; ci < chain.length; ci++) {
+        if (!chain[ci].gap && !chain[ci - 1].gap) continue;  // reported to reported is drawn above
+        add("line", { x1: X(chain[ci - 1].ms), y1: chain[ci - 1].y, x2: X(chain[ci].ms), y2: chain[ci].y, stroke: "var(--muted)",
+          "stroke-width": 1.5, "stroke-dasharray": "1.5 5", "stroke-linecap": "round", "class": "gap-line" });
+      }
+      var labelled = {};
+      gaps.forEach(function (g) {
+        var gx = X(t(g.as_of_date)), gyy = Y(g.value), s = 4;
+        add("path", { d: "M " + (gx - s) + " " + (gyy - s) + " L " + (gx + s) + " " + (gyy + s) + " M " + (gx + s) + " " + (gyy - s) + " L " + (gx - s) + " " + (gyy + s),
+          stroke: "var(--muted)", "stroke-width": 2, "stroke-linecap": "round", fill: "none", "class": "gap-x" });
+        if (labelled[g.kind]) return;
+        labelled[g.kind] = true;
+        add("text", { x: gx, y: gyy + 18, "text-anchor": g.kind === "forecast" ? "middle" : "middle", "class": "gap-label" },
+          g.kind === "forecast" ? "no forecast" : "no data");
+      });
     }
-    var future = items.filter(function (p) { return p.estimated && p.low != null; });
     if (last && future.length) {  // one widening band and a dashed line across the forecast years
       var start = [X(t(last.as_of_date)), Y(last.value)];
       var hi = [start].concat(future.map(function (f) { return [X(t(f.as_of_date)), Y(f.high)]; }));
@@ -728,6 +800,21 @@ CARD_JS = r"""
       add("path", { d: band, fill: "var(--loop-blue)", "fill-opacity": .14, stroke: "none" });
       add("path", { d: smooth([start].concat(future.map(function (f) { return [X(t(f.as_of_date)), Y(f.value)]; }))), fill: "none",
         stroke: "var(--meter)", "stroke-width": 2.5, "stroke-dasharray": "6 5", "stroke-linecap": "round" });
+    }
+    if (overlay) {  // the CRM's number: a dashed orange line, or an edge marker when it's far off the scale
+      var cy0 = crmPinned === "above" ? T - 8 : crmPinned === "below" ? H - B - 4 : Y(overlay.crm);
+      add("line", { x1: L, x2: W - R, y1: cy0, y2: cy0, stroke: CRM_COLOR, "stroke-width": 2, "stroke-dasharray": "7 5", "class": "ov-crm" });
+      var crmText = "Your CRM " + num(overlay.crm) + (crmPinned ? (crmPinned === "above" ? " ↑ off scale" : " ↓ off scale") : "");
+      var lastPt = pts.length ? pts[pts.length - 1] : null;
+      // The label goes at whichever end of the line is clearer of the data (and its labels), on the clear side.
+      var ends = [items[0], items[items.length - 1]].map(function (q) { return Y(q.value); });
+      var right = Math.abs(cy0 - ends[1]) > Math.abs(cy0 - ends[0]), near = ends[right ? 1 : 0];
+      var above = crmPinned ? crmPinned === "below" : cy0 < near;
+      add("text", { x: right ? W - R - 4 : L + 6, y: above ? cy0 - 6 : cy0 + 15, "text-anchor": right ? "end" : "start",
+        "class": "ov-label", fill: CRM_COLOR }, crmText);
+      if (overlay.target != null && overlay.target !== r.headline.count && lastPt) {  // a suggestion other than the certified figure: a ring on its date
+        add("circle", { cx: lastPt[0], cy: Y(overlay.target), r: 9, fill: "none", stroke: CRM_COLOR, "stroke-width": 2, "class": "ov-target" });
+      }
     }
     var finalForecast = future.length ? future[future.length - 1] : null;
     items.forEach(function (p, i) {
@@ -739,8 +826,9 @@ CARD_JS = r"""
       var below = !!p.estimated;
       if (p.estimated && p !== finalForecast) return;  // only the final forecast year is labelled
       if (W < 480 && !p.estimated && !isLast && i !== 0) return;  // phones: first, certified and final forecast only
+      var first = i === 0 && !gaps.some(function (g) { return g.kind === "history" && t(g.as_of_date) < t(p.as_of_date); });
       add("text", { x: cx, y: below ? cy + 20 : cy - (isLast ? 16 : 11),
-        "text-anchor": i === 0 && items.length > 1 ? "start" : (i === items.length - 1 ? "end" : "middle"),
+        "text-anchor": first && items.length > 1 ? "start" : (i === items.length - 1 && !gaps.some(function (g) { return g.kind === "forecast"; }) ? "end" : "middle"),
         "class": "pt-label" + (isLast ? " pt-key" : "") + (p.estimated ? " pt-est" : "") }, num(p.value));
     });
     return svgEl;
@@ -766,18 +854,33 @@ CARD_JS = r"""
     return path;
   }
 
+  function legend(r, svgEl, overlay) {
+    var h = r.headline, fcs = r.trend.items.filter(function (p) { return p.estimated; }), fc = fcs[fcs.length - 1];
+    return el("div", { cls: "legend small muted" }, [el("span", null, [el("i", { cls: "lg solid" }), "Reported"]),
+      el("span", null, [el("i", { cls: "lg key" }), "Certified figure"]),
+      fc ? el("span", null, [el("i", { cls: "lg hollow" }), "Forecast " + (fcs.length > 1 ? "to " : "") + fc.as_of_date.slice(0, 4) + ": " + num(fc.value) +
+        (fc.low != null ? " (range " + num(fc.low) + "–" + num(fc.high) + ")" : "")]) : null,
+      svgEl.__gaps ? el("span", null, [el("i", { cls: "lg gap", text: "✕" }), "No reported figure"]) : null,
+      h.indicated_current_range ? el("span", null, [el("i", { cls: "lg box" }), "Indicated current range (context only)"]) : null,
+      overlay ? el("span", null, [el("i", { cls: "lg range" }), "Recommended range " + num(overlay.lo) + "–" + num(overlay.hi)]) : null,
+      overlay ? el("span", null, [el("i", { cls: "lg crm" }), "Your CRM " + num(overlay.crm)]) : null,
+      overlay && overlay.target != null ? (overlay.target === h.count ? el("span", null, [el("i", { cls: "lg key" }), "Suggested: the certified figure"])
+        : el("span", null, [el("i", { cls: "lg target" }), "Suggested " + num(overlay.target)])) : null]);
+  }
+
   function trendBlock(r) {
-    var h = r.headline, items = r.trend.items, nodes = [el("div", { cls: "block-title" }, [icon("trend"), el("h2", { text: "Trend and forecast" })])];
+    var h = r.headline, nodes = [el("div", { cls: "block-title" }, [icon("trend"), el("h2", { text: "Trend and forecast" })])];
     if (h.direction) nodes.push(el("p", { cls: "direction " + h.direction }, [el("strong", { text: DIRECTION[h.direction] || h.direction }), " · " + (h.direction_reason || "")]));
     var svgEl = chart(r);
     if (svgEl) {
-      nodes.push(el("div", { cls: "chart-wrap" }, [svgEl]));
-      var fcs = items.filter(function (p) { return p.estimated; }), fc = fcs[fcs.length - 1];
-      nodes.push(el("div", { cls: "legend small muted" }, [el("span", null, [el("i", { cls: "lg solid" }), "Reported"]),
-        el("span", null, [el("i", { cls: "lg key" }), "Certified figure"]),
-        fc ? el("span", null, [el("i", { cls: "lg hollow" }), "Forecast " + (fcs.length > 1 ? "to " : "") + fc.as_of_date.slice(0, 4) + ": " + num(fc.value) +
-          (fc.low != null ? " (range " + num(fc.low) + "–" + num(fc.high) + ")" : "")]) : null,
-        h.indicated_current_range ? el("span", null, [el("i", { cls: "lg box" }), "Indicated current range (context only)"]) : null]));
+      var wrap = el("div", { cls: "chart-wrap" }, [svgEl]), key = legend(r, svgEl);
+      nodes.push(wrap, key);
+      // The CRM compare redraws the chart with its overlays (or without, when cleared).
+      r.__redraw = function (overlay) {
+        var next = chart(r, overlay), nextKey = legend(r, next, overlay);
+        wrap.replaceChild(next, wrap.firstChild);
+        key.parentNode.replaceChild(nextKey, key); key = nextKey;
+      };
     } else {
       nodes.push(none(r.trend.none_reason));
     }
@@ -880,8 +983,8 @@ CARD_JS = r"""
     var band = { lo: lo, hi: hi, certified: c };
     if (v >= lo && v <= hi) {
       return { kind: "keep", band: band, label: "Keep your number",
-        text: "Your CRM's " + num(v) + " is inside the certified range for a " + score + "/5 certification (" + num(lo) + "–" + num(hi) +
-          "). No change needed" + (Math.abs(v - c) / c > 0.02 ? "; for the most exact figure, use " + num(c) + "." : ".") };
+        text: num(v) + " is inside the " + score + "/5 range (" + num(lo) + "–" + num(hi) + "). No change needed" +
+          (Math.abs(v - c) / c > 0.02 ? "; the exact figure is " + num(c) + "." : ".") };
     }
     var above = v > hi, edge = above ? hi : lo, off = above ? (v - hi) / hi : (lo - v) / lo;
     var agrees = (above && h.direction === "lower") || (!above && h.direction === "higher");
@@ -893,52 +996,38 @@ CARD_JS = r"""
       target = edge;  // the true figure may be beyond ours in your direction: move only into the lane
       if (strength === "strong" && score < 5) strength = "moderate";
     }
-    var why = agrees ? " The likely direction since the as-of date (" + h.direction + ") points the same way, so we'd make this change."
-      : against ? " The figure has likely moved " + (h.direction === "higher" ? "up" : "down") + " since its as-of date, so we suggest moving only to the edge of the range."
-      : "";
+    var why = agrees ? " The recent direction agrees." : against ? " Only to the range edge: the figure has likely moved " +
+      (h.direction === "higher" ? "up" : "down") + " since." : "";
     return { kind: strength, band: band, target: target, label: CRM_STRENGTH[strength],
-      text: "Your CRM's " + num(v) + " is " + Math.round(off * 100) + "% " + (above ? "above" : "below") + " the certified range for a " + score +
-        "/5 certification (" + num(lo) + "–" + num(hi) + "). Suggested update: " + num(target) + "." + why };
+      text: num(v) + " is " + Math.round(off * 100) + "% " + (above ? "above" : "below") + " the " + score + "/5 range (" + num(lo) + "–" +
+        num(hi) + "). Suggest " + num(target) + "." + why };
   }
-  function lane(adv, v) {
-    var b = adv.band, pts = [b.lo, b.hi, b.certified, v].concat(adv.target ? [adv.target] : []);
-    var min = Math.min.apply(null, pts), max = Math.max.apply(null, pts), pad = (max - min) * 0.12 || max * 0.05;
-    min -= pad; max += pad;
-    var at = function (x) { return ((x - min) / (max - min) * 100).toFixed(2) + "%"; };
-    var track = el("div", { cls: "lane", role: "img", "aria-label": "Certified range " + num(b.lo) + " to " + num(b.hi) +
-      ", certified " + num(b.certified) + ", your CRM " + num(v) + (adv.target ? ", suggested " + num(adv.target) : "") });
-    track.appendChild(el("span", { cls: "lane-band", style: "left:" + at(b.lo) + ";width:calc(" + at(b.hi) + " - " + at(b.lo) + ")" }));
-    var mark = function (x, cls, label) { track.appendChild(el("span", { cls: "lane-mark " + cls, style: "left:" + at(x) }, [el("b", { text: label })])); };
-    mark(b.certified, "cert-mark", "Certified " + num(b.certified));
-    mark(v, "crm-mark", "Your CRM " + num(v));
-    if (adv.target && adv.target !== b.certified) mark(adv.target, "target-mark", "Suggested " + num(adv.target));
-    return track;
-  }
+  // Compact: an inline box beside Download. The verdict appears below it, and the chart above gains the
+  // recommended range and the CRM's number.
   function crmCheck(r) {
     var k = r.__k, input = el("input", { type: "text", inputmode: "numeric", autocomplete: "off", id: k + "-crm-input",
-      placeholder: "e.g. 95,000 or 95k", "aria-describedby": k + "-crm-help" });
-    var go = el("button", { type: "submit", text: "Check" }), out = el("div", { cls: "crm-out", "aria-live": "polite" });
-    var form = el("form", { cls: "crm-form" }, [el("label", { "for": k + "-crm-input", text: "Your CRM employee count" }),
-      el("div", { cls: "crm-row" }, [input, go])]);
+      placeholder: "e.g. 95,000", "aria-label": "Your CRM employee count" });
+    var go = el("button", { type: "submit", cls: "secondary", text: "Compare" }), out = el("div", { cls: "crm-out", "aria-live": "polite" });
+    var form = el("form", { cls: "crm-inline", id: k + "-crm" }, [el("label", { "for": k + "-crm-input", cls: "crm-lbl" }, [icon("compare"), "Compare with your CRM"]), input, go]);
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       out.textContent = "";
+      if (!input.value.trim()) { if (r.__redraw) r.__redraw(null); return; }
       var v = parseCount(input.value);
       if (v == null) { out.appendChild(el("p", { cls: "small muted", text: "Enter a number, for example 95,000 or 95k." })); return; }
       var adv = crmAdvice(r, v);
       if (adv.kind === "none") { out.appendChild(el("p", { cls: "small muted", text: adv.text })); return; }
-      out.appendChild(el("p", { cls: "crm-verdict " + adv.kind }, [el("strong", { text: adv.label }), " · " + adv.text]));
-      out.appendChild(lane(adv, v));
+      var parts = [el("strong", { text: adv.label }), " · " + adv.text];
       if (adv.target) {
-        var cp = el("button", { type: "button", cls: "secondary", text: "Copy suggested number" });
-        cp.addEventListener("click", function () { copyText(String(adv.target), cp, "Copy suggested number"); });
-        out.appendChild(el("div", { cls: "row", style: "margin-top:8px" }, [cp]));
+        var cp = el("button", { type: "button", cls: "link crm-copy", text: "Copy " + num(adv.target) });
+        cp.addEventListener("click", function () { copyText(String(adv.target), cp, "Copy " + num(adv.target)); });
+        parts.push(" ", cp);
       }
+      if (r.__redraw) parts.push(el("span", { cls: "crm-see", text: " Shown on the chart above." }));
+      out.appendChild(el("p", { cls: "crm-verdict " + adv.kind }, parts));
+      if (r.__redraw) r.__redraw({ crm: v, lo: adv.band.lo, hi: adv.band.hi, target: adv.target != null ? adv.target : null });
     });
-    return section("Compare with your CRM", "optional · check whether your CRM's number needs an update", [
-      el("p", { id: k + "-crm-help", cls: "small muted", style: "margin:0 0 8px",
-        text: "We keep a lane around the certified figure: narrow when confidence is high, wider when it's low. Inside it, keep your number; outside it, we suggest how far to move it." }),
-      form, out], false, k + "-crm", "compare");
+    return { form: form, out: out };
   }
 
   function sources(r) {
@@ -1058,7 +1147,7 @@ CARD_JS = r"""
     records.forEach(function (r, i) {
       r.__k = "r" + i;
       root.appendChild(el("article", { cls: "card", "aria-label": "Certification for " + r.entity.name }, [
-        header(r, opts), answer(r, opts), trendBlock(r), trust(r), findings(r), crmCheck(r), primary(r), sources(r), adjustments(r), events(r),
+        header(r, opts), answer(r, opts), trendBlock(r), trust(r), findings(r), primary(r), sources(r), adjustments(r), events(r),
         footer(r, records, opts)]));
     });
     if (location.hash === "#expand-all") Array.prototype.forEach.call(root.querySelectorAll("details"), function (d) { d.open = true; });

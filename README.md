@@ -115,8 +115,8 @@ From top to bottom:
    - the likely **direction** since the as-of date (higher, lower or in line)
    - any known changes, such as layoffs announced after the filing
    - when the **next update** is expected, for example the next 10-K
-3. **Copy for CRM:** one click copies a clean block (count, as-of date, confidence, source and URL, one-line
-   rationale) ready to paste into a CRM note.
+3. **Download ▾:** Copy for CRM (a clean block with count, as-of date, confidence, source and URL, and a one-line
+   rationale), slides, a document and data files.
 4. **Trend and forecast:** up to five reported years from the same kind of source, plus a four-year forecast with a
    widening range. Forecasts are always marked as estimates.
 5. **Why you can trust this:** key source, as-of date, independent confirmations, adjustments to the count, and items
@@ -127,9 +127,12 @@ From top to bottom:
    - **Background:** technical detail, collapsed
 
    Every finding has a plain-English **"so what"** telling you whether to act.
-7. **Key source, sources, adjustments, events:** the full evidence: every source found, used or excluded and why, with
+7. **Compare with your CRM (optional):** enter your CRM's number and get a recommendation. Inside the lane around the
+   certified figure (narrow at high confidence, wide at low), keep it. Outside it, move it in: to the certified
+   figure at 4–5/5, halfway at 3/5, just to the edge at 1–2/5, and more firmly when the likely direction agrees.
+8. **Key source, sources, adjustments, events:** the full evidence: every source found, used or excluded and why, with
    the detailed passage and location.
-8. **Downloads:** JSON (the full certification record), a summary CSV, and a sources CSV.
+9. **Download** (top and bottom of the card, and in Claude): Copy for CRM, a **4-slide PowerPoint** (light or dark, in the brand), a **Word document** with the full supporting detail, a summary CSV, a sources CSV, and JSON (the full certification record).
 
 ---
 

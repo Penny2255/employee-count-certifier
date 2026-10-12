@@ -64,6 +64,8 @@ class EntitySection(BaseModel):
     name: str
     website: str | None
     hq: str | None
+    address: str | None = None  # registered headquarters address, else the confirmed HQ location
+    address_source: str | None = None
     legal_parent: str | None
     relationship: str
 
@@ -845,8 +847,11 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
     relationship = (f"{entity.relationship_to_parent or 'Part'} of {entity.legal_parent}" if entity.legal_parent
                     else "Not known to be part of a larger organization")
     return CertificationRecord(
-        entity=EntitySection(name=entity.name, website=entity.website, hq=entity.hq, legal_parent=entity.legal_parent,
-                             relationship=relationship),
+        entity=EntitySection(name=entity.name, website=entity.website, hq=entity.hq,
+                             address=entity.address or entity.hq,
+                             address_source=entity.address_source or ("Confirmed headquarters location (city)"
+                                                                      if entity.hq else None),
+                             legal_parent=entity.legal_parent, relationship=relationship),
         headline=Headline(count=cert.certified_count, qualifier=cert.qualifier, range=cert.range,
                           count_type=cert.count_type, count_basis=cert.count_basis, as_of_date=cert.as_of_date,
                           as_of_estimated=cert.as_of_estimated,

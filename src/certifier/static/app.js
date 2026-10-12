@@ -415,7 +415,7 @@
     state.current = state.last = payload;  // state.last survives Start over, so Back can return to it
     state.rating = null;
     var rec = payload.record;
-    GTMCard.render($("result-card"), rec, { actions: false, logo: logoUrl });
+    GTMCard.render($("result-card"), rec, { actions: false, logo: logoUrl, exportUrl: exportUrl });
     // The expedition's theme signs off on the result it found.
     var done = $("theme-done"), theme = fromHistory ? null : state.theme;
     state.theme = null;
@@ -454,22 +454,25 @@
     if (e) certify({ name: e.name, website: e.website, hq: e.hq, legal_parent: e.legal_parent }, true);
   });
 
-  function download(format) {
-    if (!state.current) return;
-    if (state.current.query_id === "demo") { say("result-status", "Downloads are disabled in demo mode."); return; }
-    fetch("/api/lookups/" + state.current.query_id + "/export?format=" + format, { headers: authHeaders() })
+  // The card's Download menu: same-origin export URLs, fetched so errors show as a message.
+  function exportUrl(format, theme) {
+    var id = state.current && state.current.query_id;
+    if (!id || id === "demo") return null;
+    return "/api/lookups/" + id + "/export?format=" + format + (format === "pptx" ? "&theme=" + (theme || "light") : "");
+  }
+  GTMCard.openLink = function (url) {
+    say("result-status", "Preparing your download…");
+    fetch(url, { headers: authHeaders() })
       .then(function (r) {
         if (!r.ok) return r.text().then(function (t) { var d = null; try { d = JSON.parse(t); } catch (e) {} throw new Error((d && d.error) || "Download failed. Please try again."); });
         var name = (r.headers.get("Content-Disposition") || "").replace(/.*filename="([^"]+)".*/, "$1") || "certification";
         return r.blob().then(function (b) {
-          var url = URL.createObjectURL(b), a = el("a", { href: url, download: name });
-          document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+          var href = URL.createObjectURL(b), a = el("a", { href: href, download: name });
+          document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(href); }, 2000);
+          say("result-status", "");
         });
       }).catch(function (err) { say("result-status", err.message, true); });
-  }
-  $("dl-json").addEventListener("click", function () { download("json"); });
-  $("dl-csv").addEventListener("click", function () { download("summary_csv"); });
-  $("dl-sources").addEventListener("click", function () { download("sources_csv"); });
+  };
 
   // ---------- rating ----------
   function resetRating() {

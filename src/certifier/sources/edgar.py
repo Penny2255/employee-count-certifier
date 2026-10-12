@@ -100,6 +100,16 @@ class Edgar:
         sub = json.loads(self._get(SUBMISSIONS_URL.format(cik=cik)))
         return Company(cik=cik, name=sub["name"], ticker=(sub.get("tickers") or [None])[0])
 
+    def business_address(self, cik: int) -> str | None:
+        """The filer's registered business address, e.g. "One Microsoft Way, Redmond, WA 98052-6399"."""
+        a = (json.loads(self._get(SUBMISSIONS_URL.format(cik=cik))).get("addresses") or {}).get("business") or {}
+        street = ", ".join(title_address(x) for x in (a.get("street1"), a.get("street2")) if x and x.strip())
+        city = (a.get("city") or "").strip().title()
+        region = (a.get("stateOrCountryDescription") or a.get("stateOrCountry") or "").strip()
+        tail = " ".join(x for x in (region, (a.get("zipCode") or "").strip().removesuffix("-0000")) if x)
+        parts = [p for p in (street, city, tail) if p]
+        return ", ".join(parts) if street and city else None
+
     def annual_filings(self, company: Company, limit: int = 5) -> list[Filing]:
         """Most recent annual filings, newest first (amendments excluded). Frequent filers' older 10-Ks drop
         out of the "recent" list (about the last 1,000 filings), so the older pages are read when needed."""
@@ -128,6 +138,11 @@ class Edgar:
 
     def snippets(self, filing: Filing, max_snippets: int = 80) -> list[Snippet]:
         return [Snippet(filing, s) for s in employee_snippets(self.filing_text(filing), max_snippets)]
+
+
+def title_address(text: str) -> str:
+    """Registry addresses are upper case: "415 MISSION STREET 3RD FL" -> "415 Mission Street 3rd Fl"."""
+    return re.sub(r"(\d)(St|Nd|Rd|Th)\b", lambda m: m.group(1) + m.group(2).lower(), text.strip().title())
 
 
 def html_to_text(raw: str) -> str:

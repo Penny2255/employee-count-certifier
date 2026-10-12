@@ -5,7 +5,9 @@
       "website": "https://www.ucdavis.edu",
       "hq": "Davis, CA, USA",
       "legal_parent": "University of California",
-      "relationship_to_parent": "Campus"
+      "relationship_to_parent": "Campus",
+      "address": "944 Garrod Drive, Davis, CA 95616",
+      "address_source": "IRS record via ProPublica (organization address)"
     },
     "certified_count": 15029,
     "count_type": "reported",

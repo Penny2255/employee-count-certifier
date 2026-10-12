@@ -185,7 +185,7 @@ CARD_CSS = r"""
 .cert .hero-num .count { font-size: 52px; }
 .cert .facts { display: grid; margin: 14px 0 0; border-top: 1px solid var(--line); }
 .cert .fact { display: grid; grid-template-columns: 132px 1fr; gap: 12px; padding: 7px 2px; border-bottom: 1px solid var(--line); font-size: 14px; align-items: baseline; }
-.cert .fact dt { color: var(--muted); font-weight: 600; font-size: 13px; }
+.cert .fact dt { color: var(--muted); font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
 .cert .fact dd { margin: 0; overflow-wrap: anywhere; }
 .cert .conf-val { display: inline-flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
 .cert .dir { font-weight: 600; }
@@ -208,6 +208,48 @@ CARD_CSS = r"""
 .cert .spark.s0 { --a: 0deg; } .cert .spark.s1 { --a: 45deg; } .cert .spark.s2 { --a: 90deg; } .cert .spark.s3 { --a: 135deg; }
 .cert .spark.s4 { --a: 180deg; } .cert .spark.s5 { --a: 225deg; } .cert .spark.s6 { --a: 270deg; } .cert .spark.s7 { --a: 315deg; }
 .cert .crm { display: inline-flex; gap: 6px; align-items: center; }
+.cert .dl-menu { position: relative; border: 0; }
+/* Each section animates in and so forms its own stacking layer; lift the blocks that hold a menu above the next one. */
+.cert .card > .answer, .cert .card > footer { position: relative; z-index: 3; }
+.cert .dl-menu > summary.dl-button { display: inline-flex; gap: 8px; align-items: center; padding: 7px 14px; border-radius: 10px;
+  background: var(--primary-bg); color: var(--primary-text); font-weight: 700; font-size: 14px; cursor: pointer; }
+.cert details.dl-menu > summary::before, .cert details.dl-menu[open] > summary::before { content: none; }
+.cert .dl-menu[open] .dl-caret { transform: rotate(180deg); }
+.cert .dl-items { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; min-width: 270px; display: grid; gap: 2px; padding: 6px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 32px rgba(10, 37, 69, .18); }
+.cert .dl-items button { display: grid; gap: 1px; text-align: left; background: transparent; color: var(--text); border: 0;
+  padding: 7px 10px; border-radius: 8px; font-size: 14px; font-weight: 600; }
+.cert .dl-items button:hover, .cert .dl-items button:focus-visible { background: var(--soft); }
+.cert .dl-hint { font-size: 12px; font-weight: 500; color: var(--muted); }
+.cert .dl-group { margin: 6px 10px 2px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.cert .footer-actions { margin-top: 12px; }
+.cert .footer-actions .dl-items { top: auto; bottom: calc(100% + 6px); }
+.cert .crm-form label { display: block; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.cert .crm-row { display: flex; gap: 8px; max-width: 420px; }
+.cert .crm-row input { flex: 1; min-width: 0; font: inherit; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); }
+.cert .crm-out { margin-top: 12px; }
+.cert .crm-verdict { margin: 0 0 6px; padding: 10px 12px; border-radius: 10px; font-size: 14px; }
+.cert .crm-verdict.keep { background: var(--green-bg); color: var(--green); }
+.cert .crm-verdict.strong { background: var(--red-bg); color: var(--red); }
+.cert .crm-verdict.moderate { background: var(--yellow-bg); color: var(--yellow); }
+.cert .crm-verdict.light { background: var(--soft); color: var(--text); }
+.cert .lane { position: relative; height: 14px; margin: 34px 0 34px; border-radius: 999px; background: var(--soft); border: 1px solid var(--line); }
+.cert .lane-band { position: absolute; top: -1px; bottom: -1px; border-radius: 999px; background: linear-gradient(90deg, rgba(63, 207, 142, .35), rgba(89, 154, 245, .35));
+  border: 1.5px solid var(--loop-green); }
+.cert .lane-mark { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; border: 3px solid var(--card); }
+.cert .lane-mark b { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 11.5px; font-weight: 700; }
+.cert .cert-mark { background: var(--loop-green); box-shadow: 0 0 0 2px var(--loop-green); }
+.cert .cert-mark b { bottom: 18px; color: var(--green); }
+.cert .crm-mark { background: var(--muted); }
+.cert .crm-mark b { top: 18px; color: var(--muted); }
+.cert .target-mark { background: var(--loop-blue); }
+.cert .target-mark b { bottom: 18px; color: var(--accent); }
+.cert .hint { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; padding: 2px 10px 2px 8px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-soft); white-space: nowrap; }
+.cert .hint i { width: 8px; height: 8px; border-radius: 50%; background: var(--loop-green); animation: cert-ping 1.6s ease-out infinite; }
+.cert .src-sum .hint { grid-column: 3 / -1; justify-self: start; margin: 2px 0 0; }
+.cert summary > .hint:last-child { flex: none; }
+@keyframes cert-ping { 0% { box-shadow: 0 0 0 0 rgba(63, 207, 142, .6); } 100% { box-shadow: 0 0 0 9px rgba(63, 207, 142, 0); } }
 .cert .trust-item { border-radius: 14px; }
 .cert .t-sym { font-size: 15px; color: var(--accent); line-height: 1; }
 /* Findings: one line per item */
@@ -221,7 +263,7 @@ CARD_CSS = r"""
 .cert .sym.green { color: var(--green); background: var(--green-bg); }
 .cert .sym.yellow { color: var(--yellow); background: var(--yellow-bg); }
 .cert .sym.red { color: var(--red); background: var(--red-bg); }
-.cert .log-text { min-width: 0; font-size: 14px; }
+.cert .log-text { min-width: 0; font-size: 14px; text-wrap: balance; }  /* one line, or two even lines */
 .cert .log-text .f-title { font-weight: 600; }
 .cert .log-text .so-what { color: var(--muted); }
 .cert .log-row .impact { white-space: nowrap; align-self: center; }
@@ -283,7 +325,7 @@ CARD_CSS = r"""
   .cert button { font-size: 13px; padding: 6px 10px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .cert .flash, .cert .card > .block, .cert .card > footer, .cert .meter span.on, .cert .seal { animation: none; }
+  .cert .flash, .cert .card > .block, .cert .card > footer, .cert .meter span.on, .cert .seal, .cert .hint i { animation: none; }
   .cert .spark { display: none; }
 }
 """
@@ -321,7 +363,8 @@ CARD_JS = r"""
     adjust: '<path d="M5 4v16M12 4v16M19 4v16"/><circle cx="5" cy="9" r="2"/><circle cx="12" cy="15" r="2"/><circle cx="19" cy="7" r="2"/>',
     events: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
     trend: '<path d="M3 20h18"/><path d="M4 16l5-6 4 3 7-8"/><path d="M16 5h4v4"/>',
-    trust: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>'
+    trust: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
+    compare: '<path d="M4 8h14l-3.5-3.5"/><path d="M20 16H6l3.5 3.5"/>'
   };
   function icon(name, cls) {
     var span = el("span", { cls: "ico" + (cls ? " " + cls : ""), "aria-hidden": "true" });
@@ -481,7 +524,58 @@ CARD_JS = r"""
     return dl;
   }
 
-  function answer(r) {
+  // ---------- Download menu: Copy for CRM, JSON, CSVs, PowerPoint (light/dark), Word ----------
+  function pageTheme() {
+    var t = document.documentElement.getAttribute("data-theme");
+    if (t === "light" || t === "dark") return t;
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  function exportUrl(r, opts, format, theme) {
+    var links = r.__links;
+    if (links) return links[format === "pptx" ? "pptx_" + theme : format] || null;
+    return opts && opts.exportUrl ? opts.exportUrl(format, theme) : null;
+  }
+  function openUrl(url) {
+    if (window.GTMCard.openLink) { window.GTMCard.openLink(url); return; }
+    var a = el("a", { href: url, download: "", target: "_blank", rel: "noopener" });
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  function downloadMenu(r, opts) {
+    var menu = el("details", { cls: "dl-menu" });
+    var label = el("span", { text: "Download" });
+    menu.appendChild(el("summary", { cls: "dl-button", "aria-label": "Download or copy this certification" },
+      [el("span", { cls: "dl-ico", "aria-hidden": "true", text: "⤓" }), label, el("span", { cls: "dl-caret", "aria-hidden": "true", text: "▾" })]));
+    var list = el("div", { cls: "dl-items", role: "menu" });
+    function item(text, hint, fn) {
+      var b = el("button", { type: "button", role: "menuitem" }, [el("span", { text: text }), hint ? el("span", { cls: "dl-hint", text: hint }) : null]);
+      b.addEventListener("click", function () { fn(b); });
+      list.appendChild(b);
+      return b;
+    }
+    item("Copy for CRM", "count, date, confidence, source", function (b) {
+      copyText(crmText(r), b.firstChild, "Copy for CRM");
+    });
+    var theme = pageTheme(), has = exportUrl(r, opts, "json") != null;
+    if (has) {
+      list.appendChild(el("p", { cls: "dl-group", text: "Slides and document" }));
+      ["light", "dark"].forEach(function (t) {
+        item("PowerPoint · " + t, t === theme ? "matches this view · 4 slides" : "4 slides", function () { openUrl(exportUrl(r, opts, "pptx", t)); menu.open = false; });
+      });
+      item("Word document", "full detail and sources", function () { openUrl(exportUrl(r, opts, "docx")); menu.open = false; });
+      list.appendChild(el("p", { cls: "dl-group", text: "Data" }));
+      item("CSV · summary", "one row", function () { openUrl(exportUrl(r, opts, "summary_csv")); menu.open = false; });
+      item("CSV · sources", "one row per source", function () { openUrl(exportUrl(r, opts, "sources_csv")); menu.open = false; });
+      item("JSON · full record", null, function () { openUrl(exportUrl(r, opts, "json")); menu.open = false; });
+    } else {
+      item("JSON · full record", null, function () { download([r]); menu.open = false; });
+    }
+    menu.appendChild(list);
+    document.addEventListener("click", function (e) { if (menu.open && !menu.contains(e.target)) menu.open = false; });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && menu.open) { menu.open = false; menu.querySelector("summary").focus(); } });
+    return menu;
+  }
+
+  function answer(r, opts) {
     var h = r.headline, c = r.confidence, k = r.__k, p = r.primary_source;
     var meter = el("span", { cls: "meter", role: "img", "aria-label": "Confidence " + c.score + " of 5" });
     for (var i = 1; i <= 5; i++) meter.appendChild(el("span", { cls: i <= c.score ? "on" : "", style: "--i:" + i }));
@@ -511,6 +605,8 @@ CARD_JS = r"""
       ["Range", range],
       ["As of", h.as_of_date ? h.as_of_date + (h.as_of_estimated ? (h.as_of_estimated_from === "url" ? " (estimated from URL)" : " (estimated)") : "") : "undated"],
       ["Confidence", conf],
+      ["HQ address", r.entity.address ? el("span", null, [r.entity.address,
+        r.entity.address_source ? el("span", { cls: "muted small", text: " · " + r.entity.address_source.replace(/ \(.*\)$/, "") }) : null]) : null],
       ["Key source", p && p.source_id ? sourceLabel(p) : (p && p.none_reason)],
       ["Source link", p && p.source_id ? el("span", null, [link(p.url, host(p.url)),
         p.location.deep_link ? " · " : null, p.location.deep_link ? link(p.location.deep_link, "open at the quote ↗") : null]) : null],
@@ -528,12 +624,10 @@ CARD_JS = r"""
         el("td", null, [line.rationale + " ", chip(line.finding_id, k + "-")])]));
     });
     table.appendChild(el("tr", { cls: "total" }, [el("td", { cls: "pts", text: String(c.score) }), el("td", { text: "= " + c.arithmetic })]));
-    var crm = el("button", { type: "button", cls: "crm" }, ["⧉ Copy for CRM"]);
-    crm.addEventListener("click", function () { copyText(crmText(r), crm, "⧉ Copy for CRM"); });
     return el("div", { cls: "block answer " + b }, [
       el("div", { cls: "hero-row" }, [hero, seal(c)]),
       bottom, facts,
-      el("div", { cls: "row answer-actions" }, [crm,
+      el("div", { cls: "row answer-actions" }, [downloadMenu(r, opts),
         el("details", { cls: "breakdown" }, [el("summary", null, [el("span", { text: "How the score adds up" })]), table])])]);
   }
 
@@ -749,6 +843,100 @@ CARD_JS = r"""
     return section("Findings", counts.join(" · "), nodes, true, k + "-findings", "findings");
   }
 
+  // Guided drill-in hints: shown until opened once (remembered per browser).
+  function seen(key) { try { return localStorage.getItem("gtm_hint_" + key) === "1"; } catch (e) { return false; } }
+  function markSeen(key) { try { localStorage.setItem("gtm_hint_" + key, "1"); } catch (e) {} }
+  function hint(text) { return el("span", { cls: "hint", role: "note" }, [el("i", { "aria-hidden": "true" }), text]); }
+  function guide(details, key, text, summary) {
+    if (seen(key)) return;
+    var h = hint(text);
+    (summary || details.querySelector("summary")).appendChild(h);
+    details.addEventListener("toggle", function () { if (details.open) { markSeen(key); h.remove(); } });
+  }
+
+  // ---------- Compare with your CRM (optional): bumper-car recommendation ----------
+  // The certified figure sits in a lane whose bumpers narrow as confidence rises. A CRM number inside the lane is
+  // fine; outside it, we suggest moving it in, pushing harder (toward the certified figure itself) the higher the
+  // confidence, and harder still when the move agrees with the likely direction since the as-of date.
+  var CRM_TOLERANCE = { 5: 0.05, 4: 0.08, 3: 0.15, 2: 0.25, 1: 0.40 };
+  var CRM_STRENGTH = { strong: "Update recommended", moderate: "Consider updating", light: "Optional: review" };
+  function parseCount(text) {
+    var m = String(text || "").trim().toLowerCase().replace(/[,\s]/g, "").match(/^(\d+(?:\.\d+)?)(k|m)?$/);
+    if (!m) return null;
+    var v = parseFloat(m[1]) * (m[2] === "k" ? 1e3 : m[2] === "m" ? 1e6 : 1);
+    return v > 0 ? Math.round(v) : null;
+  }
+  function crmAdvice(r, v) {
+    var h = r.headline, c = h.count, score = r.confidence.score, t = CRM_TOLERANCE[score];
+    if (c == null || !t) return { kind: "none", text: "There's no certified figure to compare against." };
+    var lo = Math.min(h.range ? h.range[0] : c, c * (1 - t)), hi = Math.max(h.range ? h.range[1] : c, c * (1 + t));
+    if (h.direction === "lower") lo -= c * t / 2;  // the true figure has likely moved down: widen the lower bumper
+    if (h.direction === "higher") hi += c * t / 2;
+    lo = Math.round(lo); hi = Math.round(hi);
+    var band = { lo: lo, hi: hi, certified: c };
+    if (v >= lo && v <= hi) {
+      return { kind: "keep", band: band, label: "Keep your number",
+        text: "Your CRM's " + num(v) + " is inside the certified range for a " + score + "/5 certification (" + num(lo) + "–" + num(hi) +
+          "). No change needed" + (Math.abs(v - c) / c > 0.02 ? "; for the most exact figure, use " + num(c) + "." : ".") };
+    }
+    var above = v > hi, edge = above ? hi : lo, off = above ? (v - hi) / hi : (lo - v) / lo;
+    var agrees = (above && h.direction === "lower") || (!above && h.direction === "higher");
+    var against = (above && h.direction === "higher") || (!above && h.direction === "lower");
+    var target = score >= 4 ? c : score === 3 ? Math.round((edge + c) / 2) : edge;
+    var strength = score >= 4 ? "strong" : score === 3 ? "moderate" : "light";
+    if (agrees) strength = strength === "light" ? "moderate" : "strong";
+    if (against) {
+      target = edge;  // the true figure may be beyond ours in your direction: move only into the lane
+      if (strength === "strong" && score < 5) strength = "moderate";
+    }
+    var why = agrees ? " The likely direction since the as-of date (" + h.direction + ") points the same way, so we'd make this change."
+      : against ? " The figure has likely moved " + (h.direction === "higher" ? "up" : "down") + " since its as-of date, so we suggest moving only to the edge of the range."
+      : "";
+    return { kind: strength, band: band, target: target, label: CRM_STRENGTH[strength],
+      text: "Your CRM's " + num(v) + " is " + Math.round(off * 100) + "% " + (above ? "above" : "below") + " the certified range for a " + score +
+        "/5 certification (" + num(lo) + "–" + num(hi) + "). Suggested update: " + num(target) + "." + why };
+  }
+  function lane(adv, v) {
+    var b = adv.band, pts = [b.lo, b.hi, b.certified, v].concat(adv.target ? [adv.target] : []);
+    var min = Math.min.apply(null, pts), max = Math.max.apply(null, pts), pad = (max - min) * 0.12 || max * 0.05;
+    min -= pad; max += pad;
+    var at = function (x) { return ((x - min) / (max - min) * 100).toFixed(2) + "%"; };
+    var track = el("div", { cls: "lane", role: "img", "aria-label": "Certified range " + num(b.lo) + " to " + num(b.hi) +
+      ", certified " + num(b.certified) + ", your CRM " + num(v) + (adv.target ? ", suggested " + num(adv.target) : "") });
+    track.appendChild(el("span", { cls: "lane-band", style: "left:" + at(b.lo) + ";width:calc(" + at(b.hi) + " - " + at(b.lo) + ")" }));
+    var mark = function (x, cls, label) { track.appendChild(el("span", { cls: "lane-mark " + cls, style: "left:" + at(x) }, [el("b", { text: label })])); };
+    mark(b.certified, "cert-mark", "Certified " + num(b.certified));
+    mark(v, "crm-mark", "Your CRM " + num(v));
+    if (adv.target && adv.target !== b.certified) mark(adv.target, "target-mark", "Suggested " + num(adv.target));
+    return track;
+  }
+  function crmCheck(r) {
+    var k = r.__k, input = el("input", { type: "text", inputmode: "numeric", autocomplete: "off", id: k + "-crm-input",
+      placeholder: "e.g. 95,000 or 95k", "aria-describedby": k + "-crm-help" });
+    var go = el("button", { type: "submit", text: "Check" }), out = el("div", { cls: "crm-out", "aria-live": "polite" });
+    var form = el("form", { cls: "crm-form" }, [el("label", { "for": k + "-crm-input", text: "Your CRM employee count" }),
+      el("div", { cls: "crm-row" }, [input, go])]);
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      out.textContent = "";
+      var v = parseCount(input.value);
+      if (v == null) { out.appendChild(el("p", { cls: "small muted", text: "Enter a number, for example 95,000 or 95k." })); return; }
+      var adv = crmAdvice(r, v);
+      if (adv.kind === "none") { out.appendChild(el("p", { cls: "small muted", text: adv.text })); return; }
+      out.appendChild(el("p", { cls: "crm-verdict " + adv.kind }, [el("strong", { text: adv.label }), " · " + adv.text]));
+      out.appendChild(lane(adv, v));
+      if (adv.target) {
+        var cp = el("button", { type: "button", cls: "secondary", text: "Copy suggested number" });
+        cp.addEventListener("click", function () { copyText(String(adv.target), cp, "Copy suggested number"); });
+        out.appendChild(el("div", { cls: "row", style: "margin-top:8px" }, [cp]));
+      }
+    });
+    return section("Compare with your CRM", "optional · check whether your CRM's number needs an update", [
+      el("p", { id: k + "-crm-help", cls: "small muted", style: "margin:0 0 8px",
+        text: "We keep a lane around the certified figure: narrow when confidence is high, wider when it's low. Inside it, keep your number; outside it, we suggest how far to move it." }),
+      form, out], false, k + "-crm", "compare");
+  }
+
   function sources(r) {
     var items = r.sources.items, k = r.__k;
     if (!items.length) return section("Sources", "none", [none(r.sources.none_reason)], false, k + "-sources", "sources");
@@ -768,7 +956,23 @@ CARD_JS = r"""
                        ["Notes", s.notes.length ? s.notes.join(" ") : null]]))].filter(Boolean))
       ]));
     });
-    return section("Sources", items.length + " found, " + used + " used", nodes, false, k + "-sources", "sources");
+    var block = section("Sources", items.length + " found, " + used + " used", nodes, false, k + "-sources", "sources");
+    guide(block.querySelector("details.section"), "sources", "Drill in: see every source");
+    // Inside, point at the source that differs most from the certified figure (never the key source).
+    var count = r.headline.count, best = null, gap = -1, key = r.primary_source || {};
+    items.forEach(function (s) {
+      if (s.role === "selected" || count == null) return;
+      // Skip the key source's own earlier editions (trend points): point at a genuinely different source.
+      if (s.tier === key.tier && s.source_type === key.source_type && s.as_of_date && key.as_of_date && s.as_of_date < key.as_of_date) return;
+      var d = Math.abs(s.value - count) / Math.max(1, count);
+      if (d > gap) { gap = d; best = s; }
+    });
+    if (best && gap > 0.01) {
+      var row = block.querySelector("#" + k + "-" + best.id);
+      if (row) guide(row, "source-row", best.used ? "Different figure: why it still counts" : "Different figure: why it wasn't used",
+        row.querySelector("summary .src-sum"));
+    }
+    return block;
   }
 
   function adjustments(r) {
@@ -793,8 +997,11 @@ CARD_JS = r"""
     if (li.source_type) nodes.push(el("div", { cls: "row small" }, [el("strong", { text: li.source_category }), el("span", { text: li.source_type })]));
     if (li.source_type_info) nodes.push(whatIsThis(li));
     nodes.push(el("p", { cls: "small", style: "margin:4px 0" }, [li.rationale + " ", chip(li.finding_id, k + "-")]));
-    return section("Events and LinkedIn", (items.length ? items.length + " event(s)" : "no events") + " · LinkedIn " + li.status.replace("_", " "), nodes,
+    var block = section("Events and LinkedIn", (items.length ? items.length + " event(s)" : "no events") + " · LinkedIn " + li.status.replace("_", " "), nodes,
       false, null, "events");
+    if (items.length) guide(block.querySelector("details.section"), "events",
+      items.length === 1 ? "1 event: see what changed" : items.length + " events: see what changed");
+    return block;
   }
 
   function footer(r, all, opts) {
@@ -803,17 +1010,11 @@ CARD_JS = r"""
     var parts = [kv([["Method", m.method], ["Models", models || "none (rule-based)"], ["Policy version", m.policy_version + " · record " + m.record_version],
           ["Cost", "$" + Number(m.cost_usd).toFixed(2) + " · " + m.web_searches + " searches, " + m.web_fetches + " fetches"],
           ["Run", (m.run_at ? m.run_at.replace("T", " ").slice(0, 19) + " UTC" : m.lookup_date) + (m.duration_s != null ? " · " + m.duration_s + " s" : "")]])];
-    if (opts.actions) {
-      var dl = el("button", { type: "button", text: "Download JSON" });
-      dl.addEventListener("click", function () { download(all); });
-      var cp = el("button", { type: "button", cls: "secondary", text: "Copy JSON" });
-      cp.addEventListener("click", function () { copy(all, cp); });
-      parts.push(el("div", { cls: "row", style: "margin-top:12px" }, [dl, cp]));
-    }
+    parts.push(el("div", { cls: "row footer-actions" }, [downloadMenu(r, opts)]));
     return el("footer", { cls: "block" }, parts);
   }
 
-  function json(all) { return JSON.stringify(all.length === 1 ? all[0] : all, function (k, v) { return k === "__k" ? undefined : v; }, 2); }
+  function json(all) { return JSON.stringify(all.length === 1 ? all[0] : all, function (k, v) { return k === "__k" || k === "__links" ? undefined : v; }, 2); }
   function download(all) {
     var name = (all[0].entity.name || "certification").replace(/[^a-z0-9]+/gi, "-").toLowerCase() + ".json";
     try {
@@ -834,7 +1035,10 @@ CARD_JS = r"""
     if (Array.isArray(data.records)) return data.records;
     if (data.headline && data.entity) return [data];
     var out = [];
-    ["entity", "parent"].forEach(function (key) { var d = data[key]; if (d && d.record) out.push(d.record); });
+    ["entity", "parent"].forEach(function (key) {
+      var d = data[key];
+      if (d && d.record) { if (d.downloads) d.record.__links = d.downloads; out.push(d.record); }
+    });
     return out;
   }
 
@@ -846,7 +1050,7 @@ CARD_JS = r"""
     records.forEach(function (r, i) {
       r.__k = "r" + i;
       root.appendChild(el("article", { cls: "card", "aria-label": "Certification for " + r.entity.name }, [
-        header(r, opts), answer(r), trendBlock(r), trust(r), findings(r), primary(r), sources(r), adjustments(r), events(r),
+        header(r, opts), answer(r, opts), trendBlock(r), trust(r), findings(r), crmCheck(r), primary(r), sources(r), adjustments(r), events(r),
         footer(r, records, opts)]));
     });
     if (location.hash === "#expand-all") Array.prototype.forEach.call(root.querySelectorAll("details"), function (d) { d.open = true; });
@@ -854,7 +1058,7 @@ CARD_JS = r"""
     return records;
   }
 
-  window.GTMCard = { render: render, toRecords: toRecords };
+  window.GTMCard = { render: render, toRecords: toRecords, crmAdvice: crmAdvice, parseCount: parseCount };
 })();
 """
 
@@ -870,6 +1074,9 @@ BOOT_JS = r"""
   function notify(method, params) { post({ jsonrpc: "2.0", method: method, params: params || {} }); }
   function applyTheme(ctx) { if (ctx && (ctx.theme === "dark" || ctx.theme === "light")) document.documentElement.setAttribute("data-theme", ctx.theme); }
   function reportSize() { if (inFrame) notify("ui/notifications/size-changed", { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight }); }
+  window.GTMCard.openLink = inFrame ? function (url) {
+    request("ui/open-link", { url: url }).then(function (res) { if (!res || res.isError) window.open(url, "_blank", "noopener"); });
+  } : null;
   function show(data) {
     var records = window.GTMCard.render(root, data, { actions: true, onRender: reportSize });
     if (records.length) document.title = records.map(function (r) { return r.entity.name; }).join(" + ") + " · GTM Data Certifier";

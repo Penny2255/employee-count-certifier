@@ -525,7 +525,7 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
         ir_ids = [by_url[u] for u in ir.urls if u in by_url]
         indicated_row = IndicatedRangeRow(low=ir.low, high=ir.high, earliest=ir.earliest, latest=ir.latest,
                                           source_ids=ir_ids, rationale=ir.reason)
-        findings.add("data_gap", "yellow", f"Newer data indicates {ir.low:,}–{ir.high:,}",
+        findings.add("data_gap", "yellow", f"Newer data indicates {f'about {ir.low:,}' if ir.low == ir.high else f'{ir.low:,}–{ir.high:,}'}",
                      ir.reason, ir_ids)
 
     # Scope.

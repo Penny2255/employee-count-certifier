@@ -246,7 +246,7 @@ CARD_JS = r"""
     if (h.indicated_current_range) {
       var ir = h.indicated_current_range;
       extra.push(el("div", { cls: "indicated", title: ir.rationale }, [
-        el("strong", { text: "Indicated current range " + num(ir.low) + "–" + num(ir.high) }),
+        el("strong", { text: "Indicated current range " + (ir.low === ir.high ? "about " + num(ir.low) : num(ir.low) + "–" + num(ir.high)) }),
         el("span", { cls: "muted small", text: " · newer data-provider figures, " + ir.earliest.slice(0, 7) + (ir.latest !== ir.earliest ? " to " + ir.latest.slice(0, 7) : "") + " · context only, not certified" })]));
     }
     var p = r.primary_source;

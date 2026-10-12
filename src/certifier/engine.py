@@ -17,7 +17,8 @@ from .policy import Policy, default_policy
 def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | None = None,
             lookup_date: date | None = None, event_flags: list[str] | None = None,
             policy: Policy | None = None, review_flags: list[str] | None = None,
-            events: list[Event] | None = None, scope_notes: list[str] | None = None) -> Certification:
+            events: list[Event] | None = None, scope_notes: list[str] | None = None,
+            subsidiary_questions: list[str] | None = None) -> Certification:
     """`event_flags` are pre-judged event flags that always lower confidence; `events` are dated
     events judged here against the selected source's as-of date."""
     policy = policy or default_policy()
@@ -67,6 +68,14 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
     notes = list(selection.notes)
     linkedin = linkedin or LinkedInEvidence()
     flags.extend(selection.flags)
+    # A consolidated annual filing (tier 1) counts every subsidiary owned at its as-of date, so a question
+    # about whether a subsidiary is included can't change the entity counted: a note, not a flag.
+    scope_notes = list(scope_notes or [])
+    if selected is not None and selected.tier == 1:
+        scope_notes += [f"{q} (The consolidated annual filing includes subsidiaries owned at its as-of date.)"
+                        for q in subsidiary_questions or []]
+    else:
+        flags += [f"Complexity: {q}" for q in subsidiary_questions or []]
     for s in selection.inconsistent:
         s.role = "conflicts"  # a detailed figure out of line with the headline never corroborates it
         s.role_reason = ("A more detailed figure not in line with the headline statement for the same date; "
@@ -240,7 +249,7 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
                                                or bool(selected is not None and selected.predates_change)),
         direction=_direction(selected, value, event_outcomes, sources, effective, lookup_date, policy,
                              growth is not None),
-        scope_notes=list(scope_notes or []),
+        scope_notes=scope_notes,
         indicated_range=rules.indicated_range(selected, value, sources, lookup_date, policy) if growth is None else None,
         sources=_explain_unassigned(sources, value), linkedin_check=li, adjustments=adjustments, flags=flags,
         events=event_outcomes,
@@ -269,7 +278,7 @@ def _direction(selected: Source | None, value: int | None, outcomes: list[EventO
         signs = {(-1 if (o.headcount_change or 0) < 0 else 1) if o.headcount_change else
                  _KIND_SIGN.get(_kind_of(o.description), 0) for o in after}
         sign = (-1 if net < 0 else 1) if net else (signs.pop() if len(signs) == 1 else 0)
-        what = "; ".join(f"{o.description} ({o.close_date.isoformat()}"
+        what = "; ".join(f"{_short(o.description)} ({o.close_date.isoformat()}"
                          + (f", {o.headcount_change:+,})" if o.headcount_change is not None else ")") for o in after)
         if sign:
             size = "somewhat " if net == 0 or abs(net) / value <= policy.agreement.corroborates_within else ""
@@ -283,9 +292,11 @@ def _direction(selected: Source | None, value: int | None, outcomes: list[EventO
     if ir is not None:
         mid = (ir.low + ir.high) / 2
         word = "higher" if mid > value else "lower"
+        span = f"about {ir.low:,}" if ir.low == ir.high else f"{ir.low:,}-{ir.high:,}"
+        when = (ir.earliest.isoformat() if ir.earliest == ir.latest
+                else f"{ir.earliest.isoformat()} to {ir.latest.isoformat()}")
         return Direction(direction=word, reason=f"Likely {word}: newer data-provider figures put headcount at "
-                                                f"{ir.low:,}-{ir.high:,} ({ir.earliest.isoformat()} to "
-                                                f"{ir.latest.isoformat()}).")
+                                                f"{span} ({when}).")
     if selected is not None and selected.as_of_date is not None:
         prior = sorted((s for s in sources if s is not selected and s.tier == selected.tier and s.scope == "global"
                         and s.basis == selected.basis and s.as_of_date and s.as_of_date < selected.as_of_date
@@ -301,6 +312,12 @@ def _direction(selected: Source | None, value: int | None, outcomes: list[EventO
                                                     f"{value:,}, {change:+.0%}); no later change is known.")
     return Direction(direction="unknown", reason="No newer evidence to say whether the figure has moved since its "
                                                  "as-of date.")
+
+
+def _short(description: str, limit: int = 90) -> str:
+    """First sentence of an event description, trimmed for a one-line reason."""
+    first = description.split(". ")[0].rstrip(".")
+    return first if len(first) <= limit else first[:limit].rsplit(" ", 1)[0] + "…"
 
 
 def _kind_of(description: str) -> str:

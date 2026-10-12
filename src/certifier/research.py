@@ -213,6 +213,7 @@ class ResearchResult(BaseModel):
     linkedin: LinkedInEvidence
     events: list[Event]
     complexities: list[str] = []
+    subsidiary_questions: list[str] = []  # resolved by the engine once the anchor is known
     scope_notes: list[str] = []
     notes: str
     research_notes: str
@@ -273,7 +274,9 @@ def research_entity(entity: Entity, snippets: list[Snippet], lookup_date: date, 
             workforce_profile=extraction.workforce_profile,
             growth_6m=extraction.linkedin.growth_6m, growth_1y=extraction.linkedin.growth_1y,
             growth_2y=extraction.linkedin.growth_2y),
-        events=events, complexities=[c.description for c in extraction.complexities if c.kind in ENTITY_CHANGING],
+        events=events, complexities=[c.description for c in extraction.complexities
+                                            if c.kind in ENTITY_CHANGING - {"subsidiary"}],
+        subsidiary_questions=[c.description for c in extraction.complexities if c.kind == "subsidiary"],
         scope_notes=[c.description for c in extraction.complexities if c.kind not in ENTITY_CHANGING],
         notes=" ".join([extraction.notes, *event_notes]).strip(), research_notes=notes)
 

@@ -86,3 +86,21 @@ def test_extraction_splits_complexities_by_kind():
     items = [XComplexity(description="Health system may be excluded", kind="health_system"),
              XComplexity(description="Trackers disagree", kind="other")]
     assert [c.kind in ENTITY_CHANGING for c in items] == [True, False]
+
+
+def test_subsidiary_question_is_a_note_when_anchored_on_a_consolidated_filing(entity):
+    q = "Informatica appears to have been acquired; unclear whether its employees are included."
+    cert = certify(entity, [src(1, 83_334)], lookup_date=LOOKUP, subsidiary_questions=[q])
+    assert cert.confidence_score == 4 and cert.flags == []
+    assert cert.scope_notes[0].startswith("Informatica") and "consolidated annual filing" in cert.scope_notes[0]
+
+
+def test_subsidiary_question_is_a_flag_below_tier_1(entity):
+    cert = certify(entity, [src(2, 5_000)], lookup_date=LOOKUP, subsidiary_questions=["Subsidiary may be excluded"])
+    assert cert.flags == ["Complexity: Subsidiary may be excluded"] and cert.scope_notes == []
+
+
+def test_one_value_indicated_range_reads_as_about(entity):
+    newer = src(7, 438, as_of=date(2026, 3, 1), url="https://www.zoominfo.com/c/x")
+    d = certify(entity, [src(2, 513, as_of=date(2024, 12, 31)), newer], lookup_date=LOOKUP).direction
+    assert d.direction == "lower" and "about 438 (2026-03-01)" in d.reason

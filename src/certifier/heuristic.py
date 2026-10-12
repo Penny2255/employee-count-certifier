@@ -20,7 +20,7 @@ _MONTHS = ("january|february|march|april|may|june|july|august|september|october|
 _AS_OF = re.compile(rf"\b(?:as of|as at|at|on|by)\s+({_MONTHS})\s+(\d{{1,2}}),?\s+(\d{{4}})"
                     rf"|\b(?:as of|as at|at|on)\s+(\d{{1,2}})\s+({_MONTHS})\s+(\d{{4}})", re.I)
 # Clauses describing a slice of the workforce, or events rather than a headcount.
-_PARTIAL = re.compile(r"\b(in the united states|in the u\.s\.|u\.s\.-based|outside (?:of )?the united states|"
+_PARTIAL = re.compile(r"\b(in the united states|in the u\.s(?=\.)|u\.s\.-based|outside (?:of )?the united states|"
                       r"internationally|in our international|domestic|of whom|of which|"
                       r"research and development|r&d|engineering|sales and marketing|represented by|"
                       r"unioni[sz]ed|collective bargaining|segment|division|"
@@ -28,7 +28,8 @@ _PARTIAL = re.compile(r"\b(in the united states|in the u\.s\.|u\.s\.-based|outsi
                       re.I)
 _NOT_HEADCOUNT = re.compile(r"\b(let go|laid off|layoffs?|terminat\w*|hired|hiring|joined|"
                             r"participat\w*|survey|trained|training|completed|volunteer\w*|customers?|"
-                            r"serving|plan participants|eligible|shares|stock|options)\b", re.I)
+                            r"serving|plan participants|eligible|shares|stock|options|"
+                            r"recruit\w*|skill(?:s|ing)?|campaign|goal|commit\w*|pledge\w*|aim\w*|by 20\d\d)\b", re.I)
 _CLAUSES = re.compile(r";\s+|,\s+(?=of (?:whom|which)\b)|\s+(?=of (?:whom|which)\b)|,\s+(?=and\b)")
 
 
@@ -42,6 +43,17 @@ def _as_of(text: str, filing: Filing) -> date | None:
         except ValueError:
             pass
     return filing.period
+
+
+def _describes_part(clause: str, value: int) -> bool:
+    """Is the figure itself regional or departmental? Only the words describing it count (up to the next
+    comma): in "we employed approximately 223,000 people on a full-time basis, 121,000 in the U.S. and 102,000
+    internationally" the U.S./international breakdown that follows the total doesn't narrow it."""
+    m = re.search(re.escape(f"{value:,}"), clause)
+    if m is None:
+        return bool(_PARTIAL.search(clause))
+    own = clause[: m.end()] + re.split(r"[,;]", clause[m.end():], maxsplit=1)[0]
+    return bool(_PARTIAL.search(own))
 
 
 def _other_entity_subject(clause: str, filing: Filing) -> bool:
@@ -62,7 +74,7 @@ def snippet_sources(snippets: list[Snippet]) -> list[Source]:
             fig = parse_figure(clause)
             if fig is None or _NOT_HEADCOUNT.search(clause):
                 continue
-            partial = bool(_PARTIAL.search(clause)) or _other_entity_subject(clause, snip.filing)
+            partial = _describes_part(clause, fig.value) or _other_entity_subject(clause, snip.filing)
             out.append(Source(
                 url=snip.filing.url, tier=1, value=fig.value, qualifier=fig.qualifier, basis=fig.basis,
                 excerpt=snip.text, as_of_date=_as_of(snip.text, snip.filing),

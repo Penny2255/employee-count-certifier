@@ -142,12 +142,16 @@ CARD_CSS = r"""
 .cert svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
 .cert svg.chart .axis { font-size: 11px; fill: var(--muted); }
 .cert svg.chart .axis-title { font-size: 11px; fill: var(--muted); font-weight: 600; }
-.cert svg.chart .pt-label { font-size: 12px; fill: var(--text); font-weight: 600; }
+.cert svg.chart .pt-label { font-size: 12px; fill: var(--text); font-weight: 700; paint-order: stroke; stroke: var(--card); stroke-width: 3px; }
+.cert svg.chart .pt-key { font-size: 13px; }
+.cert svg.chart .pt-note { font-size: 10.5px; fill: var(--muted); font-weight: 600; }
 .cert svg.chart .ir-label { fill: var(--green); }
 .cert .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 6px; }
 .cert .lg { display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: -1px; border-radius: 50%; }
 .cert .lg.solid { background: var(--meter); }
 .cert .lg.hollow { border: 2.5px solid var(--meter); background: var(--card); box-shadow: 14px 0 0 -2px rgba(89, 154, 245, .25); }
+.cert .lg.key { background: var(--meter); box-shadow: 0 0 0 3px var(--loop-green); }
+.cert svg.chart .pt-est { fill: var(--muted); }
 .cert .lg.box { border-radius: 2px; border: 1px dashed var(--loop-green); background: rgba(63, 207, 142, .18); }
 .cert .next-update { margin: 10px 0 0; }
 .cert .direction.lower strong, .cert .direction.higher strong { color: var(--text); }
@@ -185,6 +189,8 @@ CARD_CSS = r"""
 .cert .fact dd { margin: 0; overflow-wrap: anywhere; }
 .cert .conf-val { display: inline-flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
 .cert .dir { font-weight: 600; }
+.cert q.excerpt { font-style: italic; color: var(--text); }
+.cert q.excerpt::before { content: "“"; } .cert q.excerpt::after { content: "”"; }
 .cert .dir.lower { color: var(--yellow); }
 .cert .dir.higher { color: var(--green); }
 .cert .seal { position: relative; flex: none; width: 112px; height: 112px; border-radius: 50%; display: grid; place-content: center; text-align: center;
@@ -249,6 +255,32 @@ CARD_CSS = r"""
   .cert .count { font-size: 34px; }
   .cert .src-sum { grid-template-columns: 34px 56px 1fr 80px; }
   .cert .src-sum .date, .cert .src-head .date { display: none; }
+}
+/* Phones: denser, smaller type so less wraps */
+@media (max-width: 560px) {
+  .cert { --gap: 12px; font-size: 14px; }
+  .cert .block { padding: 14px 14px; }
+  .cert h1 { font-size: 19px; }
+  .cert h2 { font-size: 14px; }
+  .cert .ico { width: 26px; height: 26px; } .cert .ico svg { width: 16px; height: 16px; }
+  .cert .hero-num .count { font-size: 36px; }
+  .cert .seal { width: 74px; height: 74px; border-width: 2px; }
+  .cert .seal-word { font-size: 10px; letter-spacing: .05em; } .cert .seal-score { font-size: 16px; }
+  .cert .bottom-line { font-size: 13.5px; padding: 8px 10px; margin: 10px 0 6px; }
+  .cert .fact { grid-template-columns: 84px 1fr; gap: 8px; font-size: 13px; padding: 6px 0; }
+  .cert .fact dt { font-size: 12px; }
+  .cert .trust-strip { gap: 6px; }
+  .cert .trust-item { padding: 6px 8px; font-size: 13px; border-radius: 10px; }
+  .cert .trust-item .t-label { font-size: 11px; }
+  .cert .log-row > summary { padding: 7px 8px; gap: 8px; }
+  .cert .log-text { font-size: 13px; }
+  .cert .impact { font-size: 11px; }
+  .cert .direction, .cert .indicated { font-size: 13px; padding: 6px 10px; }
+  .cert .legend { font-size: 12px; }
+  .cert .kv { font-size: 13px; }
+  .cert .src-sum { grid-template-columns: 30px 50px 1fr 72px; gap: 6px; font-size: 13px; }
+  .cert blockquote { padding: 6px 10px; font-size: 13.5px; }
+  .cert button { font-size: 13px; padding: 6px 10px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .cert .flash, .cert .card > .block, .cert .card > footer, .cert .meter span.on, .cert .seal { animation: none; }
@@ -430,6 +462,16 @@ CARD_JS = r"""
     if (b === "ready") for (var i = 0; i < 8; i++) stamp.appendChild(el("i", { cls: "spark s" + i }));
     return stamp;
   }
+  // A short excerpt for the header: the sentence around the figure, trimmed (the full passage is below).
+  function shortQuote(text, count) {
+    text = (text || "").replace(/\s+/g, " ").trim();
+    if (text.length <= 170) return text;
+    var i = count != null ? text.indexOf(num(count)) : -1;
+    if (i < 0 && count != null) i = text.indexOf(String(count));
+    if (i < 0) return text.slice(0, 160).replace(/\s\S*$/, "") + "…";
+    var a = Math.max(0, i - 70), b = Math.min(text.length, i + 100);
+    return (a > 0 ? "…" : "") + text.slice(a, b).replace(/^\S*\s/, a > 0 ? "" : "$&").replace(/\s\S*$/, b < text.length ? "" : "$&") + (b < text.length ? "…" : "");
+  }
   function factRows(rows) {
     var dl = el("dl", { cls: "facts" });
     rows.forEach(function (row) {
@@ -470,7 +512,10 @@ CARD_JS = r"""
       ["As of", h.as_of_date ? h.as_of_date + (h.as_of_estimated ? (h.as_of_estimated_from === "url" ? " (estimated from URL)" : " (estimated)") : "") : "undated"],
       ["Confidence", conf],
       ["Key source", p && p.source_id ? sourceLabel(p) : (p && p.none_reason)],
-      ["Found in", p && p.source_id ? el("span", null, [link(p.url, host(p.url)), (p.location.section ? " · " + p.location.section : "") + " · " + p.location.page_label]) : null],
+      ["Source link", p && p.source_id ? el("span", null, [link(p.url, host(p.url)),
+        p.location.deep_link ? " · " : null, p.location.deep_link ? link(p.location.deep_link, "open at the quote ↗") : null]) : null],
+      ["Line in source", p && p.source_id ? (p.location.section ? p.location.section + " · " : "") + p.location.page_label : null],
+      ["Excerpt", p && p.source_id && p.excerpt ? el("q", { cls: "excerpt", text: shortQuote(p.excerpt, h.count) }) : null],
       ["Direction", dirShort ? el("span", { cls: "dir " + h.direction, text: dirShort }) : null],
       ["Known change", h.known_changes && h.known_changes.length ? h.known_changes.join("; ") : null, "wide"],
       ["Newer data", ir ? (ir.low === ir.high ? "about " + num(ir.low) : num(ir.low) + "–" + num(ir.high)) + " (" + ir.earliest.slice(0, 7) + (ir.latest !== ir.earliest ? " to " + ir.latest.slice(0, 7) : "") + ") · context only, not certified" : null],
@@ -535,6 +580,7 @@ CARD_JS = r"""
     var step = Math.pow(10, Math.floor(Math.log10((v1 - v0) / 3))); [1, 2, 5, 10].some(function (m) { if ((v1 - v0) / (step * m) <= 4) { step *= m; return true; } });
     var X = function (ms) { return L + (ms - x0) / (x1 - x0) * (W - L - R); };
     var Y = function (v) { return T + (1 - (v - v0) / (v1 - v0)) * (H - T - B); };
+    var gid = "area-" + (r.__k || "r0");
     var svgEl = document.createElementNS(ns, "svg");
     svgEl.setAttribute("viewBox", "0 0 " + W + " " + H); svgEl.setAttribute("class", "chart"); svgEl.setAttribute("role", "img");
     svgEl.setAttribute("aria-label", "Headcount over time: " + items.map(function (p) { return p.as_of_date + " " + num(p.value) + (p.estimated ? " (forecast, " + num(p.low) + " to " + num(p.high) + ")" : " (reported)"); }).join("; ") +
@@ -562,17 +608,58 @@ CARD_JS = r"""
         ir.low === ir.high ? "≈" + num(ir.low) : num(ir.low) + "–" + num(ir.high));
     }
     var reported = items.filter(function (p) { return !p.estimated; }), last = reported[reported.length - 1];
+    var pts = reported.map(function (p) { return [X(t(p.as_of_date)), Y(p.value)]; });
+    if (!svgEl.querySelector("defs")) {
+      var defs = document.createElementNS(ns, "defs");
+      defs.innerHTML = '<linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--loop-blue)" stop-opacity=".28"/>' +
+        '<stop offset="1" stop-color="var(--loop-blue)" stop-opacity="0"/></linearGradient>';
+      svgEl.insertBefore(defs, svgEl.firstChild);
+    }
+    if (pts.length > 1) {  // soft area under a smooth (monotone) line through the reported points
+      var line = smooth(pts);
+      add("path", { d: line + " L " + pts[pts.length - 1][0] + " " + (H - B) + " L " + pts[0][0] + " " + (H - B) + " Z", fill: "url(#" + gid + ")", stroke: "none" });
+      add("path", { d: line, fill: "none", stroke: "var(--meter)", "stroke-width": 3, "stroke-linecap": "round", "stroke-linejoin": "round" });
+    }
     items.filter(function (p) { return p.estimated && p.low != null; }).forEach(function (f) {
-      if (last) add("polygon", { points: [X(t(last.as_of_date)), Y(last.value), X(t(f.as_of_date)), Y(f.high), X(t(f.as_of_date)), Y(f.low)].join(" "),
-        fill: "var(--loop-blue)", "fill-opacity": .18 });
-      if (last) add("line", { x1: X(t(last.as_of_date)), y1: Y(last.value), x2: X(t(f.as_of_date)), y2: Y(f.value), stroke: "var(--meter)", "stroke-width": 2, "stroke-dasharray": "5 4" });
+      if (!last) return;
+      var lx = X(t(last.as_of_date)), ly = Y(last.value), fx = X(t(f.as_of_date)), mid = (lx + fx) / 2;
+      add("path", { d: "M " + lx + " " + ly + " Q " + mid + " " + ly + " " + fx + " " + Y(f.high) + " L " + fx + " " + Y(f.low) + " Q " + mid + " " + ly + " " + lx + " " + ly + " Z",
+        fill: "var(--loop-blue)", "fill-opacity": .16 });
+      add("path", { d: "M " + lx + " " + ly + " Q " + mid + " " + (ly + Y(f.value)) / 2 + " " + fx + " " + Y(f.value), fill: "none", stroke: "var(--meter)",
+        "stroke-width": 2.5, "stroke-dasharray": "6 5", "stroke-linecap": "round" });
     });
-    for (var i = 1; i < reported.length; i++) add("line", { x1: X(t(reported[i - 1].as_of_date)), y1: Y(reported[i - 1].value), x2: X(t(reported[i].as_of_date)), y2: Y(reported[i].value), stroke: "var(--meter)", "stroke-width": 2.5 });
-    items.forEach(function (p) {
-      add("circle", { cx: X(t(p.as_of_date)), cy: Y(p.value), r: 5, fill: p.estimated ? "var(--card)" : "var(--meter)", stroke: "var(--meter)", "stroke-width": 2.5 });
-      add("text", { x: X(t(p.as_of_date)), y: Y(p.value) - 10, "text-anchor": "middle", "class": "pt-label" }, num(p.value));
+    items.forEach(function (p, i) {
+      var cx = X(t(p.as_of_date)), cy = Y(p.value), isLast = p === last;
+      if (isLast) add("circle", { cx: cx, cy: cy, r: 11, fill: "var(--loop-green)", "fill-opacity": .22 });
+      add("circle", { cx: cx, cy: cy, r: isLast ? 6.5 : 5, fill: p.estimated ? "var(--card)" : "var(--meter)", stroke: isLast ? "var(--loop-green)" : "var(--meter)", "stroke-width": isLast ? 3 : 2.5 });
+      // Values only on the chart; the certified point and the forecast range are named in the legend. The
+      // forecast label sits below its point so it never collides with the certified label above.
+      var below = !!p.estimated;
+      add("text", { x: cx, y: below ? cy + 20 : cy - (isLast ? 16 : 11),
+        "text-anchor": i === 0 && items.length > 1 ? "start" : (i === items.length - 1 ? "end" : "middle"),
+        "class": "pt-label" + (isLast ? " pt-key" : "") + (p.estimated ? " pt-est" : "") }, num(p.value));
     });
     return svgEl;
+  }
+
+  // Monotone cubic (Fritsch-Carlson) through points sorted by x: smooth, with no overshoot between points.
+  function smooth(pts) {
+    var n = pts.length, d = [], m = [];
+    for (var i = 0; i < n - 1; i++) d.push((pts[i + 1][1] - pts[i][1]) / ((pts[i + 1][0] - pts[i][0]) || 1));
+    m[0] = d[0]; m[n - 1] = d[n - 2];
+    for (i = 1; i < n - 1; i++) m[i] = d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2;
+    for (i = 0; i < n - 1; i++) {
+      if (d[i] === 0) { m[i] = 0; m[i + 1] = 0; continue; }
+      var a = m[i] / d[i], b = m[i + 1] / d[i], h = a * a + b * b;
+      if (h > 9) { var tau = 3 / Math.sqrt(h); m[i] = tau * a * d[i]; m[i + 1] = tau * b * d[i]; }
+    }
+    var path = "M " + pts[0][0] + " " + pts[0][1];
+    for (i = 0; i < n - 1; i++) {
+      var dx = (pts[i + 1][0] - pts[i][0]) / 3;
+      path += " C " + (pts[i][0] + dx) + " " + (pts[i][1] + m[i] * dx) + " " + (pts[i + 1][0] - dx) + " " + (pts[i + 1][1] - m[i + 1] * dx) +
+        " " + pts[i + 1][0] + " " + pts[i + 1][1];
+    }
+    return path;
   }
 
   function trendBlock(r) {
@@ -581,8 +668,11 @@ CARD_JS = r"""
     var svgEl = chart(r);
     if (svgEl) {
       nodes.push(el("div", { cls: "chart-wrap" }, [svgEl]));
+      var fc = items.filter(function (p) { return p.estimated; })[0];
       nodes.push(el("div", { cls: "legend small muted" }, [el("span", null, [el("i", { cls: "lg solid" }), "Reported"]),
-        items.some(function (p) { return p.estimated; }) ? el("span", null, [el("i", { cls: "lg hollow" }), "Estimated (forecast) with shaded range"]) : null,
+        el("span", null, [el("i", { cls: "lg key" }), "Certified figure"]),
+        fc ? el("span", null, [el("i", { cls: "lg hollow" }), "Forecast " + fc.as_of_date.slice(0, 4) + ": " + num(fc.value) +
+          (fc.low != null ? " (range " + num(fc.low) + "–" + num(fc.high) + ")" : "")]) : null,
         h.indicated_current_range ? el("span", null, [el("i", { cls: "lg box" }), "Indicated current range (context only)"]) : null]));
     } else {
       nodes.push(none(r.trend.none_reason));

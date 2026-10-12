@@ -71,6 +71,7 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
             s.notes.append("Partial or regional scope; supporting evidence only.")
         adjustments.extend(log)
 
+    _restore_annual_series(sources, policy)
     selection = rules.select_source(sources, lookup_date, policy)
     selected, derivation, growth = selection.selected, None, None
     notes = list(selection.notes)
@@ -337,6 +338,34 @@ def _direction(selected: Source | None, value: int | None, outcomes: list[EventO
                                                     f"{value:,}, {change:+.0%}); no later change is known.")
     return Direction(direction="unknown", reason="No newer evidence to say whether the figure has moved since its "
                                                  "as-of date.")
+
+
+_SEC_FILER = re.compile(r"sec\.gov/Archives/edgar/data/(\d+)/", re.I)
+
+
+def _restore_annual_series(sources: list[Source], policy: Policy) -> None:
+    """A filer's annual SEC figures form one whole-company series. When one year is marked partial but is
+    within the corroboration threshold of the same filer's whole-company figure for another year, the
+    "partial" reading came from a breakdown that follows the total (e.g. "..., 121,000 in the U.S. and
+    102,000 internationally"), so it is restored to whole-company. Real partial figures are far smaller."""
+    series: dict[str, list[Source]] = {}
+    for s in sources:
+        m = _SEC_FILER.search(s.url) if s.tier == 1 else None
+        if m:
+            series.setdefault(m.group(1), []).append(s)
+    for filings in series.values():
+        whole = [s for s in filings if s.scope == "global"]
+        for s in filings:
+            if s.scope != "partial":
+                continue
+            near = [w for w in whole if w.as_of_date != s.as_of_date
+                    and rules.relative_diff(s.value, w.value) <= policy.agreement.corroborates_within]
+            if near:
+                ref = max(near, key=lambda w: w.as_of_date or date.min)
+                s.scope = "global"
+                s.notes.append(f"Restored to whole-company: within {rules.relative_diff(s.value, ref.value):.0%} of the "
+                               f"same filer's whole-company figure ({ref.value:,}, as of {ref.as_of_date}); the "
+                               "breakdown after the total doesn't narrow it.")
 
 
 def _is_linkedin(s: Source) -> bool:

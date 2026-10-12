@@ -38,18 +38,20 @@
     "pre_adjustment": false,
     "direction": {
       "direction": "lower",
-      "reason": "Likely lower: newer data-provider figures put headcount at about 438 (2026-03-01)."
+      "reason": "Likely lower: newer data-provider figures put headcount at 373-438 (2026-03-15 to 2026-04-15)."
     },
     "scope_notes": [],
+    "explained_flags": [],
     "indicated_range": {
-      "low": 438,
+      "low": 373,
       "high": 438,
-      "earliest": "2026-03-01",
-      "latest": "2026-03-01",
+      "earliest": "2026-03-15",
+      "latest": "2026-04-15",
       "urls": [
-        "https://www.reveliolabs.com/companies/donor-network-west/employees"
+        "https://www.reveliolabs.com/companies/donor-network-west/employees",
+        "https://www.leadiq.com/c/donor-network-west/5a1d98352300005e0086db7c/email-format"
       ],
-      "reason": "1 newer data-provider figure(s) dated 2026-03-01 to 2026-03-01 put headcount at 438-438, 15% from the certified figure as of 2024-12-31. Shown for context; policy does not let tier 7-9 data replace it."
+      "reason": "2 newer data-provider figure(s) dated 2026-03-15 to 2026-04-15 put headcount at 373-438, 21% from the certified figure as of 2024-12-31. Shown for context; policy does not let tier 7-9 data replace it."
     },
     "sources": [
       {
@@ -79,6 +81,8 @@
         "components": null,
         "separately_reported": null,
         "restates": false,
+        "document_type": "form_990",
+        "publisher": "ProPublica Nonprofit Explorer",
         "corroboration_only": false,
         "role": "selected",
         "role_reason": "Highest-ranked eligible source: tier 2, as of 2024-12-31.",
@@ -113,6 +117,8 @@
         "components": null,
         "separately_reported": null,
         "restates": false,
+        "document_type": "form_990",
+        "publisher": "ProPublica Nonprofit Explorer",
         "corroboration_only": false,
         "role": "supporting",
         "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
@@ -149,6 +155,8 @@
         "components": null,
         "separately_reported": null,
         "restates": false,
+        "document_type": "form_990",
+        "publisher": "ProPublica Nonprofit Explorer",
         "corroboration_only": false,
         "role": "supporting",
         "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
@@ -159,25 +167,25 @@
         ]
       },
       {
-        "url": "https://www.donornetworkwest.org/wp-content/uploads/2023/03/Sponsorship_Packet_2023-FINAL-Reduced-Size.pdf",
-        "tier": 3,
-        "value": 300,
-        "qualifier": "more_than",
-        "excerpt": "On behalf of the more than 300 employees at Donor Network West, we thank you for your consideration and continued",
+        "url": "https://projects.propublica.org/nonprofits/organizations/943062436/202202849349301620/full",
+        "tier": 2,
+        "value": 449,
+        "qualifier": "exact",
+        "excerpt": "Total number of individuals employed in calendar year 2021 ( Part V , line 2a) ...... 5 449",
         "location": {
-          "section": "Opening letter",
-          "page": null,
-          "page_basis": null,
-          "context": "On behalf of the more than 300 employees at Donor Network West, we thank you for your consideration and continued. Donor Network West is a federally designated nonprofit, 501(c)3, organ procurement. Established in 1987, we serve more than 13 million people and connect a donor's gift to those in need in 45 counties in northern California and northern Nevada.",
-          "deep_link": "https://www.donornetworkwest.org/wp-content/uploads/2023/03/Sponsorship_Packet_2023-FINAL-Reduced-Size.pdf#:~:text=On%20behalf%20of%20the%20more,consideration%20and%20continued",
-          "note": "PDF page number not identified."
+          "section": "Form 990 › Part I (Summary) › line 5",
+          "page": "1",
+          "page_basis": "form",
+          "context": "…5 Total number of individuals employed in calendar year 2021 ( Part V , line 2a) ...... 5 449 6 Total number of volunteers (estimate if necessary) ............. 6 136…",
+          "deep_link": null,
+          "note": "Line 5 is the total number of individuals employed in calendar year 2021 (cross-referenced to Part V, line 2a), on page 1 of the IRS Form 990 as filed; shown on ProPublica's full-filing view."
         },
-        "as_of_date": "2023-03-01",
-        "as_of_estimated": true,
-        "as_of_basis": "sponsorship packet dated March 2023",
+        "as_of_date": "2021-12-31",
+        "as_of_estimated": false,
+        "as_of_basis": null,
         "as_of_from_url": false,
         "predates_change": false,
-        "published_date": "2023-03-01",
+        "published_date": "2022-09-27",
         "modified_date": null,
         "scope": "global",
         "basis": "headcount",
@@ -185,12 +193,51 @@
         "components": null,
         "separately_reported": null,
         "restates": false,
+        "document_type": "form_990",
+        "publisher": "ProPublica Nonprofit Explorer",
         "corroboration_only": false,
         "role": "supporting",
         "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
         "notes": [
-          "A floor figure, loose; the 2022 Form 990 reported 475.",
-          "As-of date estimated from sponsorship packet dated March 2023.",
+          "W-3 count of everyone paid during the calendar year; can exceed point-in-time headcount.",
+          "Older than 24 months.",
+          "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
+        ]
+      },
+      {
+        "url": "https://projects.propublica.org/nonprofits/organizations/943062436/202132739349300923/full",
+        "tier": 2,
+        "value": 438,
+        "qualifier": "exact",
+        "excerpt": "Total number of individuals employed in calendar year 2020 ( Part V , line 2a) ...... 5 438",
+        "location": {
+          "section": "Form 990 › Part I (Summary) › line 5",
+          "page": "1",
+          "page_basis": "form",
+          "context": "…5 Total number of individuals employed in calendar year 2020 ( Part V , line 2a) ...... 5 438 6 Total number of volunteers (estimate if necessary) ............. 6 263…",
+          "deep_link": null,
+          "note": "Line 5 is the total number of individuals employed in calendar year 2020 (cross-referenced to Part V, line 2a), on page 1 of the IRS Form 990 as filed; shown on ProPublica's full-filing view."
+        },
+        "as_of_date": "2020-12-31",
+        "as_of_estimated": false,
+        "as_of_basis": null,
+        "as_of_from_url": false,
+        "predates_change": false,
+        "published_date": "2021-09-23",
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "document_type": "form_990",
+        "publisher": "ProPublica Nonprofit Explorer",
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
+        "notes": [
+          "W-3 count of everyone paid during the calendar year; can exceed point-in-time headcount.",
           "Older than 24 months.",
           "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
         ]
@@ -202,16 +249,16 @@
         "qualifier": "approximately",
         "excerpt": "Donor Network West has approximately 438 total employees worldwide as of March 2026, according to Revelio Labs workforce intelligence data.",
         "location": {
-          "section": "How many employees work at Donor Network West?",
+          "section": "Employee count summary and annual employee count",
           "page": null,
           "page_basis": null,
-          "context": "Donor Network West had 438 employees as of March 2026, down 9 (-0.1%) from the prior year. Donor Network West has approximately 438 total employees worldwide as of March 2026, according to Revelio Labs workforce intelligence data. Donor Network West's total headcount has grown 6.6% from 411 employees in 2023 to 438 in 2026.",
+          "context": "Donor Network West had 438 employees as of March 2026, down 9 (-0.1%) from the prior year. Donor Network West has approximately 438 total employees worldwide as of March 2026, according to Revelio Labs workforce intelligence data. Donor Network West had 436 employees in 2025, a 1.9% decline (-1) from 2024.",
           "deep_link": "https://www.reveliolabs.com/companies/donor-network-west/employees#:~:text=Donor%20Network%20West%20has%20approximately,workforce%20intelligence%20data.",
           "note": "Web page: no page numbers."
         },
-        "as_of_date": "2026-03-01",
-        "as_of_estimated": false,
-        "as_of_basis": null,
+        "as_of_date": "2026-03-15",
+        "as_of_estimated": true,
+        "as_of_basis": "page states 'as of March 2026'",
         "as_of_from_url": false,
         "predates_change": false,
         "published_date": "2026-07-01",
@@ -222,67 +269,34 @@
         "components": null,
         "separately_reported": null,
         "restates": false,
+        "document_type": "data_provider",
+        "publisher": null,
         "corroboration_only": false,
         "role": "supporting",
         "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
         "notes": [
-          "Modeled estimate from online profiles; page internally inconsistent (annual list gives 436 for 2025, 437 for 2024); functional split does not fit an OPO. Runs about 15% below Form 990.",
+          "Modeled estimate. The page contradicts itself (down 9 vs. 436 for 2025 and 437 for 2024). The match with the 2020 Form 990 figure of 438 is coincidental. Published date given only as July 2026.",
+          "As-of date estimated from page states 'as of March 2026'.",
           "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
         ]
       },
       {
-        "url": "https://rocketreach.co/donor-network-west-profile_b5c68463f42e0ce7",
+        "url": "https://www.leadiq.com/c/donor-network-west/5a1d98352300005e0086db7c/email-format",
         "tier": 9,
         "value": 373,
-        "qualifier": "exact",
-        "excerpt": "Donor Network West is a Hospitals and Health Care company located in San Ramon, California with $68.1 million in revenue and 373 employees.",
-        "location": {
-          "section": "Company information",
-          "page": null,
-          "page_basis": null,
-          "context": "Employees · 373 (271 on RocketReach). Founded · 1987.",
-          "deep_link": "https://rocketreach.co/donor-network-west-profile_b5c68463f42e0ce7#:~:text=Donor%20Network%20West%20is%20a,and%20373%20employees.",
-          "note": "Web page: no page numbers."
-        },
-        "as_of_date": null,
-        "as_of_estimated": false,
-        "as_of_basis": null,
-        "as_of_from_url": false,
-        "predates_change": false,
-        "published_date": null,
-        "modified_date": null,
-        "scope": "global",
-        "basis": "headcount",
-        "contractors_included": null,
-        "components": null,
-        "separately_reported": null,
-        "restates": false,
-        "corroboration_only": false,
-        "role": "supporting",
-        "role_reason": "Not counted as corroboration: undated, so not near the certified figure's as-of date.",
-        "notes": [
-          "Undated; revenue figure looks out of date. 271 is profiles on RocketReach.",
-          "Undated source.",
-          "Not counted as corroboration: undated, so not near the certified figure's as-of date."
-        ]
-      },
-      {
-        "url": "https://leadiq.com/c/donor-network-west/5a1d98352300005e0086db7c",
-        "tier": 9,
-        "value": 376,
         "qualifier": "approximately",
-        "excerpt": "As of August 2025, Donor Network West has approximately 376 employees across 2 continents, including North America Asia.",
+        "excerpt": "Donor Network West has approximately 373 employees as of April 2026.",
         "location": {
           "section": "FAQ",
           "page": null,
           "page_basis": null,
-          "context": "As of August 2025, Donor Network West has approximately 376 employees across 2 continents, including North America Asia. Employees: 201-500.",
-          "deep_link": "https://leadiq.com/c/donor-network-west/5a1d98352300005e0086db7c#:~:text=As%20of%20August%202025%2C%20Donor,North%20America%20Asia.",
+          "context": "Donor Network West has approximately 373 employees as of April 2026. Key team members to contact include Chief Medical Officer: W. C.Vice President Clinical Operations: D. K.President: A. P.",
+          "deep_link": "https://www.leadiq.com/c/donor-network-west/5a1d98352300005e0086db7c/email-format#:~:text=Donor%20Network%20West%20has%20approximately,of%20April%202026.",
           "note": "Web page: no page numbers."
         },
-        "as_of_date": "2025-08-01",
-        "as_of_estimated": false,
-        "as_of_basis": null,
+        "as_of_date": "2026-04-15",
+        "as_of_estimated": true,
+        "as_of_basis": "page states 'as of April 2026'",
         "as_of_from_url": false,
         "predates_change": false,
         "published_date": null,
@@ -293,11 +307,15 @@
         "components": null,
         "separately_reported": null,
         "restates": false,
+        "document_type": "data_provider",
+        "publisher": null,
         "corroboration_only": false,
         "role": "supporting",
-        "role_reason": "Within 27% of the certified value: closer than a conflict, not close enough to corroborate; context only.",
+        "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
         "notes": [
-          "Modeled estimate; Asia claim doubtful."
+          "Contact-database estimate. LeadIQ size range is 201-500.",
+          "As-of date estimated from page states 'as of April 2026'.",
+          "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
         ]
       },
       {
@@ -327,11 +345,13 @@
         "components": null,
         "separately_reported": null,
         "restates": false,
+        "document_type": "data_provider",
+        "publisher": null,
         "corroboration_only": false,
         "role": "supporting",
         "role_reason": "Not counted as corroboration: undated, so not near the certified figure's as-of date.",
         "notes": [
-          "Undated estimate.",
+          "Undated modeled estimate. Its revenue figure conflicts with ZoomInfo's.",
           "Undated source.",
           "Not counted as corroboration: undated, so not near the certified figure's as-of date."
         ]
@@ -341,14 +361,14 @@
         "tier": 9,
         "value": 299,
         "qualifier": "exact",
-        "excerpt": "299 Total Employees",
+        "excerpt": "299 total employees",
         "location": {
-          "section": "Company header",
+          "section": null,
           "page": null,
           "page_basis": null,
-          "context": "Total Offices: 5. 299 Total Employees. Year Founded: 1987.",
+          "context": "Built In shows 299 total employees (undated, likely stale).",
           "deep_link": null,
-          "note": "Web page: no page numbers."
+          "note": "Web page: no page numbers. Section not identified."
         },
         "as_of_date": null,
         "as_of_estimated": false,
@@ -363,11 +383,13 @@
         "components": null,
         "separately_reported": null,
         "restates": false,
+        "document_type": "data_provider",
+        "publisher": null,
         "corroboration_only": false,
         "role": "conflicts",
         "role_reason": "Disagrees by 42%, but a tier 9 or stale source never lowers confidence; recorded only.",
         "notes": [
-          "Likely self-reported or stale.",
+          "Undated and likely stale. The excerpt is paraphrased from the research notes, not a verbatim quote.",
           "Undated source.",
           "Not counted as corroboration: undated, so not near the certified figure's as-of date."
         ]
@@ -391,8 +413,20 @@
     "adjustments": [],
     "flags": [],
     "events": [],
-    "rationale": "Highest-ranked available source is tier 2 (Non-financial annual or regulatory report), as of 2024-12-31, reporting 513. 0 independent corroborating source(s) within 15%. Confidence 3 (Supported).",
+    "rationale": "Highest-ranked available source is tier 2 (Corporate fact sheet, or non-financial annual or regulatory report), as of 2024-12-31, reporting 513. 0 independent corroborating source(s) within 15%. Confidence 3 (Supported).",
     "trend": [
+      {
+        "as_of_date": "2020-12-31",
+        "value": 438,
+        "tier": 2,
+        "url": "https://projects.propublica.org/nonprofits/organizations/943062436/202132739349300923/full"
+      },
+      {
+        "as_of_date": "2021-12-31",
+        "value": 449,
+        "tier": 2,
+        "url": "https://projects.propublica.org/nonprofits/organizations/943062436/202202849349301620/full"
+      },
       {
         "as_of_date": "2022-12-31",
         "value": 475,
@@ -415,20 +449,20 @@
     "forecast": null,
     "policy_version": "0.2"
   },
-  "cost_usd": 0.1253,
+  "cost_usd": 0.1228,
   "web_searches": 2,
   "web_fetches": 0,
   "method": "990+research",
   "notes": [
     "Form 990 filings found on ProPublica (EIN 943062436).",
-    "No SEC filings. Form 990 line 5 (513 for 2024, 518 for 2023, 475 for 2022) counts everyone issued a W-2 during the year, so it may run above point-in-time headcount. Third-party estimates (299-458) and LinkedIn members (331-341; another snippet shows 331) sit below the 990 figures; not reconciled. LinkedIn snippet may be stale. ZoomInfo and Indeed give only a 201-500 range, so they are not recorded as sources. Website 13 million and 100,000 tiles are service-population figures, and the 15 employees is a historical figure for the predecessor CTDN, so none are headcounts. No confirmed M&A, layoffs or hiring events."
+    "Form 990 line 5 counts (already recorded) are the only company-filed figures. They run above point-in-time counts because line 5 includes anyone issued a W-2 during the year. Trend: 438 (2020), 449, 475, 518 (2023), 513 (2024). LinkedIn member counts (331, 338, 341) are all undated; 341 is the newest by follower count. No LinkedIn growth data was found. Excluded: website '15 employees' (first-year staff of predecessor CTDN, historical), '13 million people' and '100,000 people' (service population), RocketReach 8 employees (not whole organization), and size ranges only from ZoomInfo, Crunchbase, Glassdoor, Indeed and LeadIQ (201-500 or 251-500). Cause IQ's 513 restates the Form 990 and is not independent. Open job postings (34 per Revelio, 43 per LinkedIn) are ordinary recruiting, not an event."
   ],
   "queries": [
-    "web_search: Donor Network West number of employees",
-    "web_search: Donor Network West LinkedIn"
+    "web_search: Donor Network West LinkedIn employees",
+    "web_search: Donor Network West number of employees 2026"
   ],
-  "run_at": "2026-10-12T00:17:45.334038Z",
-  "duration_s": 40.6,
+  "run_at": "2026-10-12T03:04:29.928825Z",
+  "duration_s": 42.0,
   "models": {
     "research": "claude-sonnet-5-5",
     "extraction": "claude-sonnet-5-5"

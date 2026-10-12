@@ -223,6 +223,37 @@ CARD_CSS = r"""
   padding: 7px 10px; border-radius: 8px; font-size: 14px; font-weight: 600; }
 .cert .dl-items button:hover, .cert .dl-items button:focus-visible { background: var(--soft); }
 .cert .dl-hint { font-size: 12px; font-weight: 500; color: var(--muted); }
+.cert .dl-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cert .dl-more { color: var(--muted); font-size: 16px; line-height: 1; }
+.cert .dl-items button.dl-disabled { opacity: .45; cursor: not-allowed; }
+.cert .dl-items button.dl-disabled:hover { background: transparent; }
+.cert .dl-items.step2 { min-width: 300px; gap: 8px; padding: 10px; }
+.cert .dl-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cert .dl-items .dl-choice { display: grid; justify-items: center; gap: 4px; padding: 8px; border: 2px solid var(--line); border-radius: 10px;
+  text-align: center; }
+.cert .dl-items .dl-choice.on { border-color: var(--loop-green); background: var(--soft); box-shadow: 0 0 0 3px rgba(63, 207, 142, .18); }
+.cert .dl-choice-label { font-weight: 700; font-size: 14px; }
+.cert .dl-step-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.cert .dl-items .dl-back { color: var(--accent); font-weight: 600; font-size: 13px; padding: 6px 8px; }
+.cert .dl-items .dl-go { display: inline-block; background: var(--primary-bg); color: var(--primary-text); font-weight: 700; padding: 7px 16px; }
+.cert .dl-items .dl-go:hover { background: var(--primary-bg); filter: brightness(1.08); }
+.cert .dl-thumb { position: relative; display: block; width: 116px; height: 66px; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); }
+.cert .dl-thumb.light { background: #F5F7FB; }
+.cert .dl-thumb.dark { background: #06182F; }
+.cert .dl-thumb i { position: absolute; display: block; border-radius: 2px; }
+.cert .dl-thumb .t-head { left: 7px; top: 6px; width: 30px; height: 6px; background: #3FCF8E; }
+.cert .dl-thumb .t-rule { left: 7px; right: 7px; top: 15px; height: 2px; background: linear-gradient(90deg, #3FCF8E 37%, #599AF5 37%); }
+.cert .dl-thumb .t-num { left: 7px; top: 23px; width: 40px; height: 11px; }
+.cert .dl-thumb.light .t-num { background: #0A2545; }
+.cert .dl-thumb.dark .t-num { background: #EAF2FF; }
+.cert .dl-thumb .t-seal { left: 52px; top: 21px; width: 15px; height: 15px; border-radius: 50%; background: conic-gradient(#3FCF8E, #599AF5, #3FCF8E); }
+.cert .dl-thumb .t-line { left: 7px; top: 41px; width: 58px; height: 4px; }
+.cert .dl-thumb .t-line.short { top: 49px; width: 40px; }
+.cert .dl-thumb.light .t-line { background: #C9D3E0; }
+.cert .dl-thumb.dark .t-line { background: #2A4468; }
+.cert .dl-thumb .t-panel { right: 7px; top: 21px; width: 36px; height: 36px; border-radius: 4px; }
+.cert .dl-thumb.light .t-panel { background: #FFFFFF; border: 1px solid #DCE3EC; }
+.cert .dl-thumb.dark .t-panel { background: #0D2440; border: 1px solid #1E3A5C; }
 .cert .dl-group { margin: 6px 10px 2px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .cert .footer-actions { margin-top: 12px; }
 .cert .owner-notice { margin: 12px 0 0; font-size: 11px; line-height: 1.45; color: var(--muted); }
@@ -234,7 +265,12 @@ CARD_CSS = r"""
 .cert .crm-lbl svg { width: 15px; height: 15px; }
 .cert .crm-inline input { width: 118px; font: inherit; font-size: 14px; padding: 5px 9px; border-radius: 8px; border: 1px solid var(--line);
   background: var(--card); color: var(--text); }
-.cert .crm-inline button { padding: 5px 12px; font-size: 13px; }
+.cert .crm-inline .crm-go { padding: 6px 14px; font-size: 13.5px; font-weight: 700; border-radius: 8px; border: 0; cursor: pointer;
+  background: var(--accent); color: var(--card); box-shadow: 0 1px 2px rgba(10, 37, 69, .25); }
+.cert .crm-inline .crm-go:hover { filter: brightness(1.1); }
+.cert .crm-inline .crm-go:focus-visible { outline: 2px solid var(--loop-green); outline-offset: 2px; }
+.cert .trust .breakdown { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
+.cert .trust .breakdown > summary { color: var(--accent); font-size: 14px; font-weight: 600; cursor: pointer; }
 .cert .crm-out:empty { display: none; }
 .cert .crm-out { margin-top: 8px; }
 .cert .crm-verdict { margin: 0; padding: 8px 12px; border-radius: 10px; font-size: 13.5px; }
@@ -244,6 +280,8 @@ CARD_CSS = r"""
 .cert .crm-verdict.light { background: var(--soft); color: var(--text); }
 .cert .crm-copy { font-weight: 700; text-decoration: underline; color: inherit; padding: 0; font-size: inherit; background: none; border: 0; }
 .cert .crm-see { opacity: .8; }
+.cert .chart .pt-faint { opacity: .55; font-weight: 600; font-size: 11.5px; }
+.cert .chart .pt-cert { font-size: 10.5px; font-weight: 800; letter-spacing: .08em; fill: var(--green); }
 .cert .chart .gap-label { font-size: 11px; fill: var(--muted); font-style: italic; }
 .cert .chart .ov-label { font-size: 11.5px; font-weight: 700; }
 .cert .legend .lg.gap { width: auto; height: auto; border: 0; background: none; color: var(--muted); font-style: normal; font-weight: 700; font-size: 11px; }
@@ -547,36 +585,83 @@ CARD_JS = r"""
     var a = el("a", { href: url, download: "", target: "_blank", rel: "noopener" });
     document.body.appendChild(a); a.click(); a.remove();
   }
+  // A short list; PowerPoint and CSV open a second step to pick the theme (with previews) or the file.
+  function slidePreview(theme) {
+    return el("span", { cls: "dl-thumb " + theme, "aria-hidden": "true" }, [
+      el("i", { cls: "t-head" }), el("i", { cls: "t-rule" }), el("i", { cls: "t-num" }), el("i", { cls: "t-seal" }),
+      el("i", { cls: "t-line" }), el("i", { cls: "t-line short" }), el("i", { cls: "t-panel" })]);
+  }
   function downloadMenu(r, opts) {
     var menu = el("details", { cls: "dl-menu" });
-    var label = el("span", { text: "Download" });
     menu.appendChild(el("summary", { cls: "dl-button", "aria-label": "Download or copy this certification" },
-      [el("span", { cls: "dl-ico", "aria-hidden": "true", text: "⤓" }), label, el("span", { cls: "dl-caret", "aria-hidden": "true", text: "▾" })]));
+      [el("span", { cls: "dl-ico", "aria-hidden": "true", text: "⤓" }), el("span", { text: "Download" }),
+        el("span", { cls: "dl-caret", "aria-hidden": "true", text: "▾" })]));
     var list = el("div", { cls: "dl-items", role: "menu" });
-    function item(text, hint, fn) {
-      var b = el("button", { type: "button", role: "menuitem" }, [el("span", { text: text }), hint ? el("span", { cls: "dl-hint", text: hint }) : null]);
-      b.addEventListener("click", function () { fn(b); });
-      list.appendChild(b);
+    var has = exportUrl(r, opts, "json") != null;
+    function close() { menu.open = false; }
+    function item(text, hint, fn, more) {
+      var b = el("button", { type: "button", role: "menuitem" }, [el("span", { cls: "dl-label" }, [text, more ? el("span", { cls: "dl-more", "aria-hidden": "true", text: "›" }) : null]),
+        hint ? el("span", { cls: "dl-hint", text: hint }) : null]);
+      if (fn) b.addEventListener("click", function (e) { e.stopPropagation(); fn(b); });
       return b;
     }
-    item("Copy for CRM", "count, date, confidence, source", function (b) {
-      copyText(crmText(r), b.firstChild, "Copy for CRM");
-    });
-    var theme = pageTheme(), has = exportUrl(r, opts, "json") != null;
-    if (has) {
-      list.appendChild(el("p", { cls: "dl-group", text: "Slides and document" }));
-      ["light", "dark"].forEach(function (t) {
-        item("PowerPoint · " + t, t === theme ? "matches this view · 4 slides" : "4 slides", function () { openUrl(exportUrl(r, opts, "pptx", t)); menu.open = false; });
+    // Step 2: a small chooser in place of the list, with Back and Download.
+    function chooser(title, options, preselect, onGo) {
+      var picked = preselect, tiles = [];
+      var go = el("button", { type: "button", cls: "dl-go", text: "Download" });
+      var back = el("button", { type: "button", cls: "dl-back", text: "‹ Back" });
+      var grid = el("div", { cls: "dl-choices", role: "radiogroup", "aria-label": title });
+      options.forEach(function (o) {
+        var tile = el("button", { type: "button", role: "radio", cls: "dl-choice" }, [o.preview || null,
+          el("span", { cls: "dl-choice-label", text: o.label }), o.hint ? el("span", { cls: "dl-hint", text: o.hint }) : null]);
+        tile.addEventListener("click", function (e) { e.stopPropagation(); picked = o.value; paint(); });
+        tile.__value = o.value;
+        tiles.push(tile);
+        grid.appendChild(tile);
       });
-      item("Word document", "full detail and sources", function () { openUrl(exportUrl(r, opts, "docx")); menu.open = false; });
-      list.appendChild(el("p", { cls: "dl-group", text: "Data" }));
-      item("CSV · summary", "one row", function () { openUrl(exportUrl(r, opts, "summary_csv")); menu.open = false; });
-      item("CSV · sources", "one row per source", function () { openUrl(exportUrl(r, opts, "sources_csv")); menu.open = false; });
-      item("JSON · full record", null, function () { openUrl(exportUrl(r, opts, "json")); menu.open = false; });
-    } else {
-      item("JSON · full record", null, function () { download([r]); menu.open = false; });
+      function paint() { tiles.forEach(function (t) { var on = t.__value === picked; t.classList.toggle("on", on); t.setAttribute("aria-checked", on ? "true" : "false"); }); }
+      paint();
+      back.addEventListener("click", function (e) { e.stopPropagation(); showList(); });
+      go.addEventListener("click", function (e) { e.stopPropagation(); onGo(picked); close(); });
+      list.textContent = "";
+      list.classList.add("step2");
+      list.appendChild(el("p", { cls: "dl-group", text: title }));
+      list.appendChild(grid);
+      list.appendChild(el("div", { cls: "dl-step-actions" }, [back, go]));
+      (tiles.filter(function (t) { return t.__value === picked; })[0] || go).focus();
     }
+    function showList() {
+      list.textContent = "";
+      list.classList.remove("step2");
+      if (has) {
+        list.appendChild(item("PowerPoint", "5 slides · light or dark", function () {
+          chooser("PowerPoint · pick a theme", [
+            { value: "light", label: "Light", hint: pageTheme() === "light" ? "matches this view" : null, preview: slidePreview("light") },
+            { value: "dark", label: "Dark", hint: pageTheme() === "dark" ? "matches this view" : null, preview: slidePreview("dark") }],
+            pageTheme(), function (t) { openUrl(exportUrl(r, opts, "pptx", t)); });
+        }, true));
+        list.appendChild(item("CSV", "summary or sources", function () {
+          chooser("CSV · pick a file", [
+            { value: "summary_csv", label: "Summary", hint: "one row" },
+            { value: "sources_csv", label: "Sources", hint: "one row per source" }],
+            "summary_csv", function (f) { openUrl(exportUrl(r, opts, f)); });
+        }, true));
+        list.appendChild(item("JSON", "the full certification record", function () { openUrl(exportUrl(r, opts, "json")); close(); }));
+      } else {
+        list.appendChild(item("JSON", "the full certification record", function () { download([r]); close(); }));
+      }
+      list.appendChild(item("Copy for CRM", "count, date, confidence, source", function (b) {
+        copyText(crmText(r), b.querySelector(".dl-label"), "Copy for CRM");
+      }));
+      var word = item("Word document", "coming soon", null);
+      word.disabled = true;
+      word.setAttribute("aria-disabled", "true");
+      word.classList.add("dl-disabled");
+      list.appendChild(word);
+    }
+    showList();
     menu.appendChild(list);
+    menu.addEventListener("toggle", function () { if (!menu.open) showList(); });
     document.addEventListener("click", function (e) { if (menu.open && !menu.contains(e.target)) menu.open = false; });
     document.addEventListener("keydown", function (e) { if (e.key === "Escape" && menu.open) { menu.open = false; menu.querySelector("summary").focus(); } });
     return menu;
@@ -626,17 +711,10 @@ CARD_JS = r"""
     ]);
 
     var crm = h.count != null ? crmCheck(r) : null;
-    var table = el("table", { cls: "lines" });
-    c.breakdown.forEach(function (line) {
-      table.appendChild(el("tr", null, [el("td", { cls: "pts", text: (line.points > 0 && line !== c.breakdown[0] ? "+" : "") + line.points }),
-        el("td", null, [line.rationale + " ", chip(line.finding_id, k + "-")])]));
-    });
-    table.appendChild(el("tr", { cls: "total" }, [el("td", { cls: "pts", text: String(c.score) }), el("td", { text: "= " + c.arithmetic })]));
     return el("div", { cls: "block answer " + b }, [
       el("div", { cls: "hero-row" }, [hero, seal(c)]),
       bottom, facts,
-      el("div", { cls: "row answer-actions" }, [downloadMenu(r, opts), crm ? crm.form : null,
-        el("details", { cls: "breakdown" }, [el("summary", null, [el("span", { text: "How the score adds up" })]), table])]),
+      el("div", { cls: "row answer-actions" }, [downloadMenu(r, opts), crm ? crm.form : null]),
       crm ? crm.out : null]);
   }
 
@@ -653,6 +731,14 @@ CARD_JS = r"""
       b.addEventListener("click", function () { jump(target); });
       return b;
     }
+    var c = r.confidence, table = el("table", { cls: "lines" });
+    c.breakdown.forEach(function (line) {
+      table.appendChild(el("tr", null, [el("td", { cls: "pts", text: (line.points > 0 && line !== c.breakdown[0] ? "+" : "") + line.points }),
+        el("td", null, [line.rationale + " ", chip(line.finding_id, k + "-")])]));
+    });
+    table.appendChild(el("tr", { cls: "total" }, [el("td", { cls: "pts", text: String(c.score) }), el("td", { text: "= " + c.arithmetic })]));
+    var breakdown = el("details", { cls: "breakdown" }, [el("summary", null, [el("span", { text: "How the score adds up" }),
+      el("span", { cls: "muted small", text: " · " + c.score + "/5 = " + c.arithmetic })]), table]);
     return el("div", { cls: "block trust", role: "group", "aria-label": "Why you can trust this" }, [
       el("div", { cls: "block-title" }, [icon("trust"), el("h2", { text: "Why you can trust this" })]),
       el("div", { cls: "trust-strip" }, [
@@ -660,13 +746,19 @@ CARD_JS = r"""
         item("As of", h.as_of_date ? h.as_of_date + (h.as_of_estimated ? " (est.)" : "") : "undated", k + "-key", "", "◷"),
         item("Independent confirmations", String(corr.length), corrFinding ? k + "-" + corrFinding.id : k + "-sources", corr.length ? "good" : "", "⇄"),
         item("Adjustments to the count", String(adj), k + "-adjustments", "", "±"),
-        item("Needs attention", String(attention), k + "-findings", attention ? "bad" : "good", attention ? "⚑" : "✓")])]);
+        item("Needs attention", String(attention), k + "-findings", attention ? "bad" : "good", attention ? "⚑" : "✓")]),
+      breakdown]);
   }
 
   // Trend and forecast. The chart always spans five reported years and four forecast years: a year with no
   // reported figure is an ✕ on a dotted line, so every chart reads the same. A CRM comparison adds the
   // recommended range (a soft band) and the CRM's number (an orange dashed line).
   var HISTORY_YEARS = 5, FORECAST_YEARS = 4, CRM_COLOR = "#E8833A";
+  // Forecast labels are rounded to a step that suits the size: 10s, 25s, 100s, and 1,000s only for the largest.
+  function roundForecast(v) {
+    var step = v < 2000 ? 10 : v < 20000 ? 25 : v < 500000 ? 100 : 1000;
+    return Math.round(v / step) * step;
+  }
   function yearDate(year, md) { return year + (md === "-02-29" ? "-02-28" : md); }
   function chart(r, overlay) {
     var h = r.headline, items = r.trend.items.slice(), ir = h.indicated_current_range;
@@ -819,17 +911,22 @@ CARD_JS = r"""
     var finalForecast = future.length ? future[future.length - 1] : null;
     items.forEach(function (p, i) {
       var cx = X(t(p.as_of_date)), cy = Y(p.value), isLast = p === last;
-      if (isLast) add("circle", { cx: cx, cy: cy, r: 11, fill: "var(--loop-green)", "fill-opacity": .22 });
+      if (isLast) {  // the certified figure: a soft halo and a guide down to its as-of date
+        add("line", { x1: cx, x2: cx, y1: cy + 12, y2: H - B, stroke: "var(--loop-green)", "stroke-width": 1.5, "stroke-dasharray": "2 4", "class": "cert-guide" });
+        add("circle", { cx: cx, cy: cy, r: 11, fill: "var(--loop-green)", "fill-opacity": .22 });
+      }
       add("circle", { cx: cx, cy: cy, r: isLast ? 6.5 : (p.estimated ? 4 : 5), fill: p.estimated ? "var(--card)" : "var(--meter)", stroke: isLast ? "var(--loop-green)" : "var(--meter)", "stroke-width": isLast ? 3 : 2.5 });
       // Values only on the chart; the certified point and the forecast range are named in the legend. The
       // forecast label sits below its point so it never collides with the certified label above.
-      var below = !!p.estimated;
-      if (p.estimated && p !== finalForecast) return;  // only the final forecast year is labelled
+      var below = p === finalForecast;  // the final forecast below its point; the faint yearly ones above
+      if (W < 480 && p.estimated && p !== finalForecast) return;  // phones: only the final forecast year
       if (W < 480 && !p.estimated && !isLast && i !== 0) return;  // phones: first, certified and final forecast only
       var first = i === 0 && !gaps.some(function (g) { return g.kind === "history" && t(g.as_of_date) < t(p.as_of_date); });
       add("text", { x: cx, y: below ? cy + 20 : cy - (isLast ? 16 : 11),
         "text-anchor": first && items.length > 1 ? "start" : (i === items.length - 1 && !gaps.some(function (g) { return g.kind === "forecast"; }) ? "end" : "middle"),
-        "class": "pt-label" + (isLast ? " pt-key" : "") + (p.estimated ? " pt-est" : "") }, num(p.value));
+        "class": "pt-label" + (isLast ? " pt-key" : "") + (p.estimated ? " pt-est" + (p === finalForecast ? "" : " pt-faint") : "") },
+        p.estimated ? "≈" + num(roundForecast(p.value)) : num(p.value));
+      if (isLast) add("text", { x: cx, y: cy - 34 < T - 8 ? cy + 28 : cy - 34, "text-anchor": first && items.length > 1 ? "start" : "middle", "class": "pt-cert" }, "✓ CERTIFIED");
     });
     return svgEl;
   }
@@ -858,8 +955,8 @@ CARD_JS = r"""
     var h = r.headline, fcs = r.trend.items.filter(function (p) { return p.estimated; }), fc = fcs[fcs.length - 1];
     return el("div", { cls: "legend small muted" }, [el("span", null, [el("i", { cls: "lg solid" }), "Reported"]),
       el("span", null, [el("i", { cls: "lg key" }), "Certified figure"]),
-      fc ? el("span", null, [el("i", { cls: "lg hollow" }), "Forecast " + (fcs.length > 1 ? "to " : "") + fc.as_of_date.slice(0, 4) + ": " + num(fc.value) +
-        (fc.low != null ? " (range " + num(fc.low) + "–" + num(fc.high) + ")" : "")]) : null,
+      fc ? el("span", null, [el("i", { cls: "lg hollow" }), "Forecast " + (fcs.length > 1 ? "to " : "") + fc.as_of_date.slice(0, 4) + ": ≈" + num(roundForecast(fc.value)) +
+        (fc.low != null ? " (range " + num(roundForecast(fc.low)) + "–" + num(roundForecast(fc.high)) + ")" : "")]) : null,
       svgEl.__gaps ? el("span", null, [el("i", { cls: "lg gap", text: "✕" }), "No reported figure"]) : null,
       h.indicated_current_range ? el("span", null, [el("i", { cls: "lg box" }), "Indicated current range (context only)"]) : null,
       overlay ? el("span", null, [el("i", { cls: "lg range" }), "Recommended range " + num(overlay.lo) + "–" + num(overlay.hi)]) : null,
@@ -1007,7 +1104,7 @@ CARD_JS = r"""
   function crmCheck(r) {
     var k = r.__k, input = el("input", { type: "text", inputmode: "numeric", autocomplete: "off", id: k + "-crm-input",
       placeholder: "e.g. 95,000", "aria-label": "Your CRM employee count" });
-    var go = el("button", { type: "submit", cls: "secondary", text: "Compare" }), out = el("div", { cls: "crm-out", "aria-live": "polite" });
+    var go = el("button", { type: "submit", cls: "crm-go", text: "Compare →" }), out = el("div", { cls: "crm-out", "aria-live": "polite" });
     var form = el("form", { cls: "crm-inline", id: k + "-crm" }, [el("label", { "for": k + "-crm-input", cls: "crm-lbl" }, [icon("compare"), "Compare with your CRM"]), input, go]);
     form.addEventListener("submit", function (e) {
       e.preventDefault();
@@ -1155,7 +1252,7 @@ CARD_JS = r"""
     return records;
   }
 
-  window.GTMCard = { render: render, toRecords: toRecords, crmAdvice: crmAdvice, parseCount: parseCount };
+  window.GTMCard = { render: render, toRecords: toRecords, crmAdvice: crmAdvice, parseCount: parseCount, roundForecast: roundForecast };
 })();
 """
 

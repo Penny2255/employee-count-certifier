@@ -143,7 +143,7 @@ From top to bottom:
    ![Compare with your CRM on the trend chart](docs/screenshots/14-chart-crm-overlay-light.png)
 8. **Key source, sources, adjustments, events:** the full evidence: every source found, used or excluded and why, with
    the detailed passage and location.
-9. **Download** (top and bottom of the card, and in Claude): Copy for CRM, a **4-slide PowerPoint** (light or dark, in the brand), a **Word document** with the full supporting detail, a summary CSV, a sources CSV, and JSON (the full certification record).
+9. **Download** (top and bottom of the card, and in Claude): a short list, PowerPoint, CSV, JSON and Copy for CRM (PowerPoint then asks light or dark, with previews, defaulting to your view; CSV asks summary or sources). The Word document is shown greyed out for now. The deck is a **5-slide PowerPoint** (light or dark, in the brand, with the company's name and logo on every slide and a closing thank-you slide), a **Word document** with the full supporting detail, a summary CSV, a sources CSV, and JSON (the full certification record).
 
 ---
 

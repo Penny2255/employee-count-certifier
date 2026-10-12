@@ -762,3 +762,43 @@ The record's entity carries `address` and `address_source`, shown as **HQ addres
   title, a scaled axis, and three stat cards: certified, forecast and change.
 - **Brand:** the tagline under the product name, a step indicator ("02 / 04 · History and outlook"), loop-coloured
   accent stripes, and the credit and notice on every slide.
+
+## Polish round 2 (2026-10-12)
+
+### D98. A softer LinkedIn check
+- **Why:** member counts include former staff, contractors and people who never update their profiles, so the check
+  was lowering confidence too often.
+- **What:** the allowance for members above the certified count is now 30% (white-collar) and 25% (mixed and
+  blue-collar), up from 15%, 0% and 0%. A flag lowers confidence only when the gap is at least 100% (members at least
+  double the count, or the count at least double what the members imply) and the key source isn't a current tier 1-2
+  filing. Otherwise it is a "worth knowing" finding with no penalty, saying why.
+
+### D99. The card: score breakdown with the trust facts, a clear Compare button, a named certified point
+- "How the score adds up" moved from the answer into "Why you can trust this", with the arithmetic in its summary.
+- Compare is a filled button ("Compare →").
+- The chart names the certified point ("✓ CERTIFIED") with a dotted guide to its as-of date, and every forecast year
+  has a faint label above its point; the final year's label sits below.
+
+### D100. Forecasts are shown rounded
+- Forecast values are estimates, so they're shown as "≈" and rounded by size: to 10s under 2,000, 25s under 20,000,
+  100s under 500,000, and 1,000s above. Reported and certified figures are never rounded.
+
+### D101. Deck: the exact excerpt and a graded seal
+- The key-source card shows the excerpt verbatim, up to 300 characters; longer ones keep a window around the figure
+  that includes its "as of" phrase.
+- The stamp is now a seal: a scalloped rosette in the grade's colours with "GTM Data Certifier", stars for the score,
+  the score, the grade and "Hyperloop grade". Grades: 5 Platinum (loop green to blue), 4 Gold, 3 Silver, 2 Bronze,
+  1 Provisional, 0 Not certified.
+
+### D102. Deck: the company on every slide, the hosted site, and a thank-you
+- Every slide's header carries the organization's name and logo (its website's icon, fetched and cached by the
+  service), and every footer links to the hosted site ("Certify another organization").
+- A fifth, closing slide in the dark brand colours, modelled on the Hyperloop deck: "Thank you.", the line "AI shouldn't
+  just replicate what humans do. It should elevate human needs and outcomes.", the loop, Matthew's LinkedIn card
+  (clickable) and two buttons, Connect on LinkedIn and Try GTM Data Certifier.
+- Buttons are clickable shapes rather than linked text: PowerPoint recolours linked text with the theme's link colour.
+
+### D103. A shorter Download menu with a second step
+- The list is PowerPoint, CSV, JSON, Copy for CRM, then the Word document greyed out ("coming soon").
+- PowerPoint opens a second step with light and dark slide previews, preselecting the theme you're viewing; CSV opens
+  Summary (the default) or Sources. Each has Back and Download. Closing the menu returns it to the list.

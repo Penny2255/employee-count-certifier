@@ -249,10 +249,21 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
     linkedin_was_input = ((growth is not None and growth.used_linkedin)
                           or (derivation is not None and linkedin.member_count is not None))
     if li.status == "flag":
+        current_filing = (selected is not None and policy.tier_class(selected.tier) == "primary"
+                          and selected.as_of_date is not None
+                          and (rules.within_months(selected.as_of_date, lookup_date, policy.recency.certified_max_age_months)
+                               or rules.latest_release_current(selected, lookup_date, policy)))
         if linkedin_was_input:
             notes.append(f"LinkedIn check not applied as a penalty because LinkedIn was an input. {li.note}")
         elif scope_flags and value is not None and (linkedin.member_count or 0) > value:
             explained.append((f"LinkedIn: {li.note}", scope_flags[0]))
+        elif current_filing:
+            li = li.model_copy(update={"not_penalized": f"The key source is a current tier {selected.tier} filing, which "
+                                                         "a LinkedIn member count doesn't overrule"})
+        elif (li.gap or 0) < policy.linkedin.penalty_gap:
+            li = li.model_copy(update={"not_penalized": f"The gap ({li.gap:.0%}) is under the "
+                                                         f"{policy.linkedin.penalty_gap:.0%} that lowers confidence; "
+                                                         "member counts often include former staff and contractors"})
         else:
             flags.append(f"LinkedIn: {li.note}")
 

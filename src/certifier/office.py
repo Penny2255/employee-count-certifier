@@ -1,5 +1,5 @@
 # © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
-"""Slide and document downloads of a certification record: a 4-slide PowerPoint deck (light or dark, in the
+"""Slide and document downloads of a certification record: a 5-slide PowerPoint deck (light or dark, in the
 GTM Data Certifier brand) and a Word document with the supporting detail. Built from the record JSON only,
 so they match the card exactly."""
 
@@ -26,7 +26,12 @@ from pptx.util import Emu, Inches, Pt
 
 from .notice import COPYRIGHT, OWNER_LINE
 
-LOGO = Path(__file__).resolve().parents[2] / "assets" / "brand" / "hyperloop-logo.png"
+BRAND = Path(__file__).resolve().parents[2] / "assets" / "brand"
+LOGO = BRAND / "hyperloop-logo.png"
+LOGO_OUTLINE = BRAND / "hyperloop-mark-outline.png"   # the loop for dark backgrounds
+LINKEDIN_CARD = BRAND / "linkedin-card.png"           # Matthew Beltrano's LinkedIn profile card
+SITE_URL = "https://employee-count-certifier.onrender.com"
+CLOSING_LINE = "AI shouldn't just replicate what humans do. It should elevate human needs and outcomes."
 DISCLAIMER = "Certified under policy v{v} from public sources. Verify before contractual use."
 CREDIT_URL = "https://www.linkedin.com/in/matthewbeltrano/"
 BOTTOM = {"ready": "Ready to use.", "usable": "Usable.", "directional": "Directional only."}
@@ -108,9 +113,10 @@ NO_STYLE = "{2D5ABB26-0587-4C30-8999-92F81FD0307C}"  # PowerPoint's "No Style, N
 HISTORY_YEARS, FORECAST_YEARS = 5, 4
 
 
-def deck(record: dict, theme: str = "light") -> bytes:
-    """Four slides: the answer, trend and forecast, why you can trust this, sources. Text that can run long
-    sits in table cells or a single text frame, which grow with their content, so nothing overlaps."""
+def deck(record: dict, theme: str = "light", logo: bytes | None = None, site_url: str | None = None) -> bytes:
+    """Five slides: the answer, trend and forecast, why you can trust this, sources, and a thank-you. Text that can
+    run long sits in table cells or a single text frame, which grow with their content, so nothing overlaps. Every
+    slide names the company (with its `logo`, when given) and links to the hosted site."""
     t = THEMES.get(theme, THEMES["light"])
     prs = Presentation()
     prs.slide_width, prs.slide_height = Inches(13.333), Inches(7.5)
@@ -120,7 +126,9 @@ def deck(record: dict, theme: str = "light") -> bytes:
     band = _band(c["score"])
     tone = TONE[band]
     certified_on = (r["methodology"].get("run_at") or r["methodology"].get("lookup_date") or "")[:10]
-    total = 4
+    total = 5
+    site_url = (site_url or SITE_URL).rstrip("/")
+    site_label = site_url.split("://", 1)[-1]
 
     def rgb(key):
         return RGBColor.from_string(t.get(key, key))
@@ -153,15 +161,21 @@ def deck(record: dict, theme: str = "light") -> bytes:
             s.shapes.add_picture(str(LOGO), Inches(0.52), Inches(0.40), height=Inches(0.39))
         text(s, 1.58, 0.30, 5.6, 0.32, "GTM Data Certifier", 14, bold=True)
         text(s, 1.58, 0.60, 5.6, 0.28, TAGLINE, 10, "muted", italic=True)
-        text(s, 7.2, 0.27, 5.68, 0.24, f"{n:02d} / {total:02d}  ·  {kicker.upper()}", 9, "brand_green", bold=True, align=PP_ALIGN.RIGHT)
-        text(s, 7.2, 0.50, 5.68, 0.45, title, 22, bold=True, align=PP_ALIGN.RIGHT)
+        text(s, 8.3, 0.27, 4.58, 0.24, f"{n:02d} / {total:02d}  ·  {kicker.upper()}", 9, "brand_green", bold=True, align=PP_ALIGN.RIGHT)
+        text(s, 8.3, 0.50, 4.58, 0.45, title, 22, bold=True, align=PP_ALIGN.RIGHT)
+        company_chip(s)
         rect(s, 0.45, 1.04, 4.6, 0.045, "brand_green")
         rect(s, 5.05, 1.04, 7.833, 0.045, "blue")
         # Footer: a hairline, the certification line on the left, the credit and notice on the right.
         rect(s, 0.45, 6.93, 12.433, 0.01, "line")
-        text(s, 0.45, 7.04, 7.6, 0.28, f"{e['name']} · certified on {certified_on} · "
-             + DISCLAIMER.format(v=r["methodology"]["policy_version"]), 8.5, "muted")
-        credit = text(s, 8.1, 7.04, 4.78, 0.28, "Designed and created by ", 8.5, "muted", align=PP_ALIGN.RIGHT)
+        text(s, 0.45, 6.99, 7.6, 0.24, f"{e['name']} · certified on {certified_on} · "
+             + DISCLAIMER.format(v=r["methodology"]["policy_version"]), 8, "muted")
+        site = text(s, 0.45, 7.2, 7.6, 0.24, "Certify another organization: ", 8, "muted")
+        run = site.text_frame.paragraphs[0].add_run()
+        run.text, run.font.size, run.font.bold, run.font.name = site_label + " ↗", Pt(8), True, "Segoe UI"
+        run.font.color.rgb = rgb("accent")
+        run.hyperlink.address = site_url
+        credit = text(s, 8.1, 7.1, 4.78, 0.26, "Designed and created by ", 8.5, "muted", align=PP_ALIGN.RIGHT)
         para = credit.text_frame.paragraphs[0]
         for txt, url in (("Matthew Beltrano", CREDIT_URL), (" & Claude Code · © 2026 · Proprietary", None)):
             run = para.add_run()
@@ -171,6 +185,21 @@ def deck(record: dict, theme: str = "light") -> bytes:
             if url:
                 run.hyperlink.address = url
         return s
+
+    def company_chip(s):
+        """The organization being certified, with its logo, in the header of every slide."""
+        chip = rect(s, 5.15, 0.34, 3.0, 0.52, "soft", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.5)
+        x = 5.3
+        if logo:
+            try:
+                s.shapes.add_picture(io.BytesIO(logo), Inches(5.27), Inches(0.42), height=Inches(0.36))
+                x = 5.72
+            except Exception:  # an unreadable image never breaks the deck
+                pass
+        frame(chip, [(0, [(_clip(e["name"], 30), 11.5, True, "text", False, None)])], anchor=MSO_ANCHOR.MIDDLE, margin=0)
+        chip.text_frame.margin_left = Inches(x - 5.15)
+        chip.text_frame.margin_right = Inches(0.12)
+        chip.text_frame.word_wrap = False
 
     def table(s, x, y, w, rows: int, cols: int, widths, row_h=0.36):
         shape = s.shapes.add_table(rows, cols, Inches(x), Inches(y), Inches(w), Inches(row_h * rows))
@@ -244,26 +273,18 @@ def deck(record: dict, theme: str = "light") -> bytes:
     for i in range(5):  # the confidence meter, as on the card
         rect(s, 0.92 + i * 0.4, 3.75, 0.32, 0.12, "brand_green" if i < c["score"] else "line", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.5)
     text(s, 3.0, 3.66, 2.9, 0.3, f"{c['score']}/5 · {c['level']}", 11, bold=True)
-    stamp = s.shapes.add_shape(MSO_SHAPE.OVAL, Inches(6.05), Inches(2.42), Inches(1.6), Inches(1.6))
-    stamp.fill.solid()
-    stamp.fill.fore_color.rgb = rgb(tone + "_bg")
-    stamp.line.color.rgb, stamp.line.width, stamp.rotation = rgb(tone), Pt(3), -8
-    stamp.shadow.inherit = False
-    frame(stamp, [(0, [("CERTIFIED" if band != "directional" else c["level"].split(",")[0].upper(), 10, True, tone, False, None)]),
-                  (0, [(f"{c['score']}/5", 24, True, tone, False, None)])], anchor=MSO_ANCHOR.MIDDLE, margin=0.05)
-    for para in stamp.text_frame.paragraphs:
-        para.alignment = PP_ALIGN.CENTER
+    _seal(s, 5.98, 2.3, 1.78, c["score"], t)
     bl = rect(s, 0.55, 4.35, 7.3, 0.62, tone + "_bg", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.18)
     frame(bl, [(0, [({"ready": "✓  ", "usable": "!  ", "directional": "✕  "}[band], 14, True, tone, False, None),
                     ("Bottom line: ", 14, True, tone, False, None), (h.get("bottom_line") or "", 14, False, tone, False, None)])],
           anchor=MSO_ANCHOR.MIDDLE)
-    ks = rect(s, 0.55, 5.15, 7.3, 1.6, "soft", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.08)
+    ks = rect(s, 0.55, 5.1, 7.3, 1.72, "soft", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.06)
     if p.get("source_id"):
         loc = p.get("location") or {}
         paras = [(0, [("KEY SOURCE", 9, True, "muted", False, None)]),
                  (2, [(_source_label(p), 13, True, "text", False, None)])]
         if p.get("excerpt"):
-            paras.append((4, [("“" + _short(p["excerpt"], h.get("count"), 150) + "”", 11, False, "text", True, None)]))
+            paras.append((4, [("“" + _excerpt(p["excerpt"], h.get("count")) + "”", 11, False, "text", True, None)]))
         paras.append((4, [("Open the source at the quote ↗", 10.5, True, "accent", False, loc.get("deep_link") or p["url"]),
                           (("  ·  " + _line_in_source(p)) if _line_in_source(p) else "", 10, False, "muted", False, None)]))
         frame(ks, paras)
@@ -311,8 +332,8 @@ def deck(record: dict, theme: str = "light") -> bytes:
         years = int(last["as_of_date"][:4]) - int(first["as_of_date"][:4])
         change = (last["value"] - first["value"]) / first["value"] if first["value"] and years else None
         stats = [("CERTIFIED", _num(last["value"]), "as of " + last["as_of_date"], "brand_green"),
-                 (f"FORECAST {f['as_of_date'][:4]}" if f else "FORECAST", _num(f["value"]) if f else "No forecast",
-                  f"range {_num(f['low'])}–{_num(f['high'])}" if f else "needs 3 reported years", "blue"),
+                 (f"FORECAST {f['as_of_date'][:4]}" if f else "FORECAST", "≈" + _num(round_forecast(f["value"])) if f else "No forecast",
+                  f"range {_num(round_forecast(f['low']))}–{_num(round_forecast(f['high']))}" if f else "needs 3 reported years", "blue"),
                  (f"CHANGE OVER {years} YEAR{'S' if years != 1 else ''}" if change is not None else "CHANGE",
                   f"{change:+.1%}" if change is not None else "–",
                   f"{_num(first['value'])} → {_num(last['value'])}" if change is not None else "one reported year", "accent")]
@@ -401,11 +422,154 @@ def deck(record: dict, theme: str = "light") -> bytes:
          "The policy ranks every source by tier, recency and independence; the AI gathers evidence but never "
          "chooses the answer.", 10.5, "muted")
 
+    _thank_you(prs, blank, e["name"], site_url, site_label)
     _brand_links(prs, t["accent"])
     out = io.BytesIO()
     prs.core_properties.author, prs.core_properties.comments = "Matthew Beltrano", COPYRIGHT
     prs.save(out)
     return out.getvalue()
+
+
+def _thank_you(prs, layout, company: str, site_url: str, site_label: str) -> None:
+    """The closing slide, always in the dark brand colours (like the Hyperloop deck's): thank you, the closing line,
+    the loop, Matthew's LinkedIn card (linked to the profile) and the way back to the hosted site."""
+    t = THEMES["dark"]
+    rgb = lambda key: RGBColor.from_string(t.get(key, key))  # noqa: E731
+    s = prs.slides.add_slide(layout)
+    s.background.fill.solid()
+    s.background.fill.fore_color.rgb = RGBColor.from_string("0B2545")
+
+    def say(x, y, w, h, value, size, color, bold=False, italic=False, align=None, link=None):
+        box = _text(s, Inches(x), Inches(y), Inches(w), Inches(h), value, size, rgb(color), bold=bold, align=align)
+        run = box.text_frame.paragraphs[0].runs[0]
+        run.font.italic = italic
+        if link:
+            run.hyperlink.address = link
+        return box
+
+    say(0.75, 2.0, 6.0, 1.1, "Thank you.", 54, "text", bold=True)
+    say(0.78, 3.15, 5.6, 0.9, CLOSING_LINE, 17, "accent")
+    if LOGO_OUTLINE.is_file():
+        s.shapes.add_picture(str(LOGO_OUTLINE), Inches(0.72), Inches(4.3), height=Inches(0.95))
+    elif LOGO.is_file():
+        s.shapes.add_picture(str(LOGO), Inches(0.72), Inches(4.3), height=Inches(0.7))
+    say(2.85, 4.45, 3.9, 0.3, "GTM Data Certifier", 14, "text", bold=True)
+    say(2.85, 4.78, 3.9, 0.3, "Giving you transparency & trust to take real action", 10.5, "muted", italic=True)
+    if LINKEDIN_CARD.is_file():
+        card = s.shapes.add_picture(str(LINKEDIN_CARD), Inches(6.55), Inches(2.25), width=Inches(6.0))
+        card.click_action.hyperlink.address = CREDIT_URL
+    else:
+        say(6.55, 2.6, 6.0, 0.4, "Matthew Beltrano", 22, "text", bold=True, link=CREDIT_URL)
+    # Two calls to action under the card: the profile and the hosted site.
+    for i, (label, url) in enumerate((("Connect on LinkedIn ↗", CREDIT_URL), ("Try GTM Data Certifier ↗", site_url))):
+        pill = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.55 + i * 2.65), Inches(4.5),
+                                  Inches(2.45 if i == 0 else 3.35), Inches(0.52))
+        pill.adjustments[0] = 0.5
+        pill.fill.solid()
+        pill.fill.fore_color.rgb = RGBColor.from_string("0A66C2" if i == 0 else "3FCF8E")
+        pill.line.fill.background()
+        pill.shadow.inherit = False
+        tf = pill.text_frame
+        tf.clear()
+        tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        para = tf.paragraphs[0]
+        para.alignment = PP_ALIGN.CENTER
+        run = para.add_run()
+        run.text = label
+        run.font.size, run.font.bold, run.font.name = Pt(12), True, "Segoe UI"
+        run.font.color.rgb = RGBColor.from_string("FFFFFF" if i == 0 else "06182F")
+        pill.click_action.hyperlink.address = url  # the whole button is the link (linked text would be recoloured)
+    note = say(6.58, 5.2, 6.0, 0.3, f"{_clip(company, 28)} today. Any organization next, in about a minute: ", 10.5, "muted")
+    run = note.text_frame.paragraphs[0].add_run()
+    run.text, run.font.size, run.font.bold, run.font.name = site_label, Pt(10.5), True, "Segoe UI"
+    run.font.color.rgb = rgb("accent")
+    run.hyperlink.address = site_url
+    rule = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.6), Inches(6.55), Inches(12.13), Inches(0.01))
+    rule.fill.solid()
+    rule.fill.fore_color.rgb = rgb("line")
+    rule.line.fill.background()
+    say(0.75, 6.78, 6.5, 0.35, "Designing for the Human in the Hyperloop", 13, "text", bold=True)
+    say(7.0, 6.82, 5.73, 0.3, "GTM DATA CERTIFIER  ·  © 2026 MATTHEW BELTRANO", 11, "accent", bold=True, align=PP_ALIGN.RIGHT)
+
+
+def round_forecast(value) -> int:
+    """Forecasts are estimates: round them to a step that suits their size (10s, 25s, 100s; 1,000s only when large)."""
+    step = 10 if value < 2_000 else 25 if value < 20_000 else 100 if value < 500_000 else 1_000
+    return int(round(value / step) * step)
+
+
+def _excerpt(text: str, count, limit: int = 300) -> str:
+    """The exact excerpt; when it's long, a verbatim window around the figure that keeps its "as of" phrase."""
+    text = " ".join((text or "").split())
+    if len(text) <= limit:
+        return text
+    i = text.find(_num(count)) if count is not None else -1
+    i = i if i >= 0 else 0
+    a = max(0, i - 140)
+    as_of = max(text.lower().rfind("as of", 0, i + 1), text.lower().rfind("as at", 0, i + 1))
+    if as_of >= 0 and i - as_of < 220:
+        a = min(a, as_of)
+    b = min(len(text), a + limit)
+    return ("…" if a else "") + text[a:b].strip() + ("…" if b < len(text) else "")
+
+
+# Seal grades by confidence score: (grade, gradient from, gradient to, ink).
+GRADES = {5: ("PLATINUM", "3FCF8E", "599AF5", "17794A"), 4: ("GOLD", "F7D774", "D99A1E", "8A5A00"),
+          3: ("SILVER", "DDE4EE", "9AA8BC", "4B5D75"), 2: ("BRONZE", "E8B48A", "A86A3D", "6E3F1C"),
+          1: ("PROVISIONAL", "F4B4AC", "C2463A", "8E1F14"), 0: ("NOT CERTIFIED", "C9D1DC", "8A97A8", "4B5D75")}
+
+
+def _seal(s, x: float, y: float, size: float, score: int, t: dict) -> None:
+    """A certification seal: a scalloped rosette in the grade's colours, an inner ring, and
+    "GTM Data Certifier · stars · score · grade · Hyperloop grade" set inside. Tilted slightly, like a stamp."""
+    grade, c1, c2, ink = GRADES.get(score, GRADES[0])
+    if t["bg"] < "8":  # dark theme: lighter ink reads better on the dark centre
+        ink = {"PLATINUM": "6FE0A8", "GOLD": "F2C35B", "SILVER": "C9D3E0", "BRONZE": "E8B48A",
+               "PROVISIONAL": "FF9A90", "NOT CERTIFIED": "A7B8CF"}[grade]
+    tilt = -8
+
+    def grad(shape, angle=45):
+        shape.fill.gradient()
+        shape.fill.gradient_angle = angle
+        stops = shape.fill.gradient_stops
+        stops[0].color.rgb, stops[1].color.rgb = RGBColor.from_string(c1), RGBColor.from_string(c2)
+        shape.line.fill.background()
+        shape.shadow.inherit = False
+
+    rosette = s.shapes.add_shape(MSO_SHAPE.STAR_32_POINT, Inches(x), Inches(y), Inches(size), Inches(size))
+    rosette.adjustments[0] = 0.44
+    rosette.rotation = tilt
+    grad(rosette)
+    inset = size * 0.12
+    centre = s.shapes.add_shape(MSO_SHAPE.OVAL, Inches(x + inset), Inches(y + inset), Inches(size - 2 * inset),
+                                Inches(size - 2 * inset))
+    centre.fill.solid()
+    centre.fill.fore_color.rgb = RGBColor.from_string(t["card"])
+    centre.line.color.rgb, centre.line.width = RGBColor.from_string(c2), Pt(2.25)
+    centre.shadow.inherit = False
+    inner = size * 0.19
+    ring = s.shapes.add_shape(MSO_SHAPE.OVAL, Inches(x + inner), Inches(y + inner), Inches(size - 2 * inner),
+                              Inches(size - 2 * inner))
+    ring.fill.background()
+    ring.line.color.rgb, ring.line.width, ring.line.dash_style = RGBColor.from_string(ink), Pt(0.75), MSO_LINE_DASH_STYLE.ROUND_DOT
+    ring.shadow.inherit = False
+    box = s.shapes.add_textbox(Inches(x + inner), Inches(y + inner), Inches(size - 2 * inner), Inches(size - 2 * inner))
+    box.rotation = tilt
+    tf = box.text_frame
+    tf.word_wrap = True
+    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = 0
+    lines = [("GTM DATA CERTIFIER", 6, True, ink), ("★" * score + "☆" * (5 - score), 9, False, ink),
+             (f"{score}/5", 22, True, t["text"]), (grade, 8.5, True, ink), ("HYPERLOOP GRADE", 5.5, True, t["muted"])]
+    for n, (value, size_pt, bold, color) in enumerate(lines):
+        para = tf.paragraphs[0] if n == 0 else tf.add_paragraph()
+        para.alignment = PP_ALIGN.CENTER
+        para.space_before = Pt(0)
+        para.line_spacing = 0.95
+        run = para.add_run()
+        run.text = value
+        run.font.size, run.font.bold, run.font.name = Pt(size_pt), bold, "Segoe UI"
+        run.font.color.rgb = RGBColor.from_string(color)
 
 
 def _clip(value: str, limit: int) -> str:
@@ -500,16 +664,25 @@ def _trend_chart(s, reported: list[dict], forecast: list[dict], t: dict, x, y, w
             marker.format.fill.fore_color.rgb = rgb("blue" if reported_series else "card")
             marker.format.line.color.rgb = rgb("blue")
             for i, yr in enumerate(years):
-                label_it = (reported_series and yr in rep) or (not reported_series and i == final)
+                label_it = (reported_series and yr in rep) or (not reported_series and yr in fc)
                 if not label_it:
                     continue
                 dl = series.points[i].data_label
                 dl.position = XL_LABEL_POSITION.ABOVE if reported_series else XL_LABEL_POSITION.BELOW
                 tf = dl.text_frame
-                tf.text = _num(rep[yr] if reported_series else fc[yr]["value"])
+                if reported_series and yr == ly:  # the certified figure, named
+                    tf.text = "✓ CERTIFIED"
+                    head = tf.paragraphs[0].runs[0]
+                    head.font.size, head.font.bold, head.font.color.rgb = Pt(8.5), True, rgb("green")
+                    para = tf.add_paragraph()
+                    run = para.add_run()
+                    run.text = _num(rep[yr])
+                    run.font.size, run.font.bold, run.font.color.rgb = Pt(13), True, rgb("green")
+                    continue
+                tf.text = _num(rep[yr]) if reported_series else "≈" + _num(round_forecast(fc[yr]["value"]))
                 run = tf.paragraphs[0].runs[0]
-                run.font.size, run.font.bold = Pt(11 if yr != ly else 12.5), reported_series
-                run.font.color.rgb = rgb("green" if yr == ly else "text" if reported_series else "muted")
+                run.font.size, run.font.bold = Pt(11 if reported_series else 10), reported_series
+                run.font.color.rgb = rgb("text" if reported_series else "muted")
             if reported_series and ly in rep:  # the certified point: a green ring
                 pt = series.points[years.index(ly)]
                 pt.marker.size = 12

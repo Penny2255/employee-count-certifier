@@ -254,3 +254,113 @@ In the Stripe rerun, research listed data disagreements as "complexity" flags ("
 - **Not deployed or tested in the real Claude app.** The OAuth flow, MCP over HTTP, limits and cache are tested end to end with a test client, and a real `uvicorn` run answered `/health`, the page, the 401 sign-in challenge and discovery correctly. The real Claude sign-in can only be tested once the service is on Render.
 - **Single instance only.** SQLite on one disk suits one Render instance. Scaling out would need Postgres.
 - **No admin page.** Today's spend shows on `/health`. Per-person usage is only in the SQLite file.
+
+## Hosted experience: GTM Data Certifier (2026-10-11)
+
+### D40. Taglines
+Three candidates:
+1. **"Deep sweeps. Certified answers."** (chosen)
+2. "Every headcount, sourced and scored."
+3. "From public record to certified fact."
+
+- **Why the first:** it carries both halves of the principle. "Deep sweeps" is the fun part, the expedition. "Certified answers" is the sober result. It's short enough for the hero and the browser tab. It lives in one constant (`web.TAGLINE`), so swapping it is a one-line change.
+
+### D41. The brand mark is recreated, not supplied
+- **What:** `assets/brand/hyperloop-logo.png` and `hyperloop-mark-small.png` weren't in the repository. `scripts/brand_assets.py` redraws the mark from the lockup PDF:
+  - a rounded loop, blue across the top and right, green across the bottom and left
+  - a center dot
+  - brand colors navy #0A2545, loop blue #599AF5, loop green #3FCF8E
+
+  It writes the SVG, both PNGs and the favicon.
+- **On the page:** the header, hero and About panel use the SVG inline, with the dot drawn in the text color, so it stays visible in dark mode.
+- **To use the official files:** drop them into `assets/brand/` under the same names; the favicon and the PNG routes serve them as is.
+
+### D42. One page, three static files, no framework
+- **What:** `index.html`, `app.css` and `app.js` under `src/certifier/static/`. The server joins them into one stylesheet and one script:
+  - `/static/app.css` is the brand tokens, the app styles and the card styles
+  - `/static/app.js` is the card renderer and the app
+- **Why:** the card renderer is shared with the saved cards and the Claude in-chat card, so the web result is the same card everywhere. That meets "one CSS file, no heavy frameworks".
+- **Theme:** follows the device, with a manual toggle remembered in the browser. Animations stop under `prefers-reduced-motion`.
+
+### D43. Progress is real, streamed with server-sent events
+- **What:** `POST /api/lookup` returns `text/event-stream` with `start`, `progress` (one per stage), `result` or `error` events, plus a keep-alive comment every 10 seconds. The service calls `progress(stage, message)` as each real step starts:
+  1. resolve
+  2. SEC and official filings
+  3. web sweep
+  4. corroboration
+  5. scoring
+  6. certified
+- **Why POST over fetch, not `EventSource`:** the access code travels in the `Authorization` header, never in a URL.
+- **Themes:** five expedition themes (Deep Sea Dive, Treasure Map, Galaxy Star-Gazing, Detective's Clues, Frontier Voyage), one picked at random per lookup. Each has its own scene, icons and stage lines. The stage names stay literal, so the fun never hides what is happening.
+
+### D44. Stored queries, results and ratings
+- **What:** every new or cached lookup is saved as a query, with the access-code name, the text typed, the entity, the full result and cached or not. "How did we do?" (Great, Good, Okay or Off, plus an optional comment) is saved against that query.
+- **Recent lookups:** the last 10, kept only in the browser, as the brief asked.
+
+### D45. Downloads: JSON plus two CSV files
+- **What:**
+  - **Download JSON:** the full certification record v1.1
+  - **Download CSV:** one summary row
+  - **Sources CSV:** one row per source, with tier, value, dates, role, section, page and URL
+- **Why two CSV files:** a summary and its sources don't fit one flat table without repeating every headline field on every row.
+
+### D46. Cache: shared, 90 days; limits: 10 a day per code
+- **Supersedes:** D35's 20 a day and D36's 30 days.
+- **Cache:** a certification is reused by anyone for 90 days. The result shows "Certified on [date]" with a Refresh button.
+- **What counts:** cached results are free. Refresh runs a new lookup and counts against the limit.
+- **Unchanged:** the $10 daily global cap.
+
+### D47. `/health` reveals nothing; details move to `/admin/status`
+- **What:** `/health` returns `{"status":"ok"}`. Configuration and spend are at `/admin/status`, which needs an access code.
+- **Errors:**
+  - every error returns JSON, and unexpected errors never echo internals
+  - an Anthropic authentication or permission error shows "Service configuration issue, please try again later." and logs the cause, never the key
+  - `PUBLIC_BASE_URL` is validated at startup: it must be https (or http for localhost) with no path, or the service refuses to start with a plain message
+
+### D48. Demo mode for screenshots
+`CERTIFIER_DEMO=1` adds `?demo=home|code|confirm|expedition|result|how`, with optional theme, stage, mode and slug parameters. Demo results are served from the saved fixtures, so screenshots cost nothing. It's off in production because the variable isn't set.
+
+## Engine tweaks (2026-10-11)
+
+### D49. A date in the URL is the lowest-priority as-of estimate
+- **What:** only when a source has no stated date, no context estimate and no publication date, a `/YYYY/MM/` (or `/YYYY/MM/DD/`) path segment sets an estimated as-of date. The card shows "(estimated from URL)".
+- **Effect:** Donor Network West's 2023 sponsorship PDF is now dated 2023-03, stale and no longer a current conflict. Score 2 → 3.
+
+### D50. Post-date changes depend on the anchor's tier (amends D30)
+- **Tier 1–2 anchors** (filings, annual reports) are never relabelled or penalized for later changes. The change appears as a yellow note, and the trend area shows directional guidance: "Likely somewhat lower than reported because of [event, date, size]".
+- **Tier 3 or lower anchors:**
+  - may be labelled pre-adjustment, as before
+  - also when the source itself says the figure predates a change it describes (`predates_change`), as with Stripe's "8,500 before the layoffs"
+
+### D51. Directional guidance
+Every certification carries `direction`: higher, lower, in line or unknown, with a one-line reason. It's derived in this order:
+1. changes after the as-of date
+2. the source saying it predates a change
+3. the indicated current range
+4. the prior same-tier trend: under 3% is "in line"; otherwise "possibly higher or lower if the trend continued"
+5. otherwise unknown
+
+It's shown in the "Trend and direction" section with an arrow and the words, never by color alone.
+
+### D52. Scope questions only penalize when they could change which entity is counted
+- **Research's split:** research classifies each complexity. Health system, joint venture and affiliate questions stay red flags. Everything else becomes a yellow scope note with no score impact.
+- **Subsidiary questions depend on the anchor:**
+  - With a tier-1 consolidated filing as the anchor, they're a scope note too. A consolidated filing counts every subsidiary owned at its as-of date.
+  - Below tier 1, they stay a flag.
+- **Why:** in the first Salesforce rerun, the model flagged Informatica, which Salesforce acquired before the 10-K date, and cost it a point.
+
+### D53. Reruns under the new engine (live, $0.57)
+
+| Organization | Before | After |
+| --- | --- | --- |
+| Stripe | 8,500, 1/5, no label | 8,500, 1/5, **pre-adjustment** (source says the figure predates the layoffs); direction lower; tracker and LinkedIn disagreements moved from red flags to yellow scope notes |
+| Salesforce | 83,334, 5/5, **pre-adjustment** | 83,334, 5/5, no label; direction "likely somewhat lower" because of the February 2026 layoffs (−1,000) |
+| Donor Network West | 513, 2/5 (2023 PDF counted as a conflict) | 513, **3/5**; the PDF is dated from its URL and is stale; direction lower (a newer provider figure of about 438) |
+
+The first Salesforce rerun scored 4/5 because of the Informatica flag. D52 fixed that, and the second rerun is the one recorded. Fixtures and the cards in `outputs/` are updated.
+
+### Open issues (this round)
+- **Not deployed.** The feature branch is pushed; main is untouched until you review the screenshots.
+- **Official logo files.** D41 recreated the mark; swap in the originals if they differ.
+- **Rating and spend admin page.** Data is stored, but there's no page yet (FEEDBACK.md).
+- **Research is non-deterministic.** Salesforce's corroborating source and its event list varied between the two reruns. Scores were stable once D52 was in place.

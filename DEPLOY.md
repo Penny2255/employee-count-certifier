@@ -1,4 +1,4 @@
-# Deploying Employee Count Certifier on Render
+# Deploying GTM Data Certifier on Render
 
 This guide puts the certifier online so you, and people you choose, can use it from:
 - **the Claude app** (web, desktop or mobile) as a custom connector, with the company card shown inside the chat
@@ -9,13 +9,14 @@ It assumes no prior Render experience and takes about 20 minutes.
 **What you'll end up with:** one Render web service at `https://<your-service>.onrender.com`, serving:
 - `/`: the web page (access code, company search, confirmation, then the company card)
 - `/mcp`: the endpoint the Claude app connects to
-- `/health`: a status page you can open in a browser
+- `/health`: a minimal liveness check (`{"status":"ok"}`) for Render
+- `/admin/status`: configuration and today's spend, for holders of an access code
 
 Every lookup spends money on your Anthropic API key, so the service is locked behind **access codes**:
 - Each person gets their own code, and you can revoke any of them.
-- Each person gets **20 new lookups a day**. Cached results are free.
+- Each person gets **10 new lookups a day**. Cached results are free; **Refresh** counts as a new lookup.
 - The whole service stops making new lookups once it reaches **$10 of API spend in a day**.
-- Each certification is cached for **30 days**.
+- Each certification is cached for **90 days** and shared: anyone looking up the same organization gets it free.
 
 ---
 
@@ -79,14 +80,22 @@ Save both somewhere safe, such as a password manager. The server never stores th
 
 ---
 
-## Step 4: Check `/health`
+## Step 4: Check the service
 
-Open `https://<your-service>.onrender.com/health` in a browser. You should see something like:
+Open `https://<your-service>.onrender.com/health` in a browser. It shows only `{"status":"ok"}`, so it reveals nothing about the setup.
+
+For the details, call `/admin/status` with your access code (from a terminal):
+
+```bash
+curl -H "Authorization: Bearer ecc_YOUR_CODE" https://<your-service>.onrender.com/admin/status
+```
+
+You should see something like:
 
 ```json
 {"status": "ok", "policy_version": "0.2", "anthropic_key_set": true, "sec_user_agent_set": true,
  "access_codes_configured": 1, "public_base_url": "https://<your-service>.onrender.com",
- "spend_today_usd": 0.0, "daily_usd_cap": 10.0}
+ "spend_today_usd": 0.0, "daily_usd_cap": 10.0, "daily_lookups_per_code": 10, "cache_days": 90}
 ```
 
 Check that:
@@ -139,7 +148,7 @@ The local server in `claude_desktop_config.json` still runs on your computer, wi
 
 1. Create a code for them: `uv run certifier-access new alex`.
 2. In Render → **Environment**, edit `CERTIFIER_ACCESS_CODES` and add their **entry** after yours, separated by a comma: `matt:5f2c…e91,alex:9ab0…c44`
-3. Click **Save, rebuild, and deploy**. `/health` should now show `access_codes_configured: 2`.
+3. Click **Save, rebuild, and deploy**. `/admin/status` should now show `access_codes_configured: 2`.
 4. Send them, privately:
    - the web page URL `https://<your-service>.onrender.com/`
    - the connector URL `https://<your-service>.onrender.com/mcp`
@@ -158,11 +167,11 @@ Their web access and their Claude connection stop working immediately.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `CERTIFIER_DAILY_LOOKUPS_PER_USER` | `20` | New (uncached) lookups per access code per day (UTC). A subsidiary lookup also certifies its parent, which counts as 2. |
+| `CERTIFIER_DAILY_LOOKUPS_PER_USER` | `10` | New (uncached) lookups per access code per day (UTC). **Refresh** counts. A subsidiary lookup also certifies its parent, which counts as 2. |
 | `CERTIFIER_DAILY_USD_CAP` | `10` | Total API spend across everyone per day. When reached, new lookups stop until midnight UTC; cached results still work. |
-| `CERTIFIER_CACHE_DAYS` | `30` | How long a certification is reused before a new lookup runs. |
+| `CERTIFIER_CACHE_DAYS` | `90` | How long a certification is reused (by anyone) before a new lookup runs. The page shows "Certified on [date]" with a Refresh button. |
 
-When a limit is hit, the person sees a plain message saying which limit was reached and when it resets. `/health` shows today's spend.
+When a limit is hit, the person sees a plain message saying which limit was reached and when it resets. `/admin/status` shows today's spend.
 
 The dollar cap is checked before each lookup, so one lookup in progress can take spend slightly past it, by up to about $0.50.
 
@@ -185,11 +194,13 @@ To avoid Render costs, edit `render.yaml` before creating the Blueprint:
 
 | Symptom | Check |
 | --- | --- |
+| The service **won't start**, and the log says `PUBLIC_BASE_URL` | It must be a full `https://` URL with no path, such as `https://<your-service>.onrender.com`. The service checks this at startup and refuses to run otherwise. (Local development may use `http://localhost:8000`.) |
 | Claude says it **couldn't reach the MCP server** | The URL ends in `/mcp`. `/health` loads in a browser. `PUBLIC_BASE_URL` exactly matches the service URL (https, no trailing slash). |
+| A lookup says **"Service configuration issue, please try again later"** | The Anthropic key is missing, wrong or revoked. The Render log names the problem (never the key). |
 | The sign-in page says the **link expired** | Start again from **Connect** in Claude. Links last 15 minutes. |
 | **"That access code isn't valid"** | The code is pasted whole (starts with `ecc_`). Its entry is in `CERTIFIER_ACCESS_CODES` and the service was redeployed. |
 | The web page shows **"Enter a valid access code"** | Same checks as above. |
-| A lookup **fails or is slow** | Render **Logs**. Also check that the Anthropic key has credit and `anthropic_key_set` is `true`. |
+| A lookup **fails or is slow** | Render **Logs**. Also check that the Anthropic key has credit and `/admin/status` shows `anthropic_key_set: true`. |
 | The card doesn't appear **in the chat** | The tool result includes `card_url`. Open it in a browser, since the same card is saved on the server. |
 
 Logs never contain access codes or API keys. Secrets come only from Render's environment variables.

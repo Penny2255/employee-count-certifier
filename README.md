@@ -41,15 +41,16 @@ Then ask, for example, "What's the certified employee count for Adobe?" Claude c
 
 ## Hosted service (Claude app + web page)
 
-The same engine also runs as one web service that has three parts:
-- a search page at `/`
+The same engine also runs as one web service, **GTM Data Certifier** by Human in the Hyperloop ("Deep sweeps. Certified answers."). It has three parts:
+- a web app at `/`: search, confirm the organization, watch the expedition (live progress in one of five themes), then the certified card with downloads and a rating
 - an MCP endpoint at `/mcp` for the Claude app's custom connectors, with an in-chat company card
 - a JSON API
 
-Access is by per-person access codes, created with `uv run certifier-access new NAME`. The service applies daily lookup limits, a daily dollar cap and a 30-day cache. See [DEPLOY.md](DEPLOY.md) for step-by-step Render setup.
+Access is by per-person access codes, created with `uv run certifier-access new NAME`. The service allows 10 new lookups per code per day, a $10 daily dollar cap and a shared 90-day cache. See [DEPLOY.md](DEPLOY.md) for step-by-step Render setup, and [docs/screenshots/](docs/screenshots/) for every screen.
 
 ```
-uv run uvicorn certifier.web:app --port 8000      # run the hosted service locally
+PUBLIC_BASE_URL=http://localhost:8000 uv run uvicorn certifier.web:app --port 8000   # run the hosted service locally
+CERTIFIER_DEMO=1 ...                                  # also enables ?demo=home|confirm|expedition|result|how for screenshots
 ```
 
 ## Development

@@ -40,7 +40,7 @@ from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions, Re
 from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import BaseModel
 
-from . import hosted
+from . import hosted, taxonomy
 from . import server as mcp_server
 from .access import AccessCodes
 from .card import CARD_CSS, CARD_JS, TOKENS_CSS, save_card
@@ -145,7 +145,9 @@ def create_app() -> FastAPI:
     js = CARD_JS + (STATIC / "app.js").read_text(encoding="utf-8")
     index_html = ((STATIC / "index.html").read_text(encoding="utf-8")
                   .replace("__POLICY_VERSION__", html.escape(policy_version)).replace("__TAGLINE__", TAGLINE)
-                  .replace("__DEMO__", "true" if demo else "false"))
+                  .replace("__DEMO__", "true" if demo else "false")
+                  .replace("__GLOSSARY__", taxonomy.glossary_html())
+                  .replace("__MCP_URL__", html.escape(base_url + "/mcp")))
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):

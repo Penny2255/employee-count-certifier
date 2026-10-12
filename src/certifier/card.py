@@ -107,7 +107,55 @@ CARD_CSS = r"""
 .cert .kv { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; font-size: 14px; }
 .cert .kv dt { color: var(--muted); }
 .cert .kv dd { margin: 0; overflow-wrap: anywhere; }
-.cert svg.spark { width: 100%; max-width: 420px; height: 90px; display: block; }
+.cert .answer-grid { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; justify-content: space-between; }
+.cert .conf-box { display: grid; gap: 4px; justify-items: start; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); }
+.cert .bottom-line { display: flex; gap: 10px; align-items: flex-start; margin: 14px 0 8px; padding: 10px 14px; border-radius: 10px; font-size: 15px; }
+.cert .bottom-line .bl-icon { font-weight: 800; }
+.cert .bottom-line.ready { background: var(--green-bg); color: var(--green); }
+.cert .bottom-line.usable { background: var(--yellow-bg); color: var(--yellow); }
+.cert .bottom-line.directional { background: var(--red-bg); color: var(--red); }
+.cert .answer-actions { margin-top: 12px; align-items: center; }
+.cert .answer-actions .breakdown { border: 0; }
+.cert .answer-actions .breakdown > summary { padding: 4px 0; color: var(--accent); font-size: 14px; }
+.cert .answer-actions .breakdown[open] { flex-basis: 100%; }
+.cert .trust h2, .cert .trend-block h2 { margin-bottom: 10px; }
+.cert .trust-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.cert .trust-item { display: grid; gap: 2px; text-align: left; background: var(--soft); color: var(--text); border: 1px solid var(--line);
+  border-radius: 10px; padding: 8px 10px; font-size: 14px; }
+.cert .trust-item:hover { border-color: var(--loop-blue); }
+.cert .trust-item .t-label { font-size: 12px; color: var(--muted); }
+.cert .trust-item.good strong { color: var(--green); }
+.cert .trust-item.bad strong { color: var(--red); }
+.cert .chart-wrap { width: 100%; }
+.cert svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
+.cert svg.chart .axis { font-size: 11px; fill: var(--muted); }
+.cert svg.chart .axis-title { font-size: 11px; fill: var(--muted); font-weight: 600; }
+.cert svg.chart .pt-label { font-size: 12px; fill: var(--text); font-weight: 600; }
+.cert svg.chart .ir-label { fill: var(--green); }
+.cert .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 6px; }
+.cert .lg { display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: -1px; border-radius: 50%; }
+.cert .lg.solid { background: var(--meter); }
+.cert .lg.hollow { border: 2.5px solid var(--meter); background: var(--card); box-shadow: 14px 0 0 -2px rgba(89, 154, 245, .25); }
+.cert .lg.box { border-radius: 2px; border: 1px dashed var(--loop-green); background: rgba(63, 207, 142, .18); }
+.cert .next-update { margin: 10px 0 0; }
+.cert .direction.lower strong, .cert .direction.higher strong { color: var(--text); }
+.cert .label-row { gap: 6px 10px; }
+.cert details.what { border: 0; margin: 4px 0; }
+.cert details.what > summary { padding: 2px 0; font-size: 13px; color: var(--accent); }
+.cert details.what > summary::before { content: none; }
+.cert details.what .info { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid currentColor;
+  font-size: 11px; font-weight: 800; font-style: italic; }
+.cert details.what p { margin: 2px 0 8px; padding: 8px 12px; background: var(--soft); border-radius: 8px; font-size: 14px; }
+.cert .finding > summary { align-items: flex-start; }
+.cert .f-main { display: grid; gap: 2px; }
+.cert .f-title { font-weight: 600; }
+.cert .impact { justify-self: start; font-size: 12px; font-weight: 700; padding: 0 8px; border-radius: 999px; background: var(--soft); color: var(--muted); border: 1px solid var(--line); }
+.cert .impact.down { color: var(--red); background: var(--red-bg); border-color: transparent; }
+.cert .impact.up { color: var(--green); background: var(--green-bg); border-color: transparent; }
+.cert .impact.set { color: var(--text); background: var(--accent-soft); border-color: transparent; }
+.cert .so-what { font-size: 14px; color: var(--muted); }
+.cert .bg-group { margin-top: 8px; }
+.cert .bg-group > summary .group-title { margin: 0; }
 .cert button { font: inherit; font-size: 14px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--primary-bg);
   background: var(--primary-bg); color: var(--primary-text); cursor: pointer; }
 .cert button.secondary { background: transparent; color: var(--text); border-color: var(--line); }
@@ -115,6 +163,7 @@ CARD_CSS = r"""
 .cert :target { scroll-margin-top: 12px; }
 .cert .flash { animation: cert-flash 1.2s ease-out; }
 @keyframes cert-flash { from { background: var(--accent-soft); } to { background: transparent; } }
+@media (max-width: 760px) { .cert .trust-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) {
   .cert .count { font-size: 34px; }
   .cert .src-sum { grid-template-columns: 34px 56px 1fr 80px; }
@@ -148,8 +197,8 @@ CARD_JS = r"""
   function host(url) { try { return new URL(url).hostname.replace(/^www\./, ""); } catch (e) { return url || ""; } }
   function num(n) { return n == null ? "–" : Number(n).toLocaleString("en-US"); }
   function status(s) { var t = STATUS[s] || ["?", s]; return el("span", { cls: "status " + s, title: t[1] }, [t[0] + " " + t[1]]); }
-  function section(title, summaryExtra, bodyNodes, open) {
-    var d = el("details", { cls: "section" }, [el("summary", null, [el("h2", { text: title }), summaryExtra ? el("span", { cls: "muted small", text: summaryExtra }) : null])]);
+  function section(title, summaryExtra, bodyNodes, open, id) {
+    var d = el("details", { cls: "section", id: id }, [el("summary", null, [el("h2", { text: title }), summaryExtra ? el("span", { cls: "muted small", text: summaryExtra }) : null])]);
     if (open) d.open = true;
     bodyNodes.forEach(function (b) { d.appendChild(b); });
     return el("div", { cls: "block" }, [d]);
@@ -163,8 +212,7 @@ CARD_JS = r"""
   function jump(id) {
     var t = document.getElementById(id);
     if (!t) return;
-    var d = t.closest("details.section"); if (d) d.open = true;
-    if (t.tagName === "DETAILS") t.open = true;
+    for (var d = t; d; d = d.parentElement ? d.parentElement.closest("details") : null) if (d.tagName === "DETAILS") d.open = true;
     t.scrollIntoView({ behavior: "smooth", block: "center" });
     t.classList.remove("flash"); void t.offsetWidth; t.classList.add("flash");
   }
@@ -212,157 +260,270 @@ CARD_JS = r"""
     ]);
   }
 
-  function headline(r) {
-    var h = r.headline, c = r.confidence, k = r.__k;
-    var top;
-    if (h.count == null) {
-      top = el("div", null, [el("div", { cls: "count", text: "Not certified" }), none(h.none_reason)]);
-    } else {
-      var basis = h.count_basis === "fte" ? "full-time equivalents" : "employees";
-      top = el("div", null, [
-        el("div", null, [QUAL[h.qualifier] ? el("span", { cls: "qual", text: QUAL[h.qualifier] }) : null, el("span", { cls: "count", text: num(h.count) })]),
-        el("div", { cls: "row small" }, [el("span", { text: basis }),
-          h.range && h.range[0] !== h.range[1] ? el("span", { cls: "muted", text: "range " + num(h.range[0]) + "–" + num(h.range[1]) }) : null,
-          el("span", { cls: "muted", text: asOfText(h) }),
-          h.count_type ? el("span", { cls: "badge accent", text: h.count_type }) : null,
-          h.adjustment_status === "pre-adjustment" ? el("span", { cls: "badge warn", text: "! pre-adjustment" }) : null])
-      ]);
-    }
+  function band(score) { return score >= 4 ? "ready" : score === 3 ? "usable" : "directional"; }
+  function sourceLabel(s) {
+    if (!s || !s.source_type) return "Tier " + (s && s.tier);
+    return "Tier " + s.tier + " · " + s.source_category + " · " + s.source_type;
+  }
+  function labelRow(s) {
+    return el("div", { cls: "row label-row" }, [el("span", { cls: "badge accent", text: "Tier " + s.tier }),
+      el("strong", { cls: "small", text: s.source_category || s.tier_name }), s.source_type ? el("span", { cls: "small", text: s.source_type }) : null]);
+  }
+  function whatIsThis(s) {
+    if (!s || !s.source_type_info) return null;
+    return el("details", { cls: "what" }, [el("summary", null, [el("span", { cls: "info", "aria-hidden": "true", text: "i" }),
+      el("span", { text: "What is this?" })]), el("p", { text: s.source_type_info })]);
+  }
+
+  // One clean, pasteable block for a CRM field or note.
+  function crmText(r) {
+    var h = r.headline, c = r.confidence, p = r.primary_source;
+    var corr = r.sources.items.filter(function (s) { return s.role === "corroborates"; }).length;
+    var why = h.count == null ? (h.none_reason || "No usable public source.") :
+      (p.source_type ? p.source_type : "Derived from data providers") + (h.as_of_date ? " as of " + h.as_of_date : "") +
+      "; " + corr + " independent confirmation" + (corr === 1 ? "" : "s") + "; " + h.bottom_line;
+    return [
+      r.entity.name + " · certified employee count",
+      "Employees: " + (h.count == null ? "not certified" : (QUAL[h.qualifier] ? QUAL[h.qualifier] + " " : "") + num(h.count)) +
+        (h.range && h.range[0] !== h.range[1] ? " (range " + num(h.range[0]) + "–" + num(h.range[1]) + ")" : ""),
+      "As of: " + (h.as_of_date || "undated") + (h.as_of_estimated ? " (estimated)" : ""),
+      "Confidence: " + c.score + "/5 (" + c.level + ")",
+      "Source: " + (p.url ? sourceLabel(p) + " · " + p.url : "none"),
+      "Rationale: " + why,
+      "Certified by GTM Data Certifier, policy v" + r.methodology.policy_version + ", " + (r.methodology.run_at || r.methodology.lookup_date || "").slice(0, 10)
+    ].join("\n");
+  }
+  function copyText(text, button, label) {
+    var done = function () { button.textContent = "Copied"; setTimeout(function () { button.textContent = label; }, 1600); };
+    function fallback() { var t = el("textarea"); t.value = text; document.body.appendChild(t); t.select(); try { document.execCommand("copy"); done(); } catch (e) {} t.remove(); }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
+  }
+
+  function answer(r) {
+    var h = r.headline, c = r.confidence, k = r.__k, p = r.primary_source;
+    var nodes = [];
     var meter = el("span", { cls: "meter", role: "img", "aria-label": "Confidence " + c.score + " of 5" });
     for (var i = 1; i <= 5; i++) meter.appendChild(el("span", { cls: i <= c.score ? "on" : "" }));
+    if (h.count == null) {
+      nodes.push(el("div", { cls: "count", text: "Not certified" }));
+    } else {
+      var basis = h.count_basis === "fte" ? "full-time equivalents" : "employees";
+      nodes.push(el("div", { cls: "answer-grid" }, [
+        el("div", null, [
+          el("div", null, [QUAL[h.qualifier] ? el("span", { cls: "qual", text: QUAL[h.qualifier] }) : null, el("span", { cls: "count", text: num(h.count) })]),
+          el("div", { cls: "row small" }, [el("span", { text: basis }),
+            h.range && h.range[0] !== h.range[1] ? el("span", { cls: "muted", text: "range " + num(h.range[0]) + "–" + num(h.range[1]) }) : null,
+            el("span", { cls: "muted", text: asOfText(h) }),
+            h.count_type ? el("span", { cls: "badge accent", text: h.count_type }) : null,
+            h.adjustment_status === "pre-adjustment" ? el("span", { cls: "badge warn", text: "! pre-adjustment" }) : null])]),
+        el("div", { cls: "conf-box" }, [meter, el("strong", { text: "Confidence " + c.score + "/5" }), el("span", { cls: "small", text: c.level })])
+      ]));
+    }
+    var b = band(c.score);
+    nodes.push(el("p", { cls: "bottom-line " + b }, [el("span", { cls: "bl-icon", "aria-hidden": "true", text: b === "ready" ? "✓" : b === "usable" ? "!" : "✕" }),
+      el("span", null, [el("strong", { text: "Bottom line: " }), h.bottom_line || ""])]));
+    if (p && p.source_id) nodes.push(el("div", { cls: "row small where" }, [el("span", { cls: "muted", text: "Key source:" }),
+      el("span", { text: sourceLabel(p) + " · " + where(p.url, p.location) })]));
+    if (h.known_changes && h.known_changes.length) {
+      nodes.push(el("div", { cls: "row small", style: "margin-top:6px" }, [el("span", { cls: "muted", text: "Known change after the as-of date:" }),
+        el("span", { text: h.known_changes.join("; ") })]));
+    }
+    if (h.indicated_current_range) {
+      var ir = h.indicated_current_range;
+      nodes.push(el("div", { cls: "indicated", title: ir.rationale }, [
+        el("strong", { text: "Indicated current range " + (ir.low === ir.high ? "about " + num(ir.low) : num(ir.low) + "–" + num(ir.high)) }),
+        el("span", { cls: "muted small", text: " · newer data-provider figures, " + ir.earliest.slice(0, 7) + (ir.latest !== ir.earliest ? " to " + ir.latest.slice(0, 7) : "") + " · context only, not certified" })]));
+    }
     var table = el("table", { cls: "lines" });
     c.breakdown.forEach(function (line) {
       table.appendChild(el("tr", null, [el("td", { cls: "pts", text: (line.points > 0 && line !== c.breakdown[0] ? "+" : "") + line.points }),
         el("td", null, [line.rationale + " ", chip(line.finding_id, k + "-")])]));
     });
     table.appendChild(el("tr", { cls: "total" }, [el("td", { cls: "pts", text: String(c.score) }), el("td", { text: "= " + c.arithmetic })]));
-    var conf = el("details", null, [el("summary", { cls: "wrap" }, [el("span", null, [meter]), el("strong", { text: "Confidence " + c.score + "/5 · " + c.level }),
-      el("span", { cls: "muted small", text: "score breakdown" })]), table]);
-    var extra = [];
-    if (h.known_changes && h.known_changes.length) {
-      extra.push(el("div", { cls: "row small", style: "margin-top:6px" }, [el("span", { cls: "muted", text: "Known change after the as-of date:" }),
-        el("span", { text: h.known_changes.join("; ") })]));
+    var crm = el("button", { type: "button", cls: "crm", text: "Copy for CRM" });
+    crm.addEventListener("click", function () { copyText(crmText(r), crm, "Copy for CRM"); });
+    nodes.push(el("div", { cls: "row answer-actions" }, [crm,
+      el("details", { cls: "breakdown" }, [el("summary", null, [el("span", { text: "How the score adds up" })]), table])]));
+    return el("div", { cls: "block answer" }, nodes);
+  }
+
+  // "Why you can trust this": five facts, each opening its detail.
+  function trust(r) {
+    var k = r.__k, p = r.primary_source, h = r.headline;
+    var corr = r.sources.items.filter(function (s) { return s.role === "corroborates"; });
+    var corrFinding = r.findings.items.filter(function (f) { return f.category === "corroboration"; })[0];
+    var adj = r.adjustments.items.filter(function (a) { return a.change; }).length;
+    var attention = r.findings.items.filter(function (f) { return f.status === "red"; }).length;
+    function item(label, value, target, tone) {
+      var b = el("button", { type: "button", cls: "trust-item" + (tone ? " " + tone : "") }, [el("span", { cls: "t-label", text: label }), el("strong", { text: value })]);
+      b.addEventListener("click", function () { jump(target); });
+      return b;
     }
-    if (h.indicated_current_range) {
-      var ir = h.indicated_current_range;
-      extra.push(el("div", { cls: "indicated", title: ir.rationale }, [
-        el("strong", { text: "Indicated current range " + (ir.low === ir.high ? "about " + num(ir.low) : num(ir.low) + "–" + num(ir.high)) }),
-        el("span", { cls: "muted small", text: " · newer data-provider figures, " + ir.earliest.slice(0, 7) + (ir.latest !== ir.earliest ? " to " + ir.latest.slice(0, 7) : "") + " · context only, not certified" })]));
+    return el("div", { cls: "block trust", role: "group", "aria-label": "Why you can trust this" }, [
+      el("h2", { text: "Why you can trust this" }),
+      el("div", { cls: "trust-strip" }, [
+        item("Key source", p && p.source_id ? "Tier " + p.tier + " · " + (p.source_type || p.tier_name) : "none", k + "-key"),
+        item("As of", h.as_of_date ? h.as_of_date + (h.as_of_estimated ? " (est.)" : "") : "undated", k + "-key"),
+        item("Independent confirmations", String(corr.length), corrFinding ? k + "-" + corrFinding.id : k + "-sources", corr.length ? "good" : ""),
+        item("Adjustments to the count", String(adj), k + "-adjustments"),
+        item("Needs attention", String(attention), k + "-findings", attention ? "bad" : "good")])]);
+  }
+
+  // Trend and forecast: reported points solid, estimates hollow, forecast as a shaded band, indicated range as a box.
+  function chart(r) {
+    var h = r.headline, items = r.trend.items.slice(), ir = h.indicated_current_range;
+    if (!items.length && h.count != null && h.as_of_date) items = [{ as_of_date: h.as_of_date, value: h.count, estimated: false }];
+    if (!items.length && !ir) return null;
+    // Drawn at roughly the on-screen width, so labels stay readable on phones.
+    var W = Math.max(320, Math.min(640, (document.documentElement.clientWidth || 640) - 72));
+    var H = W < 480 ? 230 : 240, L = W < 480 ? 52 : 64, R = 20, T = 30, B = 40, ns = "http://www.w3.org/2000/svg";
+    var t = function (d) { return new Date(d + "T00:00:00Z").getTime(); };
+    var xs = items.map(function (p) { return t(p.as_of_date); }), vals = [];
+    items.forEach(function (p) { vals.push(p.value); if (p.low != null) { vals.push(p.low); vals.push(p.high); } });
+    if (ir) { xs.push(t(ir.earliest), t(ir.latest)); vals.push(ir.low, ir.high); }
+    var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), day = 864e5;
+    if (x1 - x0 < 300 * day) { x0 -= 180 * day; x1 += 180 * day; }
+    var pad = (x1 - x0) * 0.06; x0 -= pad; x1 += pad;
+    var v0 = Math.min.apply(null, vals), v1 = Math.max.apply(null, vals);
+    var vpad = (v1 - v0) * 0.15 || Math.max(1, v1 * 0.08); v0 = Math.max(0, v0 - vpad); v1 += vpad;
+    var step = Math.pow(10, Math.floor(Math.log10((v1 - v0) / 3))); [1, 2, 5, 10].some(function (m) { if ((v1 - v0) / (step * m) <= 4) { step *= m; return true; } });
+    var X = function (ms) { return L + (ms - x0) / (x1 - x0) * (W - L - R); };
+    var Y = function (v) { return T + (1 - (v - v0) / (v1 - v0)) * (H - T - B); };
+    var svgEl = document.createElementNS(ns, "svg");
+    svgEl.setAttribute("viewBox", "0 0 " + W + " " + H); svgEl.setAttribute("class", "chart"); svgEl.setAttribute("role", "img");
+    svgEl.setAttribute("aria-label", "Headcount over time: " + items.map(function (p) { return p.as_of_date + " " + num(p.value) + (p.estimated ? " (forecast, " + num(p.low) + " to " + num(p.high) + ")" : " (reported)"); }).join("; ") +
+      (ir ? "; indicated current range " + num(ir.low) + " to " + num(ir.high) : ""));
+    function add(tag, attrs, text) { var n = document.createElementNS(ns, tag); for (var a in attrs) n.setAttribute(a, attrs[a]); if (text != null) n.textContent = text; svgEl.appendChild(n); return n; }
+    for (var v = Math.ceil(v0 / step) * step; v <= v1; v += step) {
+      add("line", { x1: L, x2: W - R, y1: Y(v), y2: Y(v), stroke: "var(--line)", "stroke-width": 1 });
+      add("text", { x: L - 8, y: Y(v) + 4, "text-anchor": "end", "class": "axis" }, num(Math.round(v)));
     }
-    var p = r.primary_source;
-    var src = p && p.source_id ? el("div", { cls: "row small muted where" }, [el("span", { text: "Key source: " + where(p.url, p.location) })]) : null;
-    return el("div", { cls: "block" }, [top].concat(extra).concat([src, el("div", { style: "margin-top:12px" }, [conf])]).filter(Boolean));
+    var y0 = new Date(x0).getUTCFullYear(), y1 = new Date(x1).getUTCFullYear(), every = Math.max(1, Math.ceil((y1 - y0 + 1) / 7));
+    for (var yr = y0; yr <= y1 + 1; yr += every) {
+      var ms = Date.UTC(yr, 0, 1); if (ms < x0 || ms > x1) continue;
+      add("line", { x1: X(ms), x2: X(ms), y1: H - B, y2: H - B + 5, stroke: "var(--muted)" });
+      add("text", { x: X(ms), y: H - B + 18, "text-anchor": "middle", "class": "axis" }, String(yr));
+    }
+    add("line", { x1: L, x2: W - R, y1: H - B, y2: H - B, stroke: "var(--muted)", "stroke-width": 1 });
+    add("text", { x: 4, y: 12, "class": "axis-title", "text-anchor": "start" }, "Employees");
+    add("text", { x: L + (W - L - R) / 2, y: H - 4, "class": "axis-title", "text-anchor": "middle" }, "As-of date");
+    if (ir) {
+      var rx = X(t(ir.earliest)), rw = Math.max(16, X(t(ir.latest)) - rx), rh = Math.max(10, Y(ir.low) - Y(ir.high));
+      var ry = Y(ir.high) - (rh === 10 ? 5 - (Y(ir.low) - Y(ir.high)) / 2 : 0);
+      add("rect", { x: rx - (rw === 16 ? 8 : 0), y: ry, width: rw, height: rh, fill: "var(--loop-green)", "fill-opacity": .25,
+        stroke: "var(--loop-green)", "stroke-width": 1.5, "stroke-dasharray": "4 3", rx: 2 });
+      add("text", { x: rx + (rw === 16 ? 0 : rw / 2), y: ry - 6, "text-anchor": "middle", "class": "pt-label ir-label" },
+        ir.low === ir.high ? "≈" + num(ir.low) : num(ir.low) + "–" + num(ir.high));
+    }
+    var reported = items.filter(function (p) { return !p.estimated; }), last = reported[reported.length - 1];
+    items.filter(function (p) { return p.estimated && p.low != null; }).forEach(function (f) {
+      if (last) add("polygon", { points: [X(t(last.as_of_date)), Y(last.value), X(t(f.as_of_date)), Y(f.high), X(t(f.as_of_date)), Y(f.low)].join(" "),
+        fill: "var(--loop-blue)", "fill-opacity": .18 });
+      if (last) add("line", { x1: X(t(last.as_of_date)), y1: Y(last.value), x2: X(t(f.as_of_date)), y2: Y(f.value), stroke: "var(--meter)", "stroke-width": 2, "stroke-dasharray": "5 4" });
+    });
+    for (var i = 1; i < reported.length; i++) add("line", { x1: X(t(reported[i - 1].as_of_date)), y1: Y(reported[i - 1].value), x2: X(t(reported[i].as_of_date)), y2: Y(reported[i].value), stroke: "var(--meter)", "stroke-width": 2.5 });
+    items.forEach(function (p) {
+      add("circle", { cx: X(t(p.as_of_date)), cy: Y(p.value), r: 5, fill: p.estimated ? "var(--card)" : "var(--meter)", stroke: "var(--meter)", "stroke-width": 2.5 });
+      add("text", { x: X(t(p.as_of_date)), y: Y(p.value) - 10, "text-anchor": "middle", "class": "pt-label" }, num(p.value));
+    });
+    return svgEl;
+  }
+
+  function trendBlock(r) {
+    var h = r.headline, items = r.trend.items, nodes = [el("h2", { text: "Trend and forecast" })];
+    if (h.direction) nodes.push(el("p", { cls: "direction " + h.direction }, [el("strong", { text: DIRECTION[h.direction] || h.direction }), " · " + (h.direction_reason || "")]));
+    var svgEl = chart(r);
+    if (svgEl) {
+      nodes.push(el("div", { cls: "chart-wrap" }, [svgEl]));
+      nodes.push(el("div", { cls: "legend small muted" }, [el("span", null, [el("i", { cls: "lg solid" }), "Reported"]),
+        items.some(function (p) { return p.estimated; }) ? el("span", null, [el("i", { cls: "lg hollow" }), "Estimated (forecast) with shaded range"]) : null,
+        h.indicated_current_range ? el("span", null, [el("i", { cls: "lg box" }), "Indicated current range (context only)"]) : null]));
+    } else {
+      nodes.push(none(r.trend.none_reason));
+    }
+    if (h.next_update_note) nodes.push(el("p", { cls: "small next-update" }, [el("strong", { text: "Next update: " }), h.next_update_note]));
+    return el("div", { cls: "block trend-block", id: r.__k + "-trend" }, nodes);
   }
 
   function primary(r) {
-    var p = r.primary_source;
-    if (!p.source_id) return section("Key Source", "none", [none(p.none_reason)], true);
+    var p = r.primary_source, k = r.__k;
+    if (!p.source_id) return section("Key Source", "none", [none(p.none_reason)], true, k + "-key");
     var loc = p.location;
-    return section("Key Source", "tier " + p.tier + " · " + (loc.section ? loc.section + " · " : "") + loc.page_label, [
-      el("div", { cls: "row" }, [el("span", { cls: "badge accent", text: "Tier " + p.tier }), el("span", { cls: "small", text: p.tier_name })]),
+    return section("Key Source", sourceLabel(p) + " · " + (loc.section ? loc.section + " · " : "") + loc.page_label, [
+      labelRow(p), whatIsThis(p),
       el("p", { cls: "small muted", style: "margin:8px 0 0", text: "Detailed excerpt (the exact quote is highlighted):" }),
       passage(loc, p.excerpt),
       p.excerpt_missing_reason ? el("p", { cls: "small muted", text: p.excerpt_missing_reason }) : null,
       kv(locationPairs(p.url, loc).concat([["Accession", p.accession], ["As of", p.as_of_date], ["Published", p.published_date],
           ["Modified", p.modified_date], ["Why this tier", p.tier_rationale]]))
-    ].filter(Boolean), true);
+    ].filter(Boolean), false, k + "-key");
   }
 
+  var GROUPS = [["affects", "Affects the answer"], ["worth_knowing", "Worth knowing"], ["background", "Background"]];
+  function findingNode(f, k) {
+    var group = f.group || (f.score_impact ? "affects" : "worth_knowing");
+    var impact = f.impact || (f.score_impact ? (f.score_impact > 0 ? "Raised" : "Lowered") + " confidence by " + Math.abs(f.score_impact) : "No effect on the answer");
+    var tone = /^Lowered/.test(impact) ? "down" : /^Raised|^Chose/.test(impact) ? "up" : /^Adjusted|^Sets/.test(impact) ? "set" : "none";
+    var ev = el("div", { cls: "row small" }, [el("span", { cls: "muted", text: "Evidence:" })]);
+    if (f.evidence.length) f.evidence.forEach(function (id) { ev.appendChild(chip(id, k + "-")); }); else ev.appendChild(el("span", { cls: "muted", text: "none cited" }));
+    return el("details", { id: k + "-" + f.id, cls: "finding " + group }, [
+      el("summary", null, [status(f.status), el("span", { cls: "f-main" }, [
+        el("span", { cls: "f-title", text: f.title }), " ", el("span", { cls: "impact " + tone, text: impact }),
+        f.so_what ? el("span", { cls: "so-what", text: "So what: " + f.so_what }) : null])]),
+      el("div", { cls: "body" }, [el("p", { style: "margin:0 0 6px", text: f.rationale }), ev,
+        el("p", { cls: "muted small", style: "margin:4px 0 0", text: f.id + " · " + f.category.replace("_", " ") })])
+    ]);
+  }
   function findings(r) {
     var items = r.findings.items, k = r.__k;
-    if (!items.length) return section("Findings", "none", [none(r.findings.none_reason)]);
-    var counts = { red: 0, yellow: 0, green: 0 };
-    items.forEach(function (f) { counts[f.status]++; });
-    var nodes = [];
-    ["red", "yellow", "green"].forEach(function (s) {
-      var group = items.filter(function (f) { return f.status === s; });
-      if (!group.length) return;
-      nodes.push(el("p", { cls: "group-title", text: STATUS[s][1] + " (" + group.length + ")" }));
-      group.forEach(function (f) {
-        var impact = f.score_impact ? (f.score_impact > 0 ? "+" : "") + f.score_impact + " to score" : "no score change";
-        var ev = el("div", { cls: "row small" }, [el("span", { cls: "muted", text: "Evidence:" })]);
-        if (f.evidence.length) f.evidence.forEach(function (id) { ev.appendChild(chip(id, k + "-")); }); else ev.appendChild(el("span", { cls: "muted", text: "none cited" }));
-        nodes.push(el("details", { id: k + "-" + f.id }, [
-          el("summary", null, [status(f.status), el("span", { text: f.title })]),
-          el("div", { cls: "body" }, [el("p", { style: "margin:0 0 6px", text: f.rationale }), ev,
-            el("p", { cls: "muted small", style: "margin:4px 0 0", text: f.id + " · " + f.category.replace("_", " ") + " · " + impact })])
-        ]));
-      });
+    if (!items.length) return section("Findings", "none", [none(r.findings.none_reason)], true, k + "-findings");
+    var nodes = [], counts = [];
+    GROUPS.forEach(function (g) {
+      var list = items.filter(function (f) { return (f.group || (f.score_impact ? "affects" : "worth_knowing")) === g[0]; });
+      if (!list.length) return;
+      counts.push(list.length + " " + g[1].toLowerCase());
+      if (g[0] === "background") {
+        nodes.push(el("details", { cls: "bg-group" }, [el("summary", null, [el("span", { cls: "group-title", text: g[1] + " (" + list.length + ")" }),
+          el("span", { cls: "muted small", text: "technical detail" })])].concat(list.map(function (f) { return findingNode(f, k); }))));
+      } else {
+        nodes.push(el("p", { cls: "group-title", text: g[1] + " (" + list.length + ")" }));
+        list.forEach(function (f) { nodes.push(findingNode(f, k)); });
+      }
     });
-    var summary = ["red", "yellow", "green"].filter(function (s) { return counts[s]; }).map(function (s) { return counts[s] + " " + STATUS[s][1].toLowerCase(); }).join(", ");
-    return section("Findings", summary, nodes, counts.red > 0);
+    return section("Findings", counts.join(" · "), nodes, true, k + "-findings");
   }
 
   function sources(r) {
     var items = r.sources.items, k = r.__k;
-    if (!items.length) return section("Sources", "none", [none(r.sources.none_reason)]);
+    if (!items.length) return section("Sources", "none", [none(r.sources.none_reason)], false, k + "-sources");
     var used = items.filter(function (s) { return s.used; }).length;
-    var nodes = [el("div", { cls: "src-sum src-head" }, [el("span", { text: "ID" }), el("span", { text: "Tier" }), el("span", { text: "Value · source" }),
+    var nodes = [el("div", { cls: "src-sum src-head" }, [el("span", { text: "ID" }), el("span", { text: "Tier" }), el("span", { text: "Value · source type" }),
       el("span", { cls: "date", text: "As of" }), el("span", { text: "Status" })])];
     items.forEach(function (s) {
       nodes.push(el("details", { id: k + "-" + s.id }, [
         el("summary", null, [el("span", { cls: "src-sum" }, [el("span", { cls: "muted", text: s.id }), el("span", { cls: "badge", text: "Tier " + s.tier }),
-          el("span", { cls: "host" }, [el("strong", { text: (QUAL[s.qualifier] ? QUAL[s.qualifier] + " " : "") + num(s.value) }), " · " + host(s.url)]),
+          el("span", { cls: "host" }, [el("strong", { text: (QUAL[s.qualifier] ? QUAL[s.qualifier] + " " : "") + num(s.value) }), " · " + (s.source_type || host(s.url))]),
           el("span", { cls: "date muted small", text: s.as_of_date || "undated" }),
           el("span", { cls: "badge" + (s.used ? " accent" : ""), text: s.used ? "Used" : "Excluded" })])]),
-        el("div", { cls: "body" }, [passage(s.location, s.excerpt),
+        el("div", { cls: "body" }, [labelRow(s), whatIsThis(s), passage(s.location, s.excerpt),
           kv([["Role", ROLE[s.role] || s.role], ["Why used / excluded", s.use_rationale], ["Why this tier", s.tier_rationale]]
               .concat(locationPairs(s.url, s.location))
               .concat([["Scope / basis", s.scope + " · " + s.basis], ["Published", s.published_date], ["Modified", s.modified_date],
-                       ["Notes", s.notes.length ? s.notes.join(" ") : null]]))])
+                       ["Notes", s.notes.length ? s.notes.join(" ") : null]]))].filter(Boolean))
       ]));
     });
-    return section("Sources", items.length + " found, " + used + " used", nodes);
+    return section("Sources", items.length + " found, " + used + " used", nodes, false, k + "-sources");
   }
 
   function adjustments(r) {
-    var items = r.adjustments.items;
-    if (!items.length) return section("Adjustments", "none", [none(r.adjustments.none_reason)]);
+    var items = r.adjustments.items, k = r.__k;
+    if (!items.length) return section("Adjustments", "none", [none(r.adjustments.none_reason)], false, k + "-adjustments");
     return section("Adjustments", items.length + " logged", items.map(function (a) {
       var change = a.change ? (a.change > 0 ? "+" : "") + num(a.change) : "note";
       return el("details", null, [el("summary", null, [el("span", { cls: "badge", text: change }),
         el("span", { text: a.source_figure != null ? num(a.source_figure) + " → " + num(a.result) : num(a.result) })]),
         el("div", { cls: "body" }, [el("p", { style: "margin:0", text: a.rationale })])]);
-    }));
-  }
-
-  function sparkline(points) {
-    var W = 420, H = 90, P = 14;
-    var vals = [];
-    points.forEach(function (p) { vals.push(p.value); if (p.low != null) vals.push(p.low); if (p.high != null) vals.push(p.high); });
-    var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals), span = (max - min) || 1;
-    var x = function (i) { return points.length === 1 ? W / 2 : P + i * (W - 2 * P) / (points.length - 1); };
-    var y = function (v) { return H - P - (v - min) / span * (H - 2 * P); };
-    var ns = "http://www.w3.org/2000/svg";
-    var svg = document.createElementNS(ns, "svg");
-    svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "spark"); svg.setAttribute("role", "img");
-    svg.setAttribute("aria-label", "Trend: " + points.map(function (p) { return p.as_of_date.slice(0, 4) + " " + num(p.value) + (p.estimated ? " (estimated)" : ""); }).join(", "));
-    function add(tag, attrs) { var n = document.createElementNS(ns, tag); for (var a in attrs) n.setAttribute(a, attrs[a]); svg.appendChild(n); return n; }
-    for (var i = 1; i < points.length; i++) {
-      add("line", { x1: x(i - 1), y1: y(points[i - 1].value), x2: x(i), y2: y(points[i].value), stroke: "var(--meter)", "stroke-width": 2,
-        "stroke-dasharray": points[i].estimated ? "5 4" : "" });
-    }
-    points.forEach(function (p, i) {
-      if (p.estimated && p.low != null) add("line", { x1: x(i), y1: y(p.low), x2: x(i), y2: y(p.high), stroke: "var(--muted)", "stroke-width": 1.5 });
-      add("circle", { cx: x(i), cy: y(p.value), r: 4, fill: p.estimated ? "var(--card)" : "var(--meter)", stroke: "var(--meter)", "stroke-width": 2 });
-    });
-    return svg;
-  }
-
-  function trend(r) {
-    var items = r.trend.items, h = r.headline;
-    var nodes = [];
-    if (h.direction) nodes.push(el("p", { cls: "direction" }, [el("strong", { text: DIRECTION[h.direction] || h.direction }), " · " + (h.direction_reason || "")]));
-    if (items.length) {
-      var list = el("div", { cls: "row small" });
-      items.forEach(function (p) { list.appendChild(el("span", { title: p.rationale, text: p.as_of_date + ": " + num(p.value) + (p.estimated ? " (estimated" + (p.low != null ? ", " + num(p.low) + "–" + num(p.high) : "") + ")" : "") })); });
-      nodes.push(sparkline(items), list,
-        el("p", { cls: "muted small", text: "Solid points are reported; a hollow point on a dashed line is an estimate, not a reported figure." }));
-    } else {
-      nodes.push(none(r.trend.none_reason));
-    }
-    var extra = (items.length ? items.length + " points" : "no points") + (h.direction ? " · " + (DIRECTION[h.direction] || "").replace(/^\S+ /, "").toLowerCase() : "");
-    return section("Trend and direction", extra, nodes);
+    }), false, k + "-adjustments");
   }
 
   function events(r) {
@@ -373,6 +534,8 @@ CARD_JS = r"""
         el("div", { cls: "body" }, [el("p", { style: "margin:0", text: e.rationale }), e.url ? link(e.url, host(e.url)) : null].filter(Boolean))]);
     }) : [none(r.events.none_reason)];
     nodes.push(el("p", { cls: "group-title", text: "LinkedIn check" }));
+    if (li.source_type) nodes.push(el("div", { cls: "row small" }, [el("strong", { text: li.source_category }), el("span", { text: li.source_type })]));
+    if (li.source_type_info) nodes.push(whatIsThis(li));
     nodes.push(el("p", { cls: "small", style: "margin:4px 0" }, [li.rationale + " ", chip(li.finding_id, k + "-")]));
     return section("Events and LinkedIn", (items.length ? items.length + " event(s)" : "no events") + " · LinkedIn " + li.status.replace("_", " "), nodes);
   }
@@ -426,7 +589,8 @@ CARD_JS = r"""
     records.forEach(function (r, i) {
       r.__k = "r" + i;
       root.appendChild(el("article", { cls: "card", "aria-label": "Certification for " + r.entity.name }, [
-        header(r), headline(r), primary(r), findings(r), sources(r), adjustments(r), trend(r), events(r), footer(r, records, opts)]));
+        header(r), answer(r), trust(r), trendBlock(r), findings(r), primary(r), sources(r), adjustments(r), events(r),
+        footer(r, records, opts)]));
     });
     if (location.hash === "#expand-all") Array.prototype.forEach.call(root.querySelectorAll("details"), function (d) { d.open = true; });
     if (opts.onRender) opts.onRender(records);

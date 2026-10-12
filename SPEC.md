@@ -22,7 +22,7 @@ The engine always takes the highest-ranked available source, except where an exc
 | Tier | Class | Source | Requirement | Examples |
 | --- | --- | --- | --- | --- |
 | 1 | Primary | 10-K or annual financial report | Formal, dated, company-published | 10-K Item 1 "Human Capital" or "Employees": "As of [date], we employed X people" |
-| 2 | Primary | Non-financial annual or regulatory report | Formal, dated, company-published | Private-company annual report; university IPEDS staff filing; nonprofit IRS Form 990 |
+| 2 | Primary | Corporate fact sheet, or non-financial annual or regulatory report | Formal, dated, company-published (an undated fact sheet drops to tier 3) | The company's official Corporate Fact Sheet or "company facts" page/PDF; private-company annual report; university IPEDS staff filing; nonprofit IRS Form 990 |
 | 3 | Secondary | Formal press release or company-published document | Company-published; dated by the release | "About [Company]" boilerplate, or a headcount stated in the release body |
 | 4 | Secondary | Company website description | Traceable to the company; often undated | About Us / Company pages, preferred over deep or hidden pages |
 | 5 | Secondary | LinkedIn company description | Company-set text, not member count; often undated | "with more than 4,500 employees across the globe" |
@@ -196,25 +196,42 @@ Some organizations report their parts separately. A university files IPEDS for t
 
 `certify_group` in `src/certifier/group.py` implements this. Finding the affiliates and the ownership proof is part of entity resolution (build step 4).
 
-## Certification record (v1.1)
+## Certification record (v1.2)
 
 Every lookup returns one standardized record per entity (`src/certifier/record.py`). It has the same 11 sections, always in this order, even when a section is empty. List sections are `{items: [...], none_reason}`, and an empty one must say why. `headline` and `primary_source` carry their own `none_reason` when empty. The shape is flat and export-ready (JSON now; CSV, Excel and slides later).
 
 | # | Section | Contents |
 | --- | --- | --- |
 | 1 | `entity` | Name, website, HQ, legal parent, relationship in words |
-| 2 | `headline` | `count`, `qualifier`, `range`, `count_type`, `count_basis`, `as_of_date`, `as_of_estimated`, `as_of_estimated_from` (`context`, `url` or null), `adjustment_status` (`current` or `pre-adjustment`), `known_changes[]`, `indicated_current_range`, `direction` (`higher`, `lower`, `in_line`, `unknown`), `direction_reason` |
+| 2 | `headline` | `count`, `qualifier`, `range`, `count_type`, `count_basis`, `as_of_date`, `as_of_estimated`, `as_of_estimated_from` (`context`, `url` or null), `adjustment_status` (`current` or `pre-adjustment`), `known_changes[]`, `indicated_current_range`, `direction` (`higher`, `lower`, `in_line`, `unknown`), `direction_reason`, `bottom_line`, `next_expected_update`, `next_update_note` |
 | 3 | `confidence` | `score` (0–5), `level`, `breakdown[]`, `arithmetic` (e.g., "4 + 1 + 0 = 5") |
-| 4 | `primary_source` | Source ID, tier and tier name, URL, SEC accession (if any), verbatim `excerpt`, `location`, as-of/published/modified dates, `tier_rationale` |
+| 4 | `primary_source` | Source ID, tier and tier name, `source_category`, `source_type`, `source_type_info`, URL, SEC accession (if any), verbatim `excerpt`, `location`, as-of/published/modified dates, `tier_rationale` |
 | 5 | `findings` | Green/yellow/red findings (below) |
-| 6 | `sources` | Every source: ID (`S1…`), tier, value, qualifier, basis, scope, dates, URL, excerpt, `location`, role, `used`, `tier_rationale`, `use_rationale` |
+| 6 | `sources` | Every source: ID (`S1…`), tier, `source_category`, `source_type`, `source_type_info`, value, qualifier, basis, scope, dates, URL, excerpt, `location`, role, `used`, `tier_rationale`, `use_rationale` |
 | 7 | `adjustments` | ID (`A1…`), source ID, source figure, change, result, `rationale` |
 | 8 | `trend` | Reported same-basis points (oldest to newest), plus a forecast point marked `estimated` with a low–high range when there are at least 3 points (see Trend and forecast) |
 | 9 | `linkedin_check` | Status, member count, size range, workforce profile, pass range, linked finding, `rationale` |
 | 10 | `events` | Mergers, acquisitions and spinoffs: description, URL, close date, `penalized`, `rationale` |
 | 11 | `methodology` | Policy version, record version, method, models, cost, web searches and fetches, run timestamp, duration, lookup date, queries, notes |
 
-**Findings.** Each finding has an `id` (`F1…`), a `category` (`provenance`, `recency`, `corroboration`, `scope`, `linkedin`, `event`, `definition`, `data_gap`), a `status`, a one-line `title`, a `rationale`, `evidence` (source IDs) and a `score_impact` (e.g., −1 or 0). The rationale is 2–3 plain-English sentences: what we found, why it matters, and what we did about it.
+**Source labels (v1.2).** Every source has a `source_category` and a `source_type`, shown as "Tier 1 · Financial Filing · 10-K".
+
+- **Categories:** Financial Filing; Official Company Report; Company Publication; Company Website; Company Social Profile; News (Executive Quote); Data Provider; Specialty Data & Financial Media; Other.
+- **Types:**
+  - filings and reports: 10-K, 20-F, 40-F, SEC Annual Filing, Annual Report, Annual Comprehensive Financial Report (ACFR), Corporate Fact Sheet, IRS Form 990, IPEDS Filing, Non-Financial Annual Report
+  - company publications and pages: Press Release, Company Document, Website: About Us, Website: Other Page, LinkedIn: Company Description, LinkedIn: Member Count
+  - third parties: News: [outlet], Data Provider: [provider], Web Page: [site]
+
+The mapping is deterministic (`src/certifier/taxonomy.py`). `source_type_info` is the plain-English explanation from `source_glossary.yaml`, which is editable without code changes.
+
+**Bottom line.** The bottom line is mapped to confidence:
+- 4–5: "Ready to use. Strong, current primary source."
+- 3: "Usable. Note the range and the as-of date."
+- 0–2: "Directional only. Verify before updating records."
+
+`next_expected_update` is when the next edition of the key source is due: its as-of date plus the typical filing lag.
+
+**Findings.** Each finding has an `id` (`F1…`), a `group` (`affects`, `worth_knowing`, `background`), an `impact` chip (e.g. "Lowered confidence by 1", "Adjusted count −1,100", "No effect on the answer"), a one-sentence `so_what`, a `category` (`provenance`, `recency`, `corroboration`, `scope`, `linkedin`, `event`, `definition`, `data_gap`), a `status`, a one-line `title`, a `rationale`, `evidence` (source IDs) and a `score_impact` (e.g., −1 or 0). The rationale is 2–3 plain-English sentences: what we found, why it matters, and what we did about it.
 - **Green:** supports the certified figure.
 - **Yellow:** a caveat or nuance, with minor or no score impact.
 - **Red:** lowers confidence or needs human review.

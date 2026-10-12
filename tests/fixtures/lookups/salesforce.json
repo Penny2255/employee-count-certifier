@@ -38,7 +38,7 @@
     "pre_adjustment": false,
     "direction": {
       "direction": "lower",
-      "reason": "Likely somewhat lower than reported because of Salesforce laid off about 1,000 employees in February 2026, with cuts across marketing… (2026-02-15, -1,000)."
+      "reason": "Likely somewhat lower than reported because of a change after the as-of date: Salesforce laid off about 1,000 employees in February 2026, with cuts across marketing… (2026-02-15, -1,000)."
     },
     "scope_notes": [
       "Informatica is described on Wikipedia as acquired by Salesforce (about 5,200 employees in 2024). No completion date was found and it is unconfirmed whether its staff are included in Salesforce's headcount. Salesforce's consolidated count would include a wholly owned subsidiary by policy."
@@ -77,7 +77,8 @@
         "role_reason": "Highest-ranked eligible source: tier 1, as of 2026-01-31.",
         "notes": [
           "10-K for fiscal year ended 2026-01-31, filed 2026-03-02. Predates the February 2026 layoff of about 1,000 reported by Yahoo Finance only in the sense that the layoff was announced around the period end; the figure is as stated."
-        ]
+        ],
+        "document_type": "10-K"
       },
       {
         "url": "https://www.sec.gov/Archives/edgar/data/1108524/000110852425000006/crm-20250131.htm",
@@ -112,7 +113,8 @@
         "notes": [
           "Prior-year 10-K; feeds the trend only.",
           "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
-        ]
+        ],
+        "document_type": "10-K"
       },
       {
         "url": "https://www.sec.gov/Archives/edgar/data/1108524/000110852424000005/crm-20240131.htm",
@@ -148,7 +150,8 @@
           "Prior-year 10-K; feeds the trend only.",
           "Older than 24 months.",
           "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
-        ]
+        ],
+        "document_type": "10-K"
       },
       {
         "url": "https://www.reveliolabs.com/companies/salesforce/employees",

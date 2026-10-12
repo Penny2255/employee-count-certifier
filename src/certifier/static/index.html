@@ -73,7 +73,7 @@
     <h1 id="confirm-title" class="view-title">Which one do you mean?</h1>
     <p class="muted">Choose the organization to certify. One lookup covers one organization.</p>
     <div id="candidates" class="candidates"></div>
-    <p><button type="button" class="link" data-nav="home">← New search</button></p>
+    <p><button type="button" class="link" id="search-again">Not the right one? Search again</button></p>
   </section>
 
   <!-- 3. Expedition -->
@@ -95,13 +95,17 @@
     <div class="result-head">
       <p id="certified-on" class="certified-on"></p>
       <button type="button" id="refresh" class="secondary" hidden>Refresh</button>
+      <span class="spacer"></span>
+      <span id="saved-note" class="muted small">Saved to Recent lookups</span>
+      <button type="button" class="link" id="discard">Discard</button>
+      <button type="button" class="primary" data-action="reset">Search another company</button>
     </div>
     <div id="result-card" class="cert"></div>
     <div class="actions">
       <button type="button" class="secondary" id="dl-json">Download JSON</button>
       <button type="button" class="secondary" id="dl-csv">Download CSV</button>
       <button type="button" class="secondary" id="dl-sources">Sources CSV</button>
-      <button type="button" class="primary" data-nav="home">New search</button>
+      <button type="button" class="primary" data-action="reset">Search another company</button>
       <button type="button" class="link" data-open="dlg-how">How certification works</button>
     </div>
     <p id="result-status" class="status-line" role="status" aria-live="polite"></p>
@@ -128,6 +132,7 @@
     <button type="button" class="link" data-open="dlg-privacy">Privacy</button> ·
     <button type="button" class="link" data-open="dlg-about">About</button>
   </p>
+  <p class="powered"><span class="powered-badge">Powered by Claude · Custom-built MCP service</span></p>
   <p class="disclaimer">Certified under policy v__POLICY_VERSION__ from public sources. Verify before contractual use.</p>
 </footer>
 
@@ -137,7 +142,7 @@
   <p class="lead">Every figure comes from a public source we can show you, chosen by a fixed policy and scored for confidence.</p>
   <h3>The source hierarchy</h3>
   <ol class="hierarchy">
-    <li><span class="h-rank">1</span><div><strong>Primary</strong><p>Annual reports and official filings: 10-K and 20-F, nonprofit Form 990, university IPEDS, government financial reports.</p></div></li>
+    <li><span class="h-rank">1</span><div><strong>Primary</strong><p>Annual reports and official filings: 10-K and 20-F, government financial reports; then the company's official Corporate Fact Sheet, nonprofit Form 990 and university IPEDS.</p></div></li>
     <li><span class="h-rank">2</span><div><strong>Secondary</strong><p>What the organization publishes or says: press releases, its website, its LinkedIn description, executives quoted in reputable press.</p></div></li>
     <li><span class="h-rank">3</span><div><strong>Tertiary</strong><p>Data providers such as ZoomInfo, Crunchbase and Revelio.</p></div></li>
     <li><span class="h-rank">4</span><div><strong>Unranked</strong><p>Everything else. Used only as context, never as the answer.</p></div></li>
@@ -151,6 +156,9 @@
     <div><dt><span class="dot-meter" data-score="1" aria-hidden="true"></span>1 · Unverified</dt><dd>Thin, old or conflicting evidence. Treat as a lead, not a fact.</dd></div>
     <div><dt><span class="dot-meter" data-score="0" aria-hidden="true"></span>0 · Unattained</dt><dd>No usable public source was found.</dd></div>
   </dl>
+  <h3>What each source type means</h3>
+  <p class="small muted">Every source on a certification is labelled with its tier, category and type. Open a type for a plain explanation.</p>
+  <div class="glossary">__GLOSSARY__</div>
   <h3>Principles</h3>
   <ul class="principles">
     <li><strong>The highest source wins.</strong> An official filing outranks a press release, which outranks a data provider.</li>
@@ -174,6 +182,16 @@
   <div class="panel-head"><h2 id="about-title">About</h2><button type="button" class="icon-btn" data-close aria-label="Close">✕</button></div>
   <svg class="mark" viewBox="0 0 200 110" role="img" aria-label="Human in the Hyperloop logo" width="120" height="66"><defs><clipPath id="mab"><polygon points="62,0 200,0 200,110 138,110 138,55 62,55"/></clipPath><clipPath id="mag"><polygon points="0,0 62,0 62,55 138,55 138,110 0,110"/></clipPath></defs><rect x="17" y="17" width="166" height="76" rx="38" fill="none" stroke="#3FCF8E" stroke-width="22" clip-path="url(#mag)"/><rect x="17" y="17" width="166" height="76" rx="38" fill="none" stroke="#599AF5" stroke-width="22" clip-path="url(#mab)"/><circle cx="100" cy="55" r="15" fill="currentColor"/></svg>
   <p>GTM Data Certifier finds the most authoritative public figure for an organization's global headcount, shows exactly where it came from (down to the page), and scores how far you can rely on it. Machines do the deep sweep; the policy, the evidence and the hard calls stay visible for humans to judge.</p>
+  <h3>How it's built</h3>
+  <p>The certifier is a custom Model Context Protocol (MCP) server built with Claude Code. Claude does the research and extraction: it searches the public web, reads filings and pages, and records each figure with its quote, date and location. The certification rules (which source wins, how confidence is scored, what gets flagged) are deterministic, tested code that follows a published policy, so the same evidence always gets the same answer.</p>
+  <h3>Use it in Claude</h3>
+  <ol class="steps">
+    <li>In the Claude app, open <strong>Settings → Connectors</strong> and choose <strong>Add custom connector</strong>.</li>
+    <li>Name it "GTM Data Certifier" and paste this URL (it ends in <code>/mcp</code>): <code class="mcp-url">__MCP_URL__</code></li>
+    <li>Choose <strong>Connect</strong>, then sign in with your access code when asked.</li>
+    <li>Ask, for example: "What's the certified employee count for Adobe?" Claude confirms the organization, then shows the certification card in the chat.</li>
+  </ol>
+  <p class="powered"><span class="powered-badge">Powered by Claude · Custom-built MCP service</span></p>
   <p>Designed and created by <a href="https://www.linkedin.com/in/matthewbeltrano/" target="_blank" rel="noopener noreferrer">Matthew Beltrano</a> &amp; Claude Code. A Human in the Hyperloop project.</p>
 </dialog>
 

@@ -30,6 +30,14 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
 
     effective: dict[int, int] = {}
     for s in sources:
+        # A Corporate Fact Sheet is primary (tier 2); with no date at all it drops to tier 3.
+        if s.document_type == "fact_sheet":
+            dated = s.as_of_date is not None or s.latest_published is not None
+            tier = policy.fact_sheet.tier if dated else policy.fact_sheet.undated_tier
+            if not dated:
+                s.notes.append(f"Corporate fact sheet with no date: ranked tier {tier} instead of "
+                               f"{policy.fact_sheet.tier}, because its age can't be judged.")
+            s.tier = tier
         # An undated figure gets an as-of date estimated from its publication date (research may
         # already have estimated one from wording such as "as of early 2025").
         if s.as_of_date is None and s.latest_published is not None:
@@ -283,7 +291,7 @@ def _direction(selected: Source | None, value: int | None, outcomes: list[EventO
         if sign:
             size = "somewhat " if net == 0 or abs(net) / value <= policy.agreement.corroborates_within else ""
             word = "lower" if sign < 0 else "higher"
-            return Direction(direction=word, reason=f"Likely {size}{word} than reported because of {what}.")
+            return Direction(direction=word, reason=f"Likely {size}{word} than reported because of a change after the as-of date: {what}.")
         return Direction(direction="unknown", reason=f"Changes after the as-of date point both ways: {what}.")
     if selected is not None and selected.predates_change:
         return Direction(direction="lower", reason="Likely lower than reported: the source says the figure predates "

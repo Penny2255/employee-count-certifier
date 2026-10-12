@@ -16,11 +16,11 @@ from urllib.parse import urlsplit
 
 from pydantic import AfterValidator, BaseModel, ValidationError, model_validator
 
-from . import rules
+from . import rules, taxonomy
 from .models import Basis, Certification, CountType, Entity, Qualifier, Source
 from .policy import Policy, default_policy
 
-RECORD_VERSION = "1.1"
+RECORD_VERSION = "1.2"
 T = TypeVar("T")
 
 
@@ -42,6 +42,8 @@ Rationale = Annotated[str, AfterValidator(_one_sentence)]
 FindingRationale = Annotated[str, AfterValidator(_two_sentences)]
 Status = Literal["green", "yellow", "red"]
 Category = Literal["provenance", "recency", "corroboration", "scope", "linkedin", "event", "definition", "data_gap"]
+Group = Literal["affects", "worth_knowing", "background"]
+GROUP_TITLES = {"affects": "Affects the answer", "worth_knowing": "Worth knowing", "background": "Background"}
 
 
 class Section(BaseModel, Generic[T]):
@@ -90,6 +92,9 @@ class Headline(BaseModel):
     indicated_current_range: IndicatedRangeRow | None = None
     direction: Literal["higher", "lower", "in_line", "unknown"] | None = None
     direction_reason: str | None = None
+    bottom_line: str  # one line mapped to confidence: ready to use / usable / directional only
+    next_expected_update: date | None = None  # e.g. when the next 10-K is due
+    next_update_note: str | None = None
     none_reason: str | None = None
 
     @model_validator(mode="after")
@@ -144,10 +149,19 @@ def _http(url: str | None) -> str | None:
     return url
 
 
+def _source_type(text: str) -> str:
+    if not text.strip():
+        raise ValueError("every source needs a source_type")
+    return text
+
+
 class PrimarySource(BaseModel):
     source_id: str | None
     tier: int | None
     tier_name: str | None
+    source_category: str | None = None
+    source_type: str | None = None
+    source_type_info: str | None = None  # "What is this source?" from source_glossary.yaml
     url: str | None
     accession: str | None
     excerpt: str | None
@@ -168,6 +182,8 @@ class PrimarySource(BaseModel):
         _one_sentence(self.tier_rationale or "")
         if not (self.url or "").strip():
             raise ValueError("the primary source needs a URL")
+        if not (self.source_category and self.source_type):
+            raise ValueError("the primary source needs a source_category and source_type")
         _http(self.url)
         if not (self.excerpt or "").strip() and not (self.excerpt_missing_reason or "").strip():
             raise ValueError("the primary source needs a verbatim excerpt, or a reason none was captured")
@@ -177,19 +193,37 @@ class PrimarySource(BaseModel):
 
 
 class Finding(BaseModel):
+    """Plain-English headline, an impact chip and a one-sentence "so what"; expand for the rest."""
+
     id: str
+    group: Group
     category: Category
     status: Status
     title: str
+    impact: str  # chip: "Lowered confidence by 1", "Adjusted count -1,100", "No effect on the answer"
+    so_what: Rationale  # one sentence telling the reader whether to act
     rationale: FindingRationale
     evidence: list[str]
     score_impact: int
+
+    @model_validator(mode="after")
+    def _guides(self):
+        if not self.impact.strip():
+            raise ValueError("every finding needs an impact")
+        if re.search(r"(complexity flag|Complexity:|Flag:)", self.title + " " + self.so_what):
+            raise ValueError("finding headlines must be plain language (no internal flag names)")
+        if self.score_impact and self.group != "affects":
+            raise ValueError("a finding that changed the confidence belongs in 'Affects the answer'")
+        return self
 
 
 class SourceRow(BaseModel):
     id: str
     tier: int
     tier_name: str
+    source_category: Literal[taxonomy.CATEGORIES]  # type: ignore[valid-type]
+    source_type: Annotated[str, AfterValidator(_source_type)]
+    source_type_info: str
     value: int
     qualifier: Qualifier
     basis: Basis
@@ -228,6 +262,9 @@ class TrendRow(BaseModel):
 
 
 class LinkedInSection(BaseModel):
+    source_category: str = "Company Social Profile"
+    source_type: str = "LinkedIn: Member Count"
+    source_type_info: str = ""
     status: str
     member_count: int | None
     size_range: tuple[int, int] | None
@@ -315,6 +352,11 @@ def _host(url: str) -> str:
     return (urlsplit(url).hostname or url).removeprefix("www.")
 
 
+def _labels(s: Source) -> dict[str, str]:
+    category, kind = taxonomy.classify(s)
+    return {"source_category": category, "source_type": kind, "source_type_info": taxonomy.explain(kind)}
+
+
 def tier_rationale(s: Source, entity: Entity, policy: Policy) -> str:
     name = policy.tiers[s.tier].name
     cls = policy.tier_class(s.tier)
@@ -328,7 +370,11 @@ def tier_rationale(s: Source, entity: Entity, policy: Policy) -> str:
                 "so it is treated as a mirror.")
     if "propublica.org" in s.url:
         return f"Tier 2 ({name}): an IRS Form 990 filed by the organization, read via ProPublica."
-    return f"Tier {s.tier} ({name}, {cls}): published by {_host(s.url)}."
+    kind = taxonomy.classify(s)[1]
+    if kind == "Corporate Fact Sheet":
+        dated = "dated" if s.tier == policy.fact_sheet.tier else "undated, so one tier lower"
+        return f"Tier {s.tier} ({name}, {cls}): the organization's own Corporate Fact Sheet ({dated}), on {_host(s.url)}."
+    return f"Tier {s.tier} ({name}, {cls}): {kind}, published by {_host(s.url)}."
 
 
 def _first_sentence(text: str, limit: int = 110) -> str:
@@ -366,48 +412,107 @@ class _Findings:
         self.items: list[Finding] = []
 
     def add(self, category: str, status: str, title: str, rationale: str, evidence: list[str] | None = None,
-            impact: int = 0) -> str:
+            impact: int = 0, *, group: str, so_what: str, chip: str | None = None) -> str:
         fid = f"F{len(self.items) + 1}"
+        title = _plain(title)
         title = title[:1].upper() + title[1:]
-        self.items.append(Finding(id=fid, category=category, status=status, title=title, rationale=rationale,
-                                  evidence=evidence or [], score_impact=impact))
+        if chip is None:
+            chip = (f"Lowered confidence by {-impact}" if impact < 0 else f"Raised confidence by {impact}" if impact > 0
+                    else "No effect on the answer")
+        self.items.append(Finding(id=fid, group=group, category=category, status=status, title=title, impact=chip,
+                                  so_what=_sentence(so_what), rationale=_plain(rationale), evidence=evidence or [],
+                                  score_impact=impact))
         return fid
 
 
 _FLAG_CATEGORY = (("Conflict:", "corroboration"), ("LinkedIn:", "linkedin"), ("Event-driven:", "event"),
                   ("Complexity:", "scope"), ("Detailed figure", "definition"))
+_FLAG_SO_WHAT = {
+    "corroboration": "Look at the conflicting source before updating records",
+    "linkedin": "Check whether the LinkedIn count includes former staff or contractors before relying on the figure",
+    "event": "Expect today's headcount to differ; recheck once the change has settled",
+    "scope": "Confirm which organization you mean before using the figure",
+    "definition": "Check the more detailed figure before relying on the headline number",
+    "data_gap": "Review this before relying on the figure",
+}
+# Internal wording rewritten for sales and RevOps readers.
+_PLAIN = ((r"\bFlag:\s*", ""), (r"\bComplexity:\s*", ""), (r"\bcomplexity flags?\b", "scope question"),
+          (r"\b[Tt]racker estimates\b", "data-provider estimates"), (r"\b[Tt]rackers\b", "data providers"),
+          (r"\bnear-date\b", "similar-date"), (r"\bthe 15% tolerance\b", "the 15% allowance"))
 
 
-def build_record(cert: Certification, policy: Policy | None = None, *, method: str = "engine",
-                 models: dict[str, str] | None = None, cost_usd: float = 0.0, web_searches: int = 0,
-                 web_fetches: int = 0, run_at: datetime | None = None, duration_s: float | None = None,
-                 lookup_date: date | None = None, queries: list[str] | None = None,
-                 notes: list[str] | None = None) -> CertificationRecord:
-    policy = policy or default_policy()
-    lookup_date = lookup_date or (run_at.date() if run_at else date.today())
-    ids = {id(s): f"S{i + 1}" for i, s in enumerate(cert.sources)}
-    by_url = {s.url: ids[id(s)] for s in cert.sources}
-    selected = next((s for s in cert.sources if s.role == "selected"), None)
+def _plain(text: str) -> str:
+    for pattern, repl in _PLAIN:
+        text = re.sub(pattern, repl, text)
+    return text
+
+
+def _type_of(s: Source) -> str:
+    return taxonomy.classify(s)[1]
+
+
+def bottom_line(score: int, count: int | None) -> str:
+    if count is None:
+        return "No certified figure. No usable public source was found."
+    if score >= 4:
+        return "Ready to use. Strong, current primary source."
+    if score == 3:
+        return "Usable. Note the range and the as-of date."
+    return "Directional only. Verify before updating records."
+
+
+# Typical lag from the as-of date to the next edition, in days (fiscal year plus filing time).
+_NEXT_EDITION = {"10-K": (365 + 60, "10-K"), "20-F": (365 + 120, "20-F"), "40-F": (365 + 90, "40-F"),
+                 "sec_filing": (365 + 90, "annual SEC filing"), "annual_report": (365 + 90, "annual report"),
+                 "acfr": (365 + 180, "ACFR"), "form_990": (365 + 320, "Form 990"), "ipeds": (365 + 300, "IPEDS release")}
+
+
+def next_update(selected: Source | None, lookup_date: date) -> tuple[date | None, str | None]:
+    """When a newer edition of the key source is expected (e.g. the next 10-K)."""
+    if selected is None or selected.as_of_date is None:
+        return None, None
+    kind = selected.document_type if selected.document_type in taxonomy.DOCUMENT_TYPES else \
+        taxonomy.infer_document_type(selected)
+    if kind not in _NEXT_EDITION:
+        return None, "This kind of source has no fixed publishing schedule."
+    lag, name = _NEXT_EDITION[kind]
+    expected = selected.as_of_date + timedelta(days=lag)
+    while expected < lookup_date - timedelta(days=365):  # several editions behind: the next one still due
+        expected += timedelta(days=365)
+    when = expected.strftime("%B %Y")
+    if expected <= lookup_date:
+        return expected, f"A newer {name} was expected around {when} and may already be out; Refresh to check."
+    return expected, f"Next {name} expected around {when}."
+
+
+def _build_findings(cert: Certification, policy: Policy, ids: dict[int, str], by_url: dict[str, str],
+                    selected: Source | None, notes: list[str] | None):
     findings = _Findings()
 
     # Base score.
     base_step = cert.confidence_breakdown[0] if cert.confidence_breakdown else None
     base_points = base_step.points if base_step else cert.confidence_score
-    base_reason = base_step.reason.split(":", 1)[-1].strip() if base_step else "no usable source"
     if selected is not None:
         what = (f"a tier {selected.tier} source ({policy.tiers[selected.tier].name}) "
                 + (f"dated {selected.as_of_date.isoformat()}" if selected.as_of_date else "with no as-of date"))
+        source_words = f"{_type_of(selected)} (Tier {selected.tier})"
     elif cert.certified_count is not None:
         what = "tier 7-9 data-provider figures combined into a derived value"
+        source_words = "data-provider figures combined"
     else:
         what = "no usable source"
+        source_words = "no usable source"
+    base_so_what = ("A strong starting point; the items below only fine-tune it" if base_points >= 4 else
+                    "A moderate starting point; check the items below before relying on the figure" if base_points >= 2
+                    else "A weak starting point; treat the figure as a lead, not a fact")
     base_id = findings.add(
         "recency" if selected is not None else "data_gap",
         "green" if base_points >= 4 else "yellow" if base_points >= 2 else "red",
-        f"Base score {base_points}: {base_reason}",
+        f"Starting confidence {base_points} of 5 from the key source: {source_words}",
         f"The certified figure rests on {what}. Under the policy's confidence table this sets a base score of "
         f"{base_points}. The lines below add to or subtract from it.",
-        [ids[id(selected)]] if selected is not None else [], 0)
+        [ids[id(selected)]] if selected is not None else [], 0,
+        group="affects", so_what=base_so_what, chip=f"Sets starting confidence: {base_points} of 5")
 
     # Provenance of the selected source, and mirrors.
     if selected is not None:
@@ -421,13 +526,15 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
             why = f"The figure was read where it was published ({_host(selected.url)})."
         findings.add("provenance", "green" if selected.tier <= 3 else "yellow", title,
                      f"{why} Tier {selected.tier} is the highest tier available for this organization. "
-                     "No action was needed.", [ids[id(selected)]])
+                     "No action was needed.", [ids[id(selected)]],
+                     group="background", so_what="No action needed: the figure was read from the original publication")
     mirrors = [s for s in cert.sources if s.corroboration_only]
     if mirrors:
-        findings.add("provenance", "yellow", f"{len(mirrors)} mirror(s) of a filing not used as the source",
-                     "Copies of a filing hosted outside sec.gov and the organization's site were found. Mirrors can "
+        findings.add("provenance", "yellow", f"{len(mirrors)} copy(ies) of a filing used only as support",
+                     "Copies of a filing hosted outside sec.gov and the organization's site were found. Copies can "
                      "drift from the original, so policy lets them corroborate but never set the value.",
-                     [ids[id(s)] for s in mirrors])
+                     [ids[id(s)] for s in mirrors],
+                     group="background", so_what="No action needed; copies only support the figure")
 
     # Corroboration.
     corroborators = [s for s in cert.sources if s.role == "corroborates"]
@@ -435,21 +542,25 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
     if corroborators:
         corr_id = findings.add(
             "corroboration", "green",
-            f"Corroborated by {len(corroborators)} independent near-date source(s)",
+            f"Confirmed by {len(corroborators)} independent source(s) from around the same date",
             "Independent sources dated near the same as-of date agree within "
             f"{policy.agreement.corroborates_within:.0%}. "
             + ("This raises confidence one level." if corr_step else
                "It does not change the score for this tier and recency, but it supports the figure."),
-            [ids[id(s)] for s in corroborators], 1 if corr_step else 0)
+            [ids[id(s)] for s in corroborators], 1 if corr_step else 0,
+            group="affects" if corr_step else "worth_knowing",
+            so_what="Independent agreement makes the figure safer to use")
     elif cert.certified_count is not None:
         excluded = [s for s in cert.sources if s.role_reason.startswith("Not counted as corroboration")]
         corr_id = findings.add(
-            "corroboration", "yellow", "No independent near-date corroboration",
+            "corroboration", "yellow", "No independent source from around the same date confirms it",
             "No independent source dated near the certified figure's as-of date agreed with it. "
             + (f"{len(excluded)} source(s) were set aside as restatements, the same document, or a different "
                "period. " if excluded else "")
             + "The score stays at its base; an independent near-date source would raise it.",
-            [ids[id(s)] for s in excluded])
+            [ids[id(s)] for s in excluded],
+            group="worth_knowing",
+            so_what="Treat the figure as single-sourced; a second independent source would raise confidence")
     else:
         corr_id = base_id
 
@@ -464,10 +575,12 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
         body = flag.split(":", 1)[1].strip() if flag.split(":", 1)[0] in ("Conflict", "LinkedIn", "Event-driven", "Complexity") else flag
         evidence = [sid for url, sid in by_url.items() if url in flag]
         flag_ids[flag] = findings.add(
-            category, "red", _first_sentence(re.sub(r"\s*\(https?://[^)]*\)", "", body), limit=72),
+            category, "red", _first_sentence(re.sub(r"\s*\(https?://[^)]*\)", "", _plain(body)), limit=90),
             f"{_sentence(body)} Policy lowers confidence one level for this"
             + (", but the score was already at its minimum of 1." if impact == 0 else ".")
-            + " A reviewer should check it before relying on the figure.", evidence, impact)
+            + " A reviewer should check it before relying on the figure.", evidence, impact,
+            group="affects" if impact else "worth_knowing", so_what=_FLAG_SO_WHAT[category],
+            chip=None if impact else "No further effect (confidence already at its minimum)")
 
     # LinkedIn.
     li = cert.linkedin_check
@@ -477,46 +590,68 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
     elif li.status == "pass":
         li_id = findings.add("linkedin", "green", "LinkedIn member count is consistent",
                              f"{_sentence(li.note.removeprefix('Pass: '))} The member count is a sanity check, never "
-                             "a floor. No action was needed.")
+                             "a floor. No action was needed.",
+                             group="background", so_what="No action needed; LinkedIn agrees with the figure")
     elif li.status == "flag":
-        li_id = findings.add("linkedin", "yellow", "LinkedIn differs, but LinkedIn was an input",
+        li_id = findings.add("linkedin", "yellow", "LinkedIn differs, but LinkedIn was used to estimate the figure",
                              f"{_sentence(li.note.removeprefix('Flag: '))} LinkedIn data was already used to estimate "
-                             "the value, so it is not an independent check. It was reported but not penalized.")
+                             "the value, so it is not an independent check. It was reported but not penalized.",
+                             group="worth_knowing", so_what="Keep in mind the figure partly rests on LinkedIn")
     else:
         li_id = findings.add("linkedin", "yellow", "LinkedIn member count not available",
                              "No LinkedIn member count was visible in public search results. The sanity check could "
-                             "not run, so confidence is unchanged.")
+                             "not run, so confidence is unchanged.",
+                             group="background", so_what="No action needed; the other checks still apply")
 
     # Events that were noted but not penalized (penalized ones are red findings via their flag).
+    direction = cert.direction.direction if cert.direction else "unknown"
     for e in cert.events:
         if not e.penalized:
-            title = (f"Known change after the as-of date: {e.description}" if e.after_as_of
-                     else f"Event noted: {e.description}")
+            when = e.close_date.isoformat() if e.close_date else "date unknown"
+            if e.after_as_of:
+                title = f"Change after the as-of date ({when}): {e.description}"
+                so_what = (f"Today's headcount is likely {direction} than the certified figure; factor that in if "
+                           "timing matters" if direction in ("higher", "lower") else
+                           "Today's headcount may differ from the certified figure")
+            elif e.close_date:
+                title = f"Earlier change ({when}): {e.description}"
+                so_what = "It happened before the figure's as-of date, so the figure already reflects it; no action needed"
+            else:
+                title = f"Change with no known date: {e.description}"
+                so_what = "Its timing is unknown, so it may or may not be reflected in the figure"
             findings.add("event", "yellow", _first_sentence(title),
                          f"{e.reason} Policy lowers confidence only for material changes that take effect after the "
-                         "as-of date.", [by_url[e.url]] if e.url in by_url else [])
+                         "as-of date.", [by_url[e.url]] if e.url in by_url else [],
+                         group="worth_knowing", so_what=so_what)
 
     # Recency: an estimated as-of date, and the recency deduction.
     recency_id = None
     if selected is not None and selected.as_of_from_url:
         findings.add("recency", "yellow", f"As-of date estimated from the URL: {selected.as_of_date.isoformat()}",
                      f"The source states no date, so the as-of date comes from {selected.as_of_basis}. It is the "
-                     "weakest kind of estimate; every recency rule uses it.", [ids[id(selected)]])
+                     "weakest kind of estimate; every recency rule uses it.", [ids[id(selected)]],
+                     group="worth_knowing", so_what="Treat the as-of date as approximate")
     elif selected is not None and selected.as_of_estimated:
         findings.add("recency", "yellow", f"As-of date estimated: {selected.as_of_date.isoformat()}",
                      f"The source gives no as-of date, so it was estimated from {selected.as_of_basis or 'context'}. "
-                     "Every recency rule uses the estimated date.", [ids[id(selected)]])
+                     "Every recency rule uses the estimated date.", [ids[id(selected)]],
+                     group="worth_knowing", so_what="Treat the as-of date as approximate")
     for note in cert.scope_notes:
-        findings.add("scope", "yellow", _first_sentence(note, limit=72),
+        findings.add("scope", "yellow", _first_sentence(note, limit=90),
                      f"{_sentence(note)} It cannot change which entity is counted, so it is noted without a score "
-                     "change.")
+                     "change.", group="worth_knowing",
+                     so_what="No action needed; it doesn't change which organization is counted")
     recency_step = next((st for st in cert.confidence_breakdown if st.reason.startswith("recency:")), None)
     if recency_step is not None:
         recency_id = findings.add(
             "recency", "red", _first_sentence(recency_step.reason.removeprefix("recency: ").capitalize()),
             f"{_sentence(recency_step.reason.removeprefix('recency: ').capitalize())} Policy lowers confidence one "
             "level when the source is older than the window, because headcount may have changed since.",
-            [ids[id(selected)]] if selected is not None else [], recency_step.points)
+            [ids[id(selected)]] if selected is not None else [], recency_step.points,
+            group="affects" if recency_step.points else "worth_knowing",
+            so_what=f"The figure is over {policy.recency.certified_max_age_months} months old; expect today's "
+                    "headcount to differ",
+            chip=None if recency_step.points else "No further effect (confidence already at its minimum)")
 
     # Newer data indicating a different current headcount.
     ir = cert.indicated_range
@@ -525,55 +660,83 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
         ir_ids = [by_url[u] for u in ir.urls if u in by_url]
         indicated_row = IndicatedRangeRow(low=ir.low, high=ir.high, earliest=ir.earliest, latest=ir.latest,
                                           source_ids=ir_ids, rationale=ir.reason)
-        findings.add("data_gap", "yellow", f"Newer data indicates {f'about {ir.low:,}' if ir.low == ir.high else f'{ir.low:,}–{ir.high:,}'}",
-                     ir.reason, ir_ids)
+        findings.add("data_gap", "yellow",
+                     f"Newer data indicates {f'about {ir.low:,}' if ir.low == ir.high else f'{ir.low:,}–{ir.high:,}'}",
+                     ir.reason, ir_ids, group="worth_knowing",
+                     so_what="Use the range as a sense-check of today's size, not as the certified figure")
 
     # Scope.
     partial = [s for s in cert.sources if s.scope == "partial"]
     broader = [s for s in cert.sources if s.scope == "broader"]
     if partial:
-        findings.add("scope", "yellow", f"{len(partial)} partial-scope figure(s) set aside",
+        findings.add("scope", "yellow", f"{len(partial)} figure(s) for only part of the organization set aside",
                      "Some figures cover only a region, segment or subsidiary. The certified count is for the whole "
-                     "organization, so these are context only.", [ids[id(s)] for s in partial])
+                     "organization, so these are context only.", [ids[id(s)] for s in partial],
+                     group="background", so_what="No action needed; only whole-organization figures are used")
     if broader:
         findings.add("scope", "yellow", f"{len(broader)} figure(s) include bodies outside the entity",
                      "Some figures also count bodies outside the entity, such as a school system. They are logged "
-                     "with their variance and never used as the value.", [ids[id(s)] for s in broader])
+                     "with their variance and never used as the value.", [ids[id(s)] for s in broader],
+                     group="background", so_what="No action needed; those figures are never used as the answer")
 
     # Definition: qualifier, basis, adjustments, specificity, source nuances.
     if selected is not None and cert.qualifier and cert.qualifier != "exact" and cert.count_type == "reported":
         words = {"more_than": "more than", "approximately": "approximately", "up_to": "up to"}[cert.qualifier]
         findings.add("definition", "yellow", f"Stated as '{words} {cert.certified_count:,}'",
                      f"The source gives a qualified figure, '{words} {cert.certified_count:,}'. Policy records the "
-                     "stated number with its qualifier and widens the range instead of guessing.", [ids[id(selected)]])
+                     "stated number with its qualifier and widens the range instead of guessing.", [ids[id(selected)]],
+                     group="worth_knowing", so_what="Use the range rather than the exact number if precision matters")
     if cert.count_basis == "fte":
         findings.add("definition", "yellow", "Full-time equivalents, not headcount",
                      "The source counts full-time equivalents rather than people. Policy keeps the FTE figure as "
-                     "stated and never estimates it upward.", [ids[id(selected)]] if selected is not None else [])
+                     "stated and never estimates it upward.", [ids[id(selected)]] if selected is not None else [],
+                     group="worth_knowing",
+                     so_what="If you need a count of people, expect it to be higher than the FTE figure")
     if selected is not None and any("More specific figure" in n for n in cert.rationale.split(". ")):
         findings.add("definition", "green", "Most specific figure chosen",
                      "A rounder statement and a more detailed figure for the same date were both found. The detailed "
-                     "figure is in line with the rounder one, so it was used.", [ids[id(selected)]])
+                     "figure is in line with the rounder one, so it was used.", [ids[id(selected)]],
+                     group="affects", so_what="No action needed; the more precise figure is used",
+                     chip="Chose the more detailed figure")
     for adj in cert.adjustments:
         if adj.change:
             findings.add("definition", "yellow", _first_sentence(f"Adjusted {adj.source_figure:,} → {adj.result:,}"),
                          f"{_sentence(adj.reason)} The adjustment is logged with its inputs.",
-                         [by_url[adj.source_url]] if adj.source_url in by_url else [])
+                         [by_url[adj.source_url]] if adj.source_url in by_url else [],
+                         group="affects", chip=f"Adjusted count {adj.change:+,}".replace("-", "−"),
+                         so_what="The certified figure differs from the source's number for the reason given")
     if selected is not None:
         own = [n for n in selected.notes if not n.startswith(("Undated source", "Older than", "Partial or regional",
                                                               "Mirror of", "Not counted"))]
         if own:
-            findings.add("definition", "yellow", "Source definition nuance",
+            findings.add("definition", "yellow", "How the source defines its count",
                          f"{_sentence(' '.join(own))} It is recorded for transparency; the figure is used as stated.",
-                         [ids[id(selected)]])
+                         [ids[id(selected)]], group="worth_knowing",
+                         so_what="Read the note if your definition of an employee differs")
 
     # Data gaps from the run.
     for n in notes or []:
         if "budget" in n.lower() and "reached" in n.lower():
             findings.add("data_gap", "yellow", "Research budget reached",
-                         f"{_sentence(n)} Remaining tiers were not searched, so corroboration may be incomplete.")
-    if cert.certified_count is None and base_id:
-        pass  # the base finding already states there is no usable source
+                         f"{_sentence(n)} Remaining tiers were not searched, so corroboration may be incomplete.",
+                         group="background", so_what="Corroboration may be incomplete; Refresh later for a fuller check")
+
+    return findings, base_step, base_id, corr_id, flag_ids, recency_id, li_id, indicated_row
+
+
+def build_record(cert: Certification, policy: Policy | None = None, *, method: str = "engine",
+                 models: dict[str, str] | None = None, cost_usd: float = 0.0, web_searches: int = 0,
+                 web_fetches: int = 0, run_at: datetime | None = None, duration_s: float | None = None,
+                 lookup_date: date | None = None, queries: list[str] | None = None,
+                 notes: list[str] | None = None) -> CertificationRecord:
+    policy = policy or default_policy()
+    lookup_date = lookup_date or (run_at.date() if run_at else date.today())
+    ids = {id(s): f"S{i + 1}" for i, s in enumerate(cert.sources)}
+    by_url = {s.url: ids[id(s)] for s in cert.sources}
+    selected = next((s for s in cert.sources if s.role == "selected"), None)
+    findings, base_step, base_id, corr_id, flag_ids, recency_id, li_id, indicated_row = _build_findings(
+        cert, policy, ids, by_url, selected, notes)
+    li = cert.linkedin_check
 
     # Confidence breakdown, each line linked to a finding.
     lines = []
@@ -595,7 +758,8 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
 
     # Sources.
     source_rows = [SourceRow(
-        id=ids[id(s)], tier=s.tier, tier_name=policy.tiers[s.tier].name, value=s.value, qualifier=s.qualifier,
+        id=ids[id(s)], tier=s.tier, tier_name=policy.tiers[s.tier].name, **_labels(s), value=s.value,
+        qualifier=s.qualifier,
         basis=s.basis, scope=s.scope, as_of_date=s.as_of_date, published_date=s.published_date,
         modified_date=s.modified_date, url=s.url, excerpt=s.excerpt, location=location_row(s),
         role=s.role or "supporting",
@@ -605,11 +769,13 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
         notes=[n for n in s.notes if n not in s.role_reason and not n.startswith(("Not counted", "Mirror of"))])
         for s in cert.sources]
 
+    upcoming = next_update(selected, lookup_date)
+
     # Primary source.
     if selected is not None:
         primary = PrimarySource(
             source_id=ids[id(selected)], tier=selected.tier, tier_name=policy.tiers[selected.tier].name,
-            url=selected.url, accession=accession_of(selected.url), excerpt=selected.excerpt,
+            **_labels(selected), url=selected.url, accession=accession_of(selected.url), excerpt=selected.excerpt,
             excerpt_missing_reason=None if selected.excerpt.strip() else "No verbatim excerpt was captured for this source.",
             location=location_row(selected),
             as_of_date=selected.as_of_date, published_date=selected.published_date,
@@ -656,6 +822,8 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
                                          + (f", {e.headcount_change:+,}" if e.headcount_change is not None else "") + ")"
                                          for e in cert.events if e.after_as_of and e.close_date],
                           indicated_current_range=indicated_row,
+                          bottom_line=bottom_line(cert.confidence_score, cert.certified_count),
+                          next_expected_update=upcoming[0], next_update_note=upcoming[1],
                           none_reason=None if cert.certified_count is not None else "No usable source was found."),
         confidence=ConfidenceSection(score=cert.confidence_score, level=cert.confidence_level, breakdown=lines,
                                      arithmetic=arithmetic),
@@ -668,7 +836,7 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
         trend=Section[TrendRow](
             items=trend_rows,
             none_reason=None if trend_rows else "Fewer than two dated figures of the same tier and basis were found."),
-        linkedin_check=LinkedInSection(status=li.status, member_count=li.member_count, size_range=li.size_range,
+        linkedin_check=LinkedInSection(source_type_info=taxonomy.explain("LinkedIn: Member Count"), status=li.status, member_count=li.member_count, size_range=li.size_range,
                                        workforce_profile=li.workforce_profile, pass_range=li.implied_range,
                                        finding_id=li_id, rationale=li.note),
         events=Section[EventRow](items=events, none_reason=None if events else

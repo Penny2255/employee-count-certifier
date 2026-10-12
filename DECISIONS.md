@@ -364,3 +364,66 @@ The first Salesforce rerun scored 4/5 because of the Informatica flag. D52 fixed
 - **Official logo files.** D41 recreated the mark; swap in the originals if they differ.
 - **Rating and spend admin page.** Data is stored, but there's no page yet (FEEDBACK.md).
 - **Research is non-deterministic.** Salesforce's corroborating source and its event list varied between the two reruns. Scores were stable once D52 was in place.
+
+## Additions: decision-ready result, source labels, fact sheets (2026-10-12)
+
+### D54. Policy change: the Corporate Fact Sheet is a primary source (tier 2)
+- **What:** a company's official Corporate Fact Sheet (a "fact sheet" or "company facts" page or PDF) is tier 2. It ranks right behind the 10-K, 20-F, 40-F and annual financial reports, alongside non-financial annual and regulatory reports, and above every website, press release, LinkedIn and third-party source.
+- **No date at all:** with no as-of, publication or modified date, it drops to tier 3. The source carries a note saying why, and its tier rationale says "undated, so one tier lower".
+- **Enforcement:** the engine enforces this (`policy.yaml` → `fact_sheet`), not the model. Research reports `document_type: fact_sheet`, and the engine sets the tier, whatever tier research suggested.
+- **Tests:** a fact sheet beats a press release and the website; it ranks behind the 10-K; an undated fact sheet drops to tier 3.
+- **Also updated:** SPEC.md and the "How certification works" panel.
+
+### D55. Two-level source labels on every source
+- **What:** every source carries a `source_category` (9 plain-English groups) and a `source_type` (exactly what it was, e.g. "10-K", "IRS Form 990", "News: Payments Dive", "Data Provider: Revelio Labs"). They appear in the record (v1.2), the JSON, both CSV files and the card, shown as "Tier 1 · Financial Filing · 10-K".
+- **How:** the mapping is deterministic (`taxonomy.py`):
+  - SEC sources take their form from the EDGAR filing itself, and Form 990s from the ProPublica reader
+  - research reports a document type and publisher
+  - anything still unknown is inferred from the tier and URL
+- **Test:** fails if any combination of tier and document type, or any fixture source, lacks a category, type or explanation.
+- **Additions to the list you gave:**
+  - "SEC Annual Filing", for an sec.gov filing whose form wasn't recorded (older saved results)
+  - "Annual Comprehensive Financial Report (ACFR)", for governments
+  - "Non-Financial Annual Report" and "Company Document", for tier 2–3 documents that aren't fact sheets or press releases
+  - "Web Page: [site]", for unranked pages
+
+### D56. "What is this source?" glossary in an editable file
+`source_glossary.yaml` (repo root) holds a 2–3 sentence explanation per source type, plus a one-line description per category. Each explanation says what the source is, who publishes it, how it's regulated or produced, and why it ranks where it does. The card shows it under "What is this?", and the "How certification works" panel lists the whole glossary by category. Editing the file changes both, with no code change. Typed names such as "News: Reuters" use the generic "News" entry unless an exact entry is added.
+
+### D57. Decision-ready result, top-down
+- **Answer block:**
+  - the count, range, as-of date and confidence
+  - the key source label
+  - a **Bottom line** mapped to confidence: 4–5 "Ready to use. Strong, current primary source."; 3 "Usable. Note the range and the as-of date."; 0–2 "Directional only. Verify before updating records."; no figure "No certified figure."
+  - **Copy for CRM:** a seven-line plain-text block with the count, as-of date, confidence, source label and URL, a one-line rationale, and the policy version
+- **"Why you can trust this" strip:** key source and tier, as-of date, independent confirmations, adjustments to the count, and items needing attention (red findings). Each one jumps to its detail.
+- **Trend and forecast:** directly below, with labelled axes, reported points solid, estimates hollow, the forecast as a shaded band and the indicated current range as a dashed box. It also shows the direction label with its reason, and the **next expected update**: from the key source's as-of date plus the typical filing lag (10-K +60 days, 20-F +120, Form 990 about +10 months, and so on), or a note that the source has no fixed schedule.
+- **Below that:** findings, then the key source, sources, adjustments, and events with the LinkedIn check.
+
+### D58. Findings grouped by what they mean for the reader
+- **Groups:**
+  - **Affects the answer:** changed the number or the confidence
+  - **Worth knowing:** no effect on the answer
+  - **Background:** technical detail, collapsed by default
+- **Each finding:** a plain headline, an impact chip ("Lowered confidence by 1", "Adjusted count −1,100", "No effect on the answer", "Sets starting confidence: 2 of 5"), and a one-sentence **So what**.
+- **Validation rejects a finding:**
+  - with no impact or so-what
+  - whose headline uses internal flag names
+  - that changed confidence but isn't in "Affects the answer"
+- **Jargon rewritten:** "Complexity:", "Flag:", "tracker", "near-date" and "mirror".
+- **Stripe and UC Davis review:**
+  - **Problem:** events showed no date, so a 2022 layoff read like a current one being ignored.
+  - **Fix:** events are now titled "Earlier change (date)", "Change after the as-of date (date)" or "Change with no known date", each with its own so-what.
+  - **Fix:** the direction reason reads "because of a change after the as-of date: …".
+  - **Fix:** the trust strip counts only adjustments that changed the count; UC Davis showed "3" for three notes.
+  - **Note:** a red finding at the score floor sits in "Worth knowing" with "No further effect (confidence already at its minimum)", because strictly it didn't change the answer. Its red status and so-what still tell the reader to check it.
+
+### D59. Start over, discard, Back
+- **Search another company:** the primary button, at the top and bottom of the result. It resets the input, candidates, progress and result, and returns to an empty search box with focus, with no reload.
+- **Saving:** every completed result is saved to Recent lookups automatically. **Discard** removes it.
+- **Confirm step:** has "Not the right one? Search again", which keeps the query selected.
+- **Back button:** each step is a history entry. Back returns to the previous step or result. Leaving a lookup that's in progress cancels it (AbortController). A cancelled lookup isn't charged twice: the server finishes and caches it, so retrying is free.
+
+### D60. "Powered by Claude" as text, not a logo
+- **What:** "Powered by Claude · Custom-built MCP service" is a text badge in the footer and the About panel.
+- **Why no logo:** a search found no published Anthropic guideline that permits third parties to use the Claude or Anthropic logo, so the default applies. The About panel explains the MCP server and how to add it in Claude: a custom connector, a URL ending in `/mcp`, and sign-in with an access code. The URL is filled in from `PUBLIC_BASE_URL`.

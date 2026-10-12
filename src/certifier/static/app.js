@@ -5,7 +5,7 @@
   var STAGES = ["resolve", "filings", "sweep", "corroborate", "score", "certified"];
   var STAGE_LABEL = { resolve: "Resolve entity", filings: "SEC & official filings", sweep: "Web sweep",
                       corroborate: "Corroboration", score: "Scoring", certified: "Certified" };
-  var state = { query: "", current: null, rating: null };
+  var state = { query: "", current: null, rating: null, candidates: null, controller: null };
 
   // ---------- storage (browser only) ----------
   function get(key, fallback) { try { var v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch (e) { return fallback; } }
@@ -35,6 +35,35 @@
     var title = document.querySelector("#view-" + view + " h1");
     if (title && view !== "home") { title.setAttribute("tabindex", "-1"); title.focus({ preventScroll: true }); }
     if (view === "home") renderRecent();
+  }
+  // Each step is a browser history entry, so Back returns to the previous step or result.
+  function go(view, extra) {
+    show(view);
+    try { history.pushState(Object.assign({ view: view }, extra || {}), ""); } catch (e) {}
+  }
+  try { history.replaceState({ view: "home" }, ""); } catch (e) {}
+  window.addEventListener("popstate", function (e) {
+    var st = e.state || { view: "home" };
+    cancelLookup();
+    if (st.view === "confirm" && state.candidates) { renderCandidates(state.candidates); show("confirm"); }
+    else if (st.view === "result" && st.qid && state.current && state.current.query_id === st.qid) showResult(state.current, true);
+    else if (st.view === "result" && st.qid && st.qid !== "demo") openStored(st.qid, true);
+    else show("home");
+  });
+  function cancelLookup() {
+    if (state.controller) { state.controller.abort(); state.controller = null; }
+    stopPhrases();
+  }
+  // Start over: clear every step and return to an empty search box, without reloading the page.
+  function reset(keepQuery) {
+    cancelLookup();
+    state.current = null; state.candidate = null; state.candidates = null; state.rating = null;
+    $("q").value = keepQuery ? state.query : "";
+    $("candidates").textContent = ""; $("stages").textContent = ""; $("result-card").textContent = "";
+    say("home-status", ""); say("result-status", "");
+    go("home");
+    $("q").focus();
+    if (keepQuery) $("q").select();
   }
 
   // ---------- theme toggle ----------
@@ -109,8 +138,9 @@
     api("/api/find", { method: "POST", body: { query: q } }).then(function (d) {
       say("home-status", "");
       if (!d.candidates.length) { say("home-status", "No matching organization found. Try the website instead (e.g. stripe.com).", true); return; }
+      state.candidates = d.candidates;
       renderCandidates(d.candidates);
-      show("confirm");
+      go("confirm");
     }).catch(function (err) { if (!handleAuth(err, function () { search(q); })) say("home-status", err.message, true); });
   }
 
@@ -253,7 +283,10 @@
     markStage(theme, "resolve");
     var body = { name: c.name, website: c.website, hq: c.hq, cik: c.cik, legal_parent: c.legal_parent, parent_cik: c.parent_cik,
                  relationship_to_parent: c.relationship_to_parent, query: state.query, refresh: !!refresh };
-    fetch("/api/lookup", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + code() }, body: JSON.stringify(body) })
+    if (state.controller) state.controller.abort();
+    var controller = state.controller = window.AbortController ? new AbortController() : null;
+    fetch("/api/lookup", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + code() }, body: JSON.stringify(body),
+                           signal: controller ? controller.signal : undefined })
       .then(function (r) {
         if (!r.ok || !r.body) {
           return r.text().then(function (t) { var d = null; try { d = JSON.parse(t); } catch (e) {} var err = new Error((d && d.error) || "The service didn't respond as expected. Please try again."); err.status = r.status; throw err; });
@@ -273,7 +306,7 @@
               if (!data) return;
               var payload; try { payload = JSON.parse(data); } catch (e) { return; }
               if (ev === "progress") markStage(theme, payload.stage);
-              else if (ev === "result") { markStage(theme, "certified"); setTimeout(function () { showResult(payload); }, 600); }
+              else if (ev === "result") { markStage(theme, "certified"); state.controller = null; setTimeout(function () { if (!controller || !controller.signal.aborted) showResult(payload); }, 600); }
               else if (ev === "error") throw Object.assign(new Error(payload.message), { status: payload.kind === "limit" ? 429 : 500 });
             });
             return pump();
@@ -283,6 +316,7 @@
       })
       .catch(function (err) {
         stopPhrases();
+        if (err && err.name === "AbortError") return;  // the person went Back or started over
         if (handleAuth(err, function () { certify(c, refresh); })) return;
         show("home");
         say("home-status", err.message, true);
@@ -290,7 +324,7 @@
   }
 
   // ---------- result ----------
-  function showResult(payload) {
+  function showResult(payload, fromHistory) {
     state.current = payload;
     state.rating = null;
     var rec = payload.record;
@@ -301,9 +335,20 @@
     $("refresh").hidden = !payload.cached || payload.query_id === "demo";
     resetRating();
     say("result-status", "");
-    show("result");
-    remember(payload);
+    if (fromHistory) show("result"); else go("result", { qid: payload.query_id });
+    remember(payload);  // every completed result is saved to Recent lookups
+    $("saved-note").hidden = payload.query_id === "demo";
   }
+  Array.prototype.forEach.call(document.querySelectorAll("[data-action='reset']"), function (b) {
+    b.addEventListener("click", function () { reset(false); });
+  });
+  $("search-again").addEventListener("click", function () { reset(true); });
+  $("discard").addEventListener("click", function () {
+    var cur = state.current;
+    if (cur) put("gtm_recent", get("gtm_recent", []).filter(function (r) { return r.id !== cur.query_id; }));
+    reset(false);
+    say("home-status", "Removed from Recent lookups.");
+  });
   $("refresh").addEventListener("click", function () {
     if (state.candidate) { certify(state.candidate, true); return; }
     var e = state.current && state.current.record.entity;
@@ -366,16 +411,16 @@
       ul.appendChild(el("li", null, [b]));
     });
   }
-  function openStored(id) {
+  function openStored(id, fromHistory) {
     if (!code()) { state.retry = function () { openStored(id); }; needCode(); return; }
     say("home-status", "Opening…");
-    api("/api/lookups/" + id).then(function (d) { say("home-status", ""); state.candidate = null; showResult(d); })
+    api("/api/lookups/" + id).then(function (d) { say("home-status", ""); state.candidate = null; showResult(d, fromHistory); })
       .catch(function (err) { if (!handleAuth(err, function () { openStored(id); })) say("home-status", err.message, true); });
   }
 
   // ---------- navigation and panels ----------
   Array.prototype.forEach.call(document.querySelectorAll("[data-nav='home']"), function (n) {
-    n.addEventListener("click", function (e) { e.preventDefault(); show("home"); $("q").focus(); });
+    n.addEventListener("click", function (e) { e.preventDefault(); reset(false); });
   });
   Array.prototype.forEach.call(document.querySelectorAll("[data-open]"), function (b) {
     b.addEventListener("click", function () { var d = $(b.getAttribute("data-open")); if (d && d.showModal) d.showModal(); });
@@ -396,9 +441,10 @@
     if (mode === "light" || mode === "dark") { document.documentElement.setAttribute("data-theme", mode); syncToggle(); }
     if (view === "confirm") {
       state.query = "Stripe";
-      renderCandidates([
+      state.candidates = [
         { name: "Stripe, Inc.", website: "https://stripe.com", hq: "South San Francisco, CA, USA", description: "Online payments infrastructure for businesses.", org_type: "private_company" },
-        { name: "Stripe Payments Europe, Ltd.", website: "https://stripe.com/ie", hq: "Dublin, Ireland", description: "European operating subsidiary of Stripe.", is_subsidiary: true, legal_parent: "Stripe, Inc." }]);
+        { name: "Stripe Payments Europe, Ltd.", website: "https://stripe.com/ie", hq: "Dublin, Ireland", description: "European operating subsidiary of Stripe.", is_subsidiary: true, legal_parent: "Stripe, Inc." }];
+      renderCandidates(state.candidates);
       show("confirm");
     } else if (view === "expedition") {
       var theme = THEMES.filter(function (t) { return t.id === p.get("theme"); })[0] || THEMES[0];
@@ -409,6 +455,8 @@
       $("elapsed").textContent = "24 s · a new lookup usually takes 30 to 90 seconds";
     } else if (view === "result") {
       fetch("/demo/record/" + (p.get("slug") || "salesforce")).then(function (r) { return r.json(); }).then(showResult);
+    } else if (view === "about") {
+      $("dlg-about").showModal();
     } else if (view === "how") {
       $("dlg-how").showModal();
     } else if (view === "code") {

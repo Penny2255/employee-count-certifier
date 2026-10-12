@@ -1,0 +1,98 @@
+# "What is this source?" explanations, shown next to every source type on the card and in the
+# "How certification works" panel. Edit the wording freely: no code changes needed.
+#
+# Each entry is 2-3 plain sentences: what it is, who publishes it and how it is produced or
+# regulated, and why it ranks where it does. Types named after a publisher ("News: Reuters",
+# "Data Provider: ZoomInfo") use the generic entry ("News", "Data Provider") unless an exact
+# entry exists below.
+
+categories:
+  Financial Filing: Annual financial reports a company or government must publish, prepared to a regulated standard and audited.
+  Official Company Report: Formal reports an organization publishes or files about itself, outside its financial statements.
+  Company Publication: Documents the company publishes, such as press releases, that it controls but that aren't formal reports.
+  Company Website: What the organization says about itself on its own website.
+  Company Social Profile: What the organization says about itself on social platforms such as LinkedIn.
+  News (Executive Quote): Reporting by an established news outlet that quotes a named company executive.
+  Data Provider: Commercial databases that estimate company headcounts from many signals.
+  Specialty Data & Financial Media: Specialist financial databases and financial news services.
+  Other: Any other website, aggregator or news source. Used only as supporting evidence, never as the answer.
+
+types:
+  10-K: >-
+    The annual report U.S. public companies must file with the SEC. It follows a standard format,
+    is reviewed by auditors and signed by executives, and usually states total employees as of the
+    fiscal year end. That makes it the most reliable public headcount source, so it ranks Tier 1.
+  20-F: >-
+    The annual report foreign companies listed in the U.S. must file with the SEC. Like a 10-K it
+    is audited, signed by executives and filed under securities law, and it reports employees, often
+    broken down by region. It ranks Tier 1.
+  40-F: >-
+    The annual report certain Canadian companies file with the SEC, usually wrapping their Canadian
+    annual filing. It carries the same legal weight as a 10-K and typically states the employee
+    count, so it ranks Tier 1.
+  SEC Annual Filing: >-
+    An annual report filed with the U.S. SEC (a 10-K, 20-F or 40-F). These filings are audited,
+    signed by executives and filed under securities law, which makes them the most reliable public
+    headcount source. They rank Tier 1.
+  Annual Report: >-
+    The company's full annual or integrated report to shareholders, published alongside its audited
+    financial statements. It often gives a more detailed employee figure than the regulatory filing
+    (for example an exact number instead of "more than 110,000"). It ranks Tier 1 with the filings.
+  Annual Comprehensive Financial Report (ACFR): >-
+    The audited annual financial report a U.S. city, county or state publishes under government
+    accounting standards. Its statistical section usually reports employees or FTEs by function. It
+    is the government equivalent of a 10-K, so it ranks Tier 1.
+  Corporate Fact Sheet: >-
+    The official "company facts" page or PDF a company publishes about itself, usually maintained by
+    its communications or investor relations team. It is less formal than an audited filing but is
+    company-issued and normally dated, so it ranks Tier 2, right behind annual financial reports. A
+    fact sheet with no date at all drops to Tier 3.
+  IRS Form 990: >-
+    The annual information return U.S. nonprofits file with the IRS, made public by law. Part I, line
+    5 states the total number of employees, signed under penalty of perjury. It usually lags 12-24
+    months, but it is formal and official, so it ranks Tier 2.
+  IPEDS Filing: >-
+    The staff survey every U.S. college and university receiving federal student aid must submit to
+    the Department of Education. It counts all staff as of November 1 under a fixed federal
+    definition. It is formal and official but about a year behind, so it ranks Tier 2.
+  Non-Financial Annual Report: >-
+    A formal annual report the organization publishes about itself other than its financial
+    statements, such as an impact, sustainability or annual review report. These are company-issued
+    and dated, though not audited like financial filings, so they rank Tier 2.
+  Press Release: >-
+    An official announcement the company issues itself, often ending with an "About [Company]"
+    paragraph that states the headcount. It is company-controlled and dated by its release, but it is
+    marketing-led and the figure is often rounded, so it ranks Tier 3.
+  Company Document: >-
+    Another document the company publishes, such as a brochure, sponsorship pack or careers guide.
+    It comes from the company but is not a formal report, and it is often undated, so it ranks
+    Tier 3 alongside press releases.
+  "Website: About Us": >-
+    The company's own About, Company or similar page. The company controls the wording, but these
+    pages are rarely dated and can stay unchanged for years, so the figure may be out of date. It
+    ranks Tier 4.
+  "Website: Other Page": >-
+    Another page on the company's own website, such as a careers or locations page. It comes from the
+    company but is less prominent and less maintained than the About page, and usually undated, so it
+    ranks Tier 4 with less weight.
+  "LinkedIn: Company Description": >-
+    The description the company writes on its own LinkedIn page (for example "with more than 4,500
+    employees across the globe"). The company sets the text, but it is undated and seldom updated, so
+    it ranks Tier 5.
+  "LinkedIn: Member Count": >-
+    The number of LinkedIn members who list the company as their employer. It is not a headcount:
+    it includes former staff and contractors and misses people without profiles. It is used only as
+    a sanity check on the certified figure, never as the answer.
+  News: >-
+    An article by a news outlet. When an established outlet quotes a named executive stating the
+    headcount, it ranks Tier 6, because the figure is attributed but passed through a journalist.
+    Other news coverage is unranked and used only as supporting evidence.
+  Data Provider: >-
+    A commercial database (such as ZoomInfo, Revelio Labs, PitchBook or Crunchbase) that estimates
+    headcount from signals like profiles, job postings and filings. These estimates are useful and
+    often current, but they are modelled rather than stated by the company, so the market leaders
+    rank Tier 7-8 and others are unranked.
+  Web Page: >-
+    A page on a website not covered by the other types, such as an aggregator, directory or
+    encyclopedia. These often repeat figures from elsewhere without a date, so they are unranked and
+    used only as supporting evidence, never as the answer.

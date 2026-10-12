@@ -138,7 +138,7 @@ def test_stated_small_change_is_not_material(entity):
     # A tier 1 figure stands: no relabel, no penalty; the change only feeds the directional guidance.
     assert not cert.pre_adjustment and cert.confidence_score == 4 and cert.flags == []
     assert cert.direction.direction == "lower"
-    assert cert.direction.reason == "Likely somewhat lower than reported because of February 2026 layoffs (2026-02-01, -1,000)."
+    assert cert.direction.reason == "Likely somewhat lower than reported because of a change after the as-of date: February 2026 layoffs (2026-02-01, -1,000)."
 
 
 def test_indicated_range_leaves_out_outliers():

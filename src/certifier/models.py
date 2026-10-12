@@ -58,6 +58,10 @@ class Source(BaseModel):
     # True when the source repeats another source's figure (Wikipedia or an aggregator quoting the
     # 10-K): it is not independent evidence and never corroborates.
     restates: bool = False
+    # What the document is (taxonomy.DOCUMENT_TYPES key, e.g. "10-K", "fact_sheet", "news") and who
+    # published it ("Reuters", "ZoomInfo"); inferred from tier and URL when missing.
+    document_type: str | None = None
+    publisher: str | None = None
     # Set by the engine.
     corroboration_only: bool = False  # e.g. a mirror of a tier 1 filing: may corroborate, never selected
     role: SourceRole | None = None

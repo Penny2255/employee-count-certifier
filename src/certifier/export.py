@@ -8,12 +8,13 @@ import io
 SUMMARY_FIELDS = [
     "entity_name", "website", "hq", "legal_parent", "certified_count", "qualifier", "count_basis", "count_type",
     "range_low", "range_high", "as_of_date", "as_of_estimated", "as_of_estimated_from", "adjustment_status",
-    "confidence_score", "confidence_level", "confidence_arithmetic", "key_source_url", "key_source_tier",
+    "confidence_score", "confidence_level", "confidence_arithmetic", "bottom_line", "key_source_url", "key_source_tier", "key_source_category",
+    "key_source_type",
     "key_source_section", "key_source_page", "key_source_excerpt", "indicated_range_low", "indicated_range_high",
-    "direction", "direction_reason", "certified_on", "policy_version", "method",
+    "direction", "direction_reason", "next_expected_update", "certified_on", "policy_version", "method",
 ]
 SOURCE_FIELDS = [
-    "entity_name", "source_id", "tier", "tier_name", "value", "qualifier", "basis", "scope", "as_of_date",
+    "entity_name", "source_id", "tier", "tier_name", "source_category", "source_type", "value", "qualifier", "basis", "scope", "as_of_date",
     "published_date", "used", "role", "url", "section", "page", "excerpt", "use_rationale", "tier_rationale",
 ]
 
@@ -38,10 +39,13 @@ def summary_row(record: dict) -> dict:
         "count_type": h.get("count_type"), "range_low": rng[0], "range_high": rng[1], "as_of_date": h.get("as_of_date"),
         "as_of_estimated": h.get("as_of_estimated"), "as_of_estimated_from": h.get("as_of_estimated_from"),
         "adjustment_status": h.get("adjustment_status"), "confidence_score": c["score"], "confidence_level": c["level"],
-        "confidence_arithmetic": c.get("arithmetic"), "key_source_url": p.get("url"), "key_source_tier": p.get("tier"),
+        "confidence_arithmetic": c.get("arithmetic"), "bottom_line": h.get("bottom_line"), "key_source_url": p.get("url"),
+        "key_source_tier": p.get("tier"), "key_source_category": p.get("source_category"),
+        "key_source_type": p.get("source_type"),
         "key_source_section": loc.get("section"), "key_source_page": loc.get("page_label"),
         "key_source_excerpt": p.get("excerpt"), "indicated_range_low": ir.get("low"), "indicated_range_high": ir.get("high"),
         "direction": h.get("direction"), "direction_reason": h.get("direction_reason"),
+        "next_expected_update": h.get("next_expected_update"),
         "certified_on": (m.get("run_at") or m.get("lookup_date") or "")[:10], "policy_version": m.get("policy_version"),
         "method": m.get("method"),
     }
@@ -53,7 +57,7 @@ def source_rows(record: dict) -> list[dict]:
     for s in record["sources"]["items"]:
         loc = s.get("location") or {}
         out.append({"entity_name": name, "source_id": s["id"], "tier": s["tier"], "tier_name": s["tier_name"],
-                    "value": s["value"], "qualifier": s["qualifier"], "basis": s["basis"], "scope": s["scope"],
+                    "source_category": s.get("source_category"), "source_type": s.get("source_type"), "value": s["value"], "qualifier": s["qualifier"], "basis": s["basis"], "scope": s["scope"],
                     "as_of_date": s.get("as_of_date"), "published_date": s.get("published_date"), "used": s["used"],
                     "role": s["role"], "url": s["url"], "section": loc.get("section"), "page": loc.get("page_label"),
                     "excerpt": s.get("excerpt"), "use_rationale": s["use_rationale"], "tier_rationale": s["tier_rationale"]})

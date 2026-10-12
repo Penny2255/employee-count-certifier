@@ -144,8 +144,13 @@ def test_salesforce_record_end_to_end():
     assert r.primary_source.accession == "0001108524-26-000060"
     statuses = {f.title: f.status for f in r.findings.items}
     assert statuses["Read from sec.gov (accession 0001108524-26-000060)"] == "green"
-    assert statuses["1 mirror(s) of a filing not used as the source"] == "yellow"
+    assert statuses["1 copy(ies) of a filing used only as support"] == "yellow"
     assert statuses["LinkedIn member count is consistent"] == "green"
+    groups = {f.title: f.group for f in r.findings.items}
+    assert groups["LinkedIn member count is consistent"] == "background"
+    assert groups["Starting confidence 4 of 5 from the key source: SEC Annual Filing (Tier 1)"] == "affects"
+    assert r.headline.bottom_line == "Ready to use. Strong, current primary source."
+    assert r.headline.next_expected_update == date(2027, 5, 1) and "expected around May 2027" in r.headline.next_update_note
     assert [(e.penalized, e.description) for e in r.events.items] == [(False, "Acquisition of Informatica")]
     mirror = next(s for s in r.sources.items if "quartr" in s.url)
     assert not mirror.used and "mirror" in mirror.tier_rationale

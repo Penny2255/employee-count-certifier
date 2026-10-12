@@ -118,6 +118,7 @@ def _lookup(entity: Entity, cik: int | None, lookup_date: date | None, policy: P
     if not found.sources and snippets:  # extraction failed; keep the filings
         sources += heuristic.best_per_filing(snippets, policy)
         notes.append("Claude extraction returned nothing; fell back to rule-based extraction of SEC filings.")
+    sources = stamp_filing_forms(sources, snippets)
     cert = certify(entity, sources, linkedin=found.linkedin, lookup_date=lookup_date,
                    events=found.events, review_flags=found.complexities, scope_notes=found.scope_notes,
                    subsidiary_questions=found.subsidiary_questions,
@@ -154,6 +155,13 @@ def resolve_cik(edgar: Edgar, name: str, notes: list[str]) -> int | None:
         notes.append(f"SEC CIK {cik} resolved from the name.")
         return cik
     return None
+
+
+def stamp_filing_forms(sources: list, snippets: list) -> list:
+    """SEC sources take their form (10-K, 20-F, 40-F) from the filing itself, not from research."""
+    forms = {s.filing.url.split("#")[0]: s.filing.form for s in snippets}
+    return [s.model_copy(update={"document_type": forms[s.url.split("#")[0]]}) if s.url.split("#")[0] in forms else s
+            for s in sources]
 
 
 def attach_site_locations(sources: list, site: list) -> list:

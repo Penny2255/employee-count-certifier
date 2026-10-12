@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Entity groups: university (IPEDS) + health system + grand total (SPEC.md: Entity groups)."""
 
 from datetime import date

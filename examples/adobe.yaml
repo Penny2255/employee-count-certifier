@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 case: White-collar company with an exact 10-K figure
 entity: {name: Adobe Inc., website: "https://www.adobe.com", hq: "San Jose, CA, USA"}
 lookup_date: 2026-10-11

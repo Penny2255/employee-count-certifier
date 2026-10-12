@@ -1,8 +1,13 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 [project]
 name = "certifier"
 version = "0.1.0"
 description = "Certified global employee counts per a documented source policy, served over MCP"
 requires-python = ">=3.12"
+license = "LicenseRef-Proprietary"
+license-files = ["LICENSE"]
+authors = [{ name = "Matthew Beltrano" }]
+classifiers = ["Private :: Do Not Upload"]
 dependencies = [
     "anthropic>=1.13.0",
     "fastapi>=0.143.0",

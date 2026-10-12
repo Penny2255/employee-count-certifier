@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Entity validation (build step 4): resolve a name to candidate organizations for the user
 to confirm before any research runs (SPEC.md: Entity validation)."""
 

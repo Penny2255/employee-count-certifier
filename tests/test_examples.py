@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Every file in examples/ is a regression test: the engine must reproduce its expected result."""
 
 import pytest

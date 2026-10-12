@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Standardized certification record (SPEC.md: Certification record).
 
 Every lookup returns the same sections in the same order, even when empty (with an explicit

@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Source labels (category + type), the glossary, the Corporate Fact Sheet policy and guided findings."""
 
 import json

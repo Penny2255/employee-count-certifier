@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """SEC annual series: a breakdown after the total doesn't make it partial (the Microsoft FY2026 case)."""
 
 from datetime import date

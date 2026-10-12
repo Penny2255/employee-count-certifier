@@ -1,3 +1,5 @@
+<sub>© 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See [LICENSE](LICENSE).</sub>
+
 # Decisions: standardized record and company card
 
 Decisions made while building the `feature/company-card` branch, most consequential first within each part. Each entry gives what was decided, why, and the alternatives considered.
@@ -697,3 +699,23 @@ The record's entity carries `address` and `address_source`, shown as **HQ addres
   suggested number".
 - **Privacy:** nothing is sent to the server; the check runs in the page.
 - **Tests:** ten scenarios, run against the real card code in a browser.
+
+## Proprietary notices and anti-scraping (2026-10-12)
+
+### D91. All rights reserved, stated everywhere the work appears
+- **What:** a proprietary `LICENSE` (no licence granted, no AI-training use, permission via LinkedIn), package metadata
+  `LicenseRef-Proprietary` with the `Private :: Do Not Upload` classifier, a notice box at the top of the README and the
+  full notice at the end, and a one-line copyright header on every source, template, policy and spec file.
+- **Outputs:** the card (web, saved file and Claude) ends with the owner line; JSON downloads carry a `notice` field;
+  CSVs end with a `# notice` row; Word and PowerPoint files carry it in their properties, and the Word document prints it.
+- **Why not a classifier like "License :: Other/Proprietary License":** with an SPDX `license` expression, the packaging
+  standard (PEP 639) forbids licence classifiers, and the build rejects them.
+
+### D92. No crawling, indexing or AI use of the hosted site
+- **What:** `robots.txt` disallows every crawler and names the known AI crawlers explicitly. Every response, including
+  `/mcp`, the API and errors, sends `X-Robots-Tag: noindex, nofollow, noarchive, noai, noimageai`; every HTML page also
+  has the matching meta tag. A plain-English `/terms` page sits next to Privacy and About.
+- **MCP:** one sentence in the server instructions and each tool description, with a note not to repeat it to the user.
+  The instructions now say the hosted cache lasts 90 days (it did; the text said 30).
+- **Limits:** robots rules and headers are honoured only by well-behaved crawlers. The rate limit and daily allowances
+  remain the real protection for the service. A public repository can still be read and cloned, whatever its licence.

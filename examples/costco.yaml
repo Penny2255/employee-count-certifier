@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 case: Mixed workforce with part-time employees included
 entity: {name: Costco Wholesale Corporation, website: "https://www.costco.com", hq: "Issaquah, WA, USA"}
 lookup_date: 2026-10-11

@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Two-level source labels: a plain-English `source_category` and an exact `source_type`, plus the
 "What is this source?" explanation from source_glossary.yaml (editable without code changes).
 

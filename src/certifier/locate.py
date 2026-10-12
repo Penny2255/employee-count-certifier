@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Locate a quoted figure inside its document: section, page number, a detailed verbatim passage,
 and a deep link that scrolls to the quote.
 

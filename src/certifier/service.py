@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """One lookup end to end: EDGAR (if SEC-listed) -> Claude research and extraction -> engine.
 
 Used by the MCP server and the CLI. Without an Anthropic key it falls back to EDGAR plus the

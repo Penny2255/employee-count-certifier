@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Open beta: per-visitor and global allowances with reservations, Pacific-midnight reset, free cached
 and sample results, connector tokens bound to the sign-in IP, admin bypass, and fair-use limits."""
 

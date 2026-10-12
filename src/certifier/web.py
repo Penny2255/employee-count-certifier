@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """GTM Data Certifier, hosted: web experience + JSON API + MCP over Streamable HTTP, on one engine.
 
     uvicorn certifier.web:app            # or: certifier-mcp --http
@@ -55,6 +56,7 @@ from . import hosted, office, taxonomy
 from . import server as mcp_server
 from .access import AccessCodes
 from .card import CARD_CSS, CARD_JS, TOKENS_CSS, save_card
+from .notice import OWNER_LINE, ROBOTS, ROBOTS_META, ROBOTS_TXT, TERMS_HTML
 from .config import load_env
 from .entity import find_entities
 from .export import sources_csv, summary_csv
@@ -84,7 +86,7 @@ LOGO_HOST = re.compile(r"(?:[a-z0-9-]{1,63}\.){1,4}[a-z]{2,24}")
 # Not rate limited: static files and health checks (page loads, Render), and the MCP/OAuth endpoints, whose
 # requests all arrive from Anthropic's servers (the connector is limited per guest by its allowance instead).
 RATE_EXEMPT = ("/health", "/static/", "/assets/", "/favicon.ico", "/cards/", "/logos/", "/mcp", "/.well-known/", "/authorize",
-               "/token", "/register", "/revoke")
+               "/token", "/register", "/revoke", "/robots.txt", "/terms")
 
 
 def client_ip(request: Request) -> str:
@@ -203,7 +205,7 @@ def create_app() -> FastAPI:
                   .replace("__POLICY_VERSION__", html.escape(policy_version)).replace("__TAGLINE__", TAGLINE)
                   .replace("__DEMO__", "true" if demo else "false")
                   .replace("__GLOSSARY__", taxonomy.glossary_html())
-                  .replace("__MCP_URL__", html.escape(base_url + "/mcp")))
+                  .replace("__MCP_URL__", html.escape(base_url + "/mcp")).replace("__ROBOTS_META__", ROBOTS_META))
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -240,6 +242,14 @@ def create_app() -> FastAPI:
                 return JSONResponse({"error": RATE_LIMITED}, status_code=429)
         return await call_next(request)
 
+    # Declared after rate_limit, so it wraps it: every response, including 429s, /mcp and the API, says no
+    # indexing, archiving or AI use.
+    @app.middleware("http")
+    async def robots_header(request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Robots-Tag"] = ROBOTS
+        return response
+
     # --- errors: always JSON the page can show -----------------------------------------------
 
     @app.exception_handler(hosted.LimitExceeded)
@@ -263,6 +273,14 @@ def create_app() -> FastAPI:
     @app.get("/", response_class=HTMLResponse)
     async def index() -> str:
         return index_html
+
+    @app.get("/robots.txt")
+    async def robots_txt():
+        return Response(ROBOTS_TXT, media_type="text/plain", headers={"Cache-Control": "public, max-age=86400"})
+
+    @app.get("/terms", response_class=HTMLResponse)
+    async def terms() -> str:
+        return TERMS_HTML
 
     @app.get("/static/app.css")
     async def app_css():
@@ -464,7 +482,8 @@ def create_app() -> FastAPI:
                 media, name = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",                     f"{slug}-certification.docx"
             return Response(data, media_type=media, headers={"Content-Disposition": f'attachment; filename="{name}"'})
         if format == "json":
-            body, media, name = json.dumps(record, indent=2, ensure_ascii=False), "application/json", f"{slug}.json"
+            body, media, name = (json.dumps({"notice": OWNER_LINE, **record}, indent=2, ensure_ascii=False),
+                                 "application/json", f"{slug}.json")
         elif format == "summary_csv":
             body, media, name = summary_csv([record]), "text/csv", f"{slug}-summary.csv"
         elif format == "sources_csv":
@@ -620,6 +639,7 @@ def _login_page(request_id: str, error: str | None = None, expired: bool = False
 
 LOGIN_HTML = """<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>Connect · GTM Data Certifier</title>
+<meta name="robots" content="noindex, nofollow, noarchive, noai, noimageai">
 <link rel="icon" href="/assets/brand/favicon.png"><link rel="stylesheet" href="/static/app.css"></head>
 <body><main class="page narrow"><section class="panel-card">
 <img src="/assets/brand/hyperloop-mark-small.png" alt="Human in the Hyperloop" width="56" height="56">
@@ -631,6 +651,7 @@ __BODY__
 
 ADMIN_HTML = """<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>Admin · GTM Data Certifier</title>
+<meta name="robots" content="noindex, nofollow, noarchive, noai, noimageai">
 <link rel="icon" href="/assets/brand/favicon.png"><link rel="stylesheet" href="/static/app.css"></head>
 <body><main class="page admin">
 <h1 class="view-title">Beta admin</h1>

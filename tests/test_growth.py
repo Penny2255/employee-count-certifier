@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Growth adjustment: outdated secondary figures moved toward a growing LinkedIn member count (Gong)."""
 
 from datetime import date

@@ -1,3 +1,4 @@
+// © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 /* GTM Data Certifier: page logic. The card renderer (window.GTMCard) is prepended by the server. */
 (function () {
   "use strict";

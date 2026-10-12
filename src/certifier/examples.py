@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Worked examples (SPEC.md: Example library). One YAML file per case in examples/.
 
 Each example is both a regression test for the engine and, from step 3 on, reference

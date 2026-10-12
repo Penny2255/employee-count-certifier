@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Parse a headcount figure and its qualifier out of a source excerpt (counting rule 4)."""
 
 from __future__ import annotations

@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 case: Nonprofit with a lagging Form 990 (tier 2)
 entity: {name: Donor Network West, website: "https://www.donornetworkwest.org", hq: "San Ramon, CA, USA"}
 lookup_date: 2026-10-11

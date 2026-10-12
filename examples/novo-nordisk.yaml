@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 case: 20-F with both a rounded and an exact figure for the same date
 entity: {name: Novo Nordisk A/S, website: "https://www.novonordisk.com", hq: "Bagsvaerd, Denmark"}
 lookup_date: 2026-10-11

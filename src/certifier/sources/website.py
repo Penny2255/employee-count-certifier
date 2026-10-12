@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Company website (tier 4): read the organization's own About pages for headcount statements,
 including stat tiles whose numbers live in embedded page data ("1,500" + "Employees")."""
 

@@ -1,3 +1,5 @@
+<sub>© 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See [LICENSE](LICENSE).</sub>
+
 # Deploying GTM Data Certifier on Render
 
 This guide puts the certifier online so you, and people you choose, can use it from:

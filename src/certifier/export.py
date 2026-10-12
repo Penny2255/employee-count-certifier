@@ -1,9 +1,12 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """CSV exports of a certification record: one clean summary row per entity, plus one row per source."""
 
 from __future__ import annotations
 
 import csv
 import io
+
+from .notice import OWNER_LINE
 
 SUMMARY_FIELDS = [
     "entity_name", "website", "hq", "legal_parent", "certified_count", "qualifier", "count_basis", "count_type",
@@ -25,6 +28,7 @@ def _csv(fields: list[str], rows: list[dict]) -> str:
     writer.writeheader()
     for row in rows:
         writer.writerow({k: "" if v is None else v for k, v in row.items()})
+    csv.writer(buf, lineterminator="\n").writerow(["# " + OWNER_LINE])  # final comment row: the notice
     return buf.getvalue()
 
 

@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Scoring fixes from the Stripe run: estimated as-of dates, corroboration measured from the anchor,
 recency penalty for every tier, known changes after the as-of date, and the indicated current range."""
 

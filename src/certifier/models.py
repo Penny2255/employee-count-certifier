@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Data models for sources, LinkedIn evidence and the certification record (SPEC.md)."""
 
 from __future__ import annotations

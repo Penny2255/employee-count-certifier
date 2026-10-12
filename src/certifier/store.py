@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 """Small SQLite store for the hosted service: the daily allowance ledger (open beta), the
 certification cache, queries and ratings, and OAuth state. Lives in CERTIFIER_DATA_DIR (default ./data).
 

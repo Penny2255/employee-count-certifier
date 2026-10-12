@@ -1,3 +1,4 @@
+# © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
 # Render Blueprint for the hosted GTM Data Certifier (web page + MCP connector).
 # Create it from the Render dashboard: New > Blueprint > connect this GitHub repo. See DEPLOY.md.
 services:

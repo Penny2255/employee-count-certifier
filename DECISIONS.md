@@ -608,3 +608,21 @@ people…", which it took as a headcount for FY2022 and FY2023.
 - **Header facts:** three new rows: **Source link** (with "open at the quote"), **Line in source** (section · page), and
   a short **Excerpt** centred on the figure. The full passage stays in Key Source below.
 - **Phones:** smaller type and tighter spacing throughout, so less wraps.
+
+### D82. Cached results carry the engine version
+- **What:** cache keys start with `hosted.ENGINE_VERSION`. Bumping it when a change alters which figure is certified or
+  how it's scored means results made by older code are never served; the next search recertifies.
+- **Why:** Microsoft kept showing the FY2025 10-K on the live site. The website's search resolves Microsoft with the
+  same SEC ID as a test run, and that run certifies FY2026, so the shared 90-day cache was serving a result made
+  before the fix.
+- **Cost:** after this deploy, every company recertifies once on its next search.
+
+### D83. The expedition always plays
+Stages show for at least 0.75 s each and the result follows about 0.9 s after "Certified", so a cached result still
+plays the journey for about 5 seconds.
+
+### D84. Four-year forecast; prior-year research; no "Try" chips
+- **Forecast:** four years ahead with a widening range, drawn as one shaded band with a dashed line; only the final
+  year is labeled.
+- **Research:** asked for the prior 3–4 years' figures from the same kind of source.
+- **Home page:** the "Try Salesforce · Stripe · Adobe" chips are gone; the sample results cover them.

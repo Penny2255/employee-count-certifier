@@ -264,3 +264,12 @@ def test_client_ip_from_x_forwarded_for(monkeypatch, header, hops, expected):
     scope = {"type": "http", "headers": [(b"x-forwarded-for", header.encode())] if header else [],
              "client": ("testclient", 50000)}
     assert web.client_ip(Request(scope)) == expected
+
+
+def test_results_cached_by_older_code_are_not_served(tmp_path):
+    controls = hosted.Controls(Store(tmp_path / "s.sqlite3"))
+    entity = web.Entity(name="Microsoft Corporation", website="https://www.microsoft.com")
+    key = hosted.cache_key(entity, 789019, None)
+    assert key.startswith(f"v{hosted.ENGINE_VERSION}|")
+    controls.store.cache_put(key.split("|", 1)[1], "{}")  # the pre-versioning key format (e.g. a FY2025 result)
+    assert controls.store.cache_get(key, 90) is None

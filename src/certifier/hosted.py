@@ -153,11 +153,16 @@ class Controls:
                 self._busy.discard(who.bucket)
 
 
+# Bump when a change alters which figure is certified or how it's scored: cached results made by older
+# code are then ignored (they stay in the database but are never served) and the next search recertifies.
+ENGINE_VERSION = "2026.10.12"
+
+
 def cache_key(entity: Entity, cik: int | None, parent_cik: int | None) -> str:
     name = " ".join(re.findall(r"[a-z0-9&]+", entity.name.lower()))
     host = (urlsplit(entity.website if "://" in (entity.website or "") else f"https://{entity.website or ''}")
             .hostname or "").removeprefix("www.")
-    return f"{name}|{host}|{cik or ''}|{parent_cik or ''}"
+    return f"v{ENGINE_VERSION}|{name}|{host}|{cik or ''}|{parent_cik or ''}"
 
 
 @dataclass

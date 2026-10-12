@@ -378,13 +378,19 @@ After each result, the user sees both export options and picks one or both.
 
 **Google formats:** the MVP produces .pptx and .docx, which open directly in Google Slides and Docs. Creating native Google files in the user's Drive requires Google sign-in (OAuth) and is a later phase.
 
-## Trend and forecast (later phase)
+## Trend and forecast
 
-The trend shows up to five dated values ending at the current one; the forecast adds a sixth, labeled as an estimate.
+The trend shows up to five reported values ending at the certified one, then a four-year forecast, each forecast
+point labeled as an estimate.
 
-- **Trend:** only same-basis dated values (e.g., consecutive 10-Ks). Mixed-tier points are shown but marked.
-- **Forecast:** requires at least 3 dated points. Method is a linear trend over the available points, with a range from the historical year-over-year variation. Always flagged `estimated`.
-- **Next update date:** for public companies, the expected next 10-K filing date from the fiscal year end.
+- **Trend:** same-tier, same-basis dated values, such as consecutive 10-Ks. Five annual filings are read from SEC EDGAR
+  (including EDGAR's older submission pages) and five years of Form 990s. Research is asked for the prior 3–4 years
+  from the same kind of source for organizations without filings.
+- **Forecast:** needs at least 3 reported points. It's a linear trend projected 4 years ahead. The range starts from the
+  historical year-over-year variation and widens with the square root of the years ahead. Always flagged `estimated`.
+- **Chart:** a smooth monotone line with value labels, the certified point ringed, and a dashed forecast inside a
+  widening shaded band. On phones only the first, certified and final forecast points are labeled.
+- **Next update date:** when the next edition of the key source is expected (e.g. the next 10-K).
 
 ## Example library (started)
 

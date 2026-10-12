@@ -8,6 +8,7 @@ and export-ready (JSON now; CSV, Excel and slides later).
 
 from __future__ import annotations
 
+import math
 import re
 import statistics
 from datetime import date, datetime, timedelta
@@ -835,9 +836,7 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
     trend_rows = [TrendRow(as_of_date=p.as_of_date, value=p.value, tier=p.tier, url=p.url, estimated=False,
                            rationale=f"Reported in a tier {p.tier} source as of {p.as_of_date.isoformat()}.")
                   for p in cert.trend]
-    forecast = _forecast(trend_rows)
-    if forecast:
-        trend_rows.append(forecast)
+    trend_rows += _forecast(trend_rows)
 
     events = [EventRow(description=e.description, url=e.url, close_date=e.close_date, penalized=e.penalized,
                        rationale=e.reason) for e in cert.events]
@@ -886,21 +885,30 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
     )
 
 
-def _forecast(points: list[TrendRow]) -> TrendRow | None:
-    """Linear trend over at least 3 dated points; range from historical year-over-year variation."""
+FORECAST_YEARS = 4
+
+
+def _forecast(points: list[TrendRow]) -> list[TrendRow]:
+    """A linear trend over at least 3 dated points, projected FORECAST_YEARS ahead. The range starts from the
+    historical year-over-year variation and widens with the square root of the years ahead."""
     if len(points) < 3:
-        return None
+        return []
     xs = [p.as_of_date.toordinal() for p in points]
     ys = [p.value for p in points]
     slope, intercept = statistics.linear_regression(xs, ys)
-    next_date = points[-1].as_of_date + timedelta(days=365)
-    value = round(slope * next_date.toordinal() + intercept)
     changes = [b - a for a, b in zip(ys, ys[1:])]
-    spread = round(statistics.pstdev(changes)) if len(changes) > 1 else 0
-    return TrendRow(as_of_date=next_date, value=value, tier=None, url=None, estimated=True,
-                    low=value - spread, high=value + spread,
-                    rationale=f"Estimated: a linear trend over {len(points)} reported points, with a range from "
-                              "their year-over-year variation; not a reported figure.")
+    spread = statistics.pstdev(changes) if len(changes) > 1 else 0
+    out = []
+    for k in range(1, FORECAST_YEARS + 1):
+        when = points[-1].as_of_date + timedelta(days=round(365.25 * k))
+        value = round(slope * when.toordinal() + intercept)
+        width = round(spread * math.sqrt(k))
+        out.append(TrendRow(as_of_date=when, value=value, tier=None, url=None, estimated=True,
+                            low=max(0, value - width), high=value + width,
+                            rationale=f"Estimated, year {k} of {FORECAST_YEARS}: a linear trend over {len(points)} "
+                                      "reported points, with a range from their year-over-year variation that widens "
+                                      "each year; not a reported figure."))
+    return out
 
 
 def record_from_lookup(result, policy: Policy | None = None, lookup_date: date | None = None) -> CertificationRecord:

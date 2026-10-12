@@ -573,7 +573,7 @@ CARD_JS = r"""
     if (has) {
       list.appendChild(el("p", { cls: "dl-group", text: "Slides and document" }));
       ["light", "dark"].forEach(function (t) {
-        item("PowerPoint · " + t, t === theme ? "matches this view · 4 slides" : "4 slides", function () { openUrl(exportUrl(r, opts, "pptx", t)); menu.open = false; });
+        item("PowerPoint · " + t, t === theme ? "matches this view · 5 slides" : "5 slides", function () { openUrl(exportUrl(r, opts, "pptx", t)); menu.open = false; });
       });
       item("Word document", "full detail and sources", function () { openUrl(exportUrl(r, opts, "docx")); menu.open = false; });
       list.appendChild(el("p", { cls: "dl-group", text: "Data" }));

@@ -32,6 +32,7 @@ def env(monkeypatch, tmp_path):
     monkeypatch.setenv("CERTIFIER_ACCESS_CODES", f"alice:{access.hash_code(CODE)},bob:{access.hash_code(OTHER)}")
     monkeypatch.setenv("PUBLIC_BASE_URL", "http://localhost")
     monkeypatch.setenv("CERTIFIER_RATE_LIMIT_PER_MIN", "10000")  # rate limiting has its own test
+    monkeypatch.setattr(web, "_fetch_logo", lambda host: None)  # no network in tests
     monkeypatch.delenv("CERTIFIER_REVOKED", raising=False)
     for name in ("CERTIFIER_VISITOR_USD_PER_DAY", "CERTIFIER_DAILY_USD_CAP", "CERTIFIER_PROXY_HOPS"):
         monkeypatch.delenv(name, raising=False)

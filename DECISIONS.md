@@ -789,3 +789,11 @@ The record's entity carries `address` and `address_source`, shown as **HQ addres
 - The stamp is now a seal: a scalloped rosette in the grade's colours with "GTM Data Certifier", stars for the score,
   the score, the grade and "Hyperloop grade". Grades: 5 Platinum (loop green to blue), 4 Gold, 3 Silver, 2 Bronze,
   1 Provisional, 0 Not certified.
+
+### D102. Deck: the company on every slide, the hosted site, and a thank-you
+- Every slide's header carries the organization's name and logo (its website's icon, fetched and cached by the
+  service), and every footer links to the hosted site ("Certify another organization").
+- A fifth, closing slide in the dark brand colours, modelled on the Hyperloop deck: "Thank you.", the line "AI shouldn't
+  just replicate what humans do. It should elevate human needs and outcomes.", the loop, Matthew's LinkedIn card
+  (clickable) and two buttons, Connect on LinkedIn and Try GTM Data Certifier.
+- Buttons are clickable shapes rather than linked text: PowerPoint recolours linked text with the theme's link colour.

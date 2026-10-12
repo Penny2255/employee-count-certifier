@@ -475,7 +475,8 @@ def create_app() -> FastAPI:
         if format in ("pptx", "docx"):  # slides (light or dark) and the full Word document
             if format == "pptx":
                 theme = theme if theme in ("light", "dark") else "light"
-                data = await anyio.to_thread.run_sync(lambda: office.deck(record, theme))
+                logo = await anyio.to_thread.run_sync(lambda: _company_logo(record))
+                data = await anyio.to_thread.run_sync(lambda: office.deck(record, theme, logo=logo, site_url=base_url))
                 media, name = "application/vnd.openxmlformats-officedocument.presentationml.presentation",                     f"{slug}-certification-{theme}.pptx"
             else:
                 data = await anyio.to_thread.run_sync(lambda: office.document(record))
@@ -566,6 +567,22 @@ def create_app() -> FastAPI:
 
     app.mount("/", mcp_app)  # /mcp and the OAuth endpoints
     return app
+
+
+def _company_logo(record: dict) -> bytes | None:
+    """The organization's logo for the slides: the cached icon for its website, fetched once if needed."""
+    website = record["entity"].get("website") or ""
+    host = (urlsplit(website if "://" in website else "https://" + website).hostname or "").removeprefix("www.")
+    if not website or not LOGO_HOST.fullmatch(host):
+        return None
+    path = data_dir() / "logos" / f"{host}.png"
+    if path.is_file():
+        return path.read_bytes()
+    data = _fetch_logo(host)
+    if data:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+    return data
 
 
 def _fetch_logo(host: str) -> bytes | None:

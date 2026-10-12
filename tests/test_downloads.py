@@ -1,5 +1,5 @@
 # © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
-"""Downloads: the 4-slide PowerPoint deck (light/dark), the Word document, their export routes, the links the
+"""Downloads: the 5-slide PowerPoint deck (light/dark), the Word document, their export routes, the links the
 Claude connector returns, and the HQ address in the record."""
 
 import io
@@ -26,18 +26,25 @@ def record():
     return json.loads(record_from_lookup(LookupResult.model_validate_json(SAMPLE.read_text(encoding="utf-8"))).model_dump_json())
 
 
-def test_deck_has_four_branded_slides_with_the_credit_link_in_both_themes():
+def test_deck_has_five_branded_slides_with_company_site_and_credit_links_in_both_themes():
+    site = "https://employee-count-certifier.onrender.com"
     for theme in ("light", "dark"):
-        prs = Presentation(io.BytesIO(office.deck(record(), theme)))
-        assert len(prs.slides) == 4
+        prs = Presentation(io.BytesIO(office.deck(record(), theme, site_url=site)))
+        assert len(prs.slides) == 5
         titles = [" ".join(sh.text_frame.text for sh in s.shapes if sh.has_text_frame) for s in prs.slides]
-        for word, slide in zip(("The answer", "Trend and forecast", "Why you can trust this", "Sources"), titles):
+        for word, slide in zip(("The answer", "Trend and forecast", "Why you can trust this", "Sources", "Thank you."), titles):
             assert word in slide
+        assert all("Salesforce, Inc." in slide for slide in titles)  # the company on every slide
         assert "83,334" in titles[0] and "Designed and created by" in titles[0]
+        assert "elevate human needs and outcomes" in titles[4]
         links = [r.hyperlink.address for s in prs.slides for sh in s.shapes if sh.has_text_frame
                  for p in sh.text_frame.paragraphs for r in p.runs if r.hyperlink.address]
-        assert links.count(LINKEDIN) == 4 and any("sec.gov" in u for u in links)
+        links += [sh.click_action.hyperlink.address for s in prs.slides for sh in s.shapes
+                  if sh.click_action.hyperlink.address]  # clickable buttons and the LinkedIn card
+        assert links.count(LINKEDIN) >= 5 and links.count(site) >= 5 and any("sec.gov" in u for u in links)
         assert any(sh.has_chart for sh in prs.slides[1].shapes)  # a native, editable chart
+        card = [sh for sh in prs.slides[4].shapes if sh.shape_type == 13 and sh.click_action.hyperlink.address == LINKEDIN]
+        assert card  # the LinkedIn card links to the profile
 
 
 def test_word_document_has_the_detail_and_the_credit_link():
@@ -54,7 +61,7 @@ def test_export_routes_for_slides_and_document(client):
     deck = client.get(f"/api/lookups/{qid}/export?format=pptx&theme=dark")
     assert deck.status_code == 200 and deck.headers["content-type"].startswith("application/vnd.openxmlformats-officedocument.presentationml")
     assert 'filename="salesforce-inc-certification-dark.pptx"' in deck.headers["content-disposition"]
-    assert len(Presentation(io.BytesIO(deck.content)).slides) == 4
+    assert len(Presentation(io.BytesIO(deck.content)).slides) == 5
     doc = client.get(f"/api/lookups/{qid}/export?format=docx")
     assert doc.status_code == 200 and 'certification.docx"' in doc.headers["content-disposition"]
     assert client.get("/api/lookups/sample-salesforce/export?format=pptx").status_code == 200  # samples too

@@ -154,3 +154,17 @@ def test_private_companies_get_context_for_their_score():
     assert private_company_note(rare)[0] == "rare" and "Worth celebrating" in private_company_note(rare)[1]
     filed = certify(Entity(name="Salesforce"), [src(1, 83_334)], lookup_date=date(2026, 10, 12))
     assert private_company_note(filed) == (None, None)  # a public filer gets no private-company note
+
+
+def test_an_older_company_statement_becomes_a_historical_estimate_and_leans_the_forecast():
+    from certifier.record import build_record
+    careers = src(4, 10_000, as_of=date(2026, 8, 15), qualifier="more_than", url="https://www.mortenson.com/careers")
+    ceo = src(5, 7_000, as_of=date(2019, 6, 1), url="https://www.linkedin.com/company/mortenson")
+    provider = src(9, 6_500, as_of=date(2021, 3, 1), url="https://leadiq.com/c/mortenson")  # data providers never count
+    cert = certify(Entity(name="M. A. Mortenson Company"), [careers, ceo, provider], lookup_date=date(2026, 10, 12))
+    items = build_record(cert, lookup_date=date(2026, 10, 12)).trend.items
+    history = [t for t in items if t.historical]
+    assert [(t.as_of_date.year, t.value) for t in history] == [(2019, 7_000)]
+    forecast = [t for t in items if t.estimated]
+    yearly = (forecast[-1].value / 10_000) ** (1 / 4) - 1
+    assert 0.01 < yearly <= 0.03 and "historical estimate" in forecast[0].rationale  # a gentle, capped lean

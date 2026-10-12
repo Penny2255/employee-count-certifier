@@ -11,6 +11,7 @@ import os
 import re
 import time
 from datetime import date, datetime, timezone
+from typing import Callable
 from pathlib import Path
 
 from pydantic import BaseModel
@@ -52,13 +53,23 @@ def edgar_snippets(edgar: Edgar, cik: int, limit: int = 3) -> list[Snippet]:
     return [s for s in snippets if heuristic.snippet_sources([s])]
 
 
+# Pipeline stages reported to `progress(stage, message)` as they actually happen.
+STAGES = ("resolve", "filings", "sweep", "corroborate", "score", "certified")
+Progress = Callable[[str, str], None]
+
+
+def _noop(stage: str, message: str) -> None:
+    pass
+
+
 def lookup(entity: Entity, cik: int | None = None, lookup_date: date | None = None, policy: Policy | None = None,
            edgar: Edgar | None = None, claude: Claude | None = None, parent_cik: int | None = None,
-           propublica: ProPublica | None = None) -> LookupResult:
-    """Run one lookup and stamp it with run time, duration and models (the record's methodology)."""
+           propublica: ProPublica | None = None, progress: Progress | None = None) -> LookupResult:
+    """Run one lookup and stamp it with run time, duration and models (the record's methodology).
+    `progress(stage, message)` is called as each pipeline stage starts (see STAGES)."""
     policy = policy or default_policy()
     run_at, started = datetime.now(timezone.utc), time.monotonic()
-    result = _lookup(entity, cik, lookup_date, policy, edgar, claude, parent_cik, propublica)
+    result = _lookup(entity, cik, lookup_date, policy, edgar, claude, parent_cik, propublica, progress or _noop)
     return result.model_copy(update={
         "run_at": run_at, "duration_s": round(time.monotonic() - started, 1),
         "models": {"research": policy.models.research, "extraction": policy.models.extraction}
@@ -66,7 +77,8 @@ def lookup(entity: Entity, cik: int | None = None, lookup_date: date | None = No
 
 
 def _lookup(entity: Entity, cik: int | None, lookup_date: date | None, policy: Policy, edgar: Edgar | None,
-            claude: Claude | None, parent_cik: int | None, propublica: ProPublica | None) -> LookupResult:
+            claude: Claude | None, parent_cik: int | None, propublica: ProPublica | None,
+            progress: Progress = _noop) -> LookupResult:
     """`parent_cik` lets a subsidiary without its own filings use its parent's combined filing
     (e.g., FPL's headcount in NextEra's 10-K); Claude extraction scopes the figures to the entity."""
     policy = policy or default_policy()
@@ -74,9 +86,11 @@ def _lookup(entity: Entity, cik: int | None, lookup_date: date | None, policy: P
     edgar = edgar or Edgar()
     notes: list[str] = []
     snippets: list[Snippet] = []
+    progress("resolve", f"Confirming {entity.name}")
     if cik is None:
         cik = resolve_cik(edgar, entity.name, notes)
     filing_cik = cik or parent_cik
+    progress("filings", "Reading SEC filings" if filing_cik else "Checking official filings and registers")
     if filing_cik:
         try:
             snippets = edgar_snippets(edgar, filing_cik)
@@ -96,7 +110,10 @@ def _lookup(entity: Entity, cik: int | None, lookup_date: date | None, policy: P
     claude = claude or Claude(policy)
     spend = Spend(policy)
     site = website_snippets(entity.website) if entity.website else []
-    found = research_entity(entity, snippets, lookup_date, claude, spend, site=site, known=known)
+    progress("sweep", "Sweeping the web for other sources")
+    found = research_entity(entity, snippets, lookup_date, claude, spend, site=site, known=known,
+                            on_extract=lambda: progress("corroborate", "Cross-checking every figure"))
+    progress("score", "Scoring confidence")
     sources = locate_sources(attach_site_locations(dedupe(known + found.sources), site), edgar)
     if not found.sources and snippets:  # extraction failed; keep the filings
         sources += heuristic.best_per_filing(snippets, policy)
@@ -111,6 +128,7 @@ def _lookup(entity: Entity, cik: int | None, lookup_date: date | None, policy: P
                           web_fetches=spend.fetches, method=("edgar+" if snippets else "990+" if known else "") + "research", notes=notes,
                           queries=spend.queries)
     log_for_review(result)
+    progress("certified", "Certified")
     return result
 
 

@@ -1,8 +1,10 @@
-"""Visual company card: one self-contained HTML file (inline CSS/JS, no external calls).
+"""Company card: the certification record rendered for people.
 
-The same template serves two routes (DECISIONS.md D1-D3):
-- a saved file under outputs/, with the record embedded as JSON;
-- an MCP App (ui:// resource) in Claude Desktop, which receives the record from the host.
+One renderer (CARD_JS, exposing `window.GTMCard.render`) serves three routes:
+- a saved, self-contained HTML file (record embedded as JSON; no external calls);
+- an MCP App (ui:// resource) in Claude, which receives the record from the host;
+- the hosted web page, which loads the same renderer and styles.
+Styles use the GTM Data Certifier brand tokens (TOKENS_CSS) and are scoped under `.cert`.
 """
 
 from __future__ import annotations
@@ -17,116 +19,118 @@ from .record import CertificationRecord
 OUTPUTS_DIR = Path(__file__).resolve().parents[2] / "outputs"
 APP_URI = "ui://employee-count-certifier/card"
 
-TEMPLATE = r"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
-<title>__TITLE__</title>
-<style>
+# Brand tokens (Human in the Hyperloop): navy, loop blue, loop green, sky. Light follows a soft near-white
+# background, dark is navy-based. `data-theme` on <html> overrides the device setting.
+TOKENS_CSS = r"""
 :root {
-  --bg: #f6f7f9; --card: #ffffff; --text: #1a1d23; --muted: #5b6270; --line: #e3e6eb; --soft: #f1f3f6;
-  --accent: #3b5bdb; --accent-soft: #e7ecfd;
-  --green: #1e7a3c; --green-bg: #e6f4ea; --yellow: #8a5a00; --yellow-bg: #fdf3dc; --red: #b42318; --red-bg: #fdebe9;
-  --radius: 10px; --gap: 16px;
+  --navy: #0A2545; --loop-blue: #599AF5; --loop-green: #3FCF8E; --sky: #A8E3FF;
+  --bg: #F6F8FB; --card: #FFFFFF; --text: #0A2545; --muted: #4B5D75; --line: #DCE3EC; --soft: #EFF3F8;
+  --accent: #1F5FBF; --accent-soft: #E6EFFD; --meter: #2F74D9; --focus: #2F74D9;
+  --primary-bg: #0A2545; --primary-text: #FFFFFF;
+  --green: #17794A; --green-bg: #E3F6EC; --yellow: #845500; --yellow-bg: #FDF3DC; --red: #B42318; --red-bg: #FDEBE9;
+  --radius: 12px; --gap: 16px;
+  color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #111317; --card: #1a1d23; --text: #e8eaee; --muted: #a0a7b4; --line: #2c313a; --soft: #22262e;
-    --accent: #8ea6ff; --accent-soft: #232b45;
-    --green: #6fd08c; --green-bg: #17291d; --yellow: #f2c35b; --yellow-bg: #2e2612; --red: #ff8a80; --red-bg: #321a18;
+    --bg: #06182F; --card: #0D2440; --text: #EAF2FF; --muted: #A7B8CF; --line: #1E3A5C; --soft: #12304F;
+    --accent: #A8E3FF; --accent-soft: #16365C; --meter: #599AF5; --focus: #A8E3FF;
+    --primary-bg: #3FCF8E; --primary-text: #0A2545;
+    --green: #6FE0A8; --green-bg: #0F3324; --yellow: #F2C35B; --yellow-bg: #33280F; --red: #FF9A90; --red-bg: #3A1A18;
+    color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #111317; --card: #1a1d23; --text: #e8eaee; --muted: #a0a7b4; --line: #2c313a; --soft: #22262e;
-  --accent: #8ea6ff; --accent-soft: #232b45;
-  --green: #6fd08c; --green-bg: #17291d; --yellow: #f2c35b; --yellow-bg: #2e2612; --red: #ff8a80; --red-bg: #321a18;
+  --bg: #06182F; --card: #0D2440; --text: #EAF2FF; --muted: #A7B8CF; --line: #1E3A5C; --soft: #12304F;
+  --accent: #A8E3FF; --accent-soft: #16365C; --meter: #599AF5; --focus: #A8E3FF;
+  --primary-bg: #3FCF8E; --primary-text: #0A2545;
+  --green: #6FE0A8; --green-bg: #0F3324; --yellow: #F2C35B; --yellow-bg: #33280F; --red: #FF9A90; --red-bg: #3A1A18;
+  color-scheme: dark;
 }
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text);
-  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-main { max-width: 860px; margin: 0 auto; padding: var(--gap); display: grid; gap: var(--gap); }
-.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-.block { padding: var(--gap); border-top: 1px solid var(--line); }
-.block:first-child { border-top: 0; }
-h1 { font-size: 20px; margin: 0 0 4px; }
-h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0; font-weight: 600; }
-a { color: var(--accent); overflow-wrap: anywhere; }
-.muted { color: var(--muted); }
-.small { font-size: 13px; }
-.row { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; }
-.badge { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px; font-size: 12px;
+"""
+
+CARD_CSS = r"""
+.cert { display: grid; gap: var(--gap); }
+.cert .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.cert .block { padding: var(--gap) calc(var(--gap) + 4px); border-top: 1px solid var(--line); }
+.cert .block:first-child { border-top: 0; }
+.cert h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -.01em; }
+.cert h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0; font-weight: 700; }
+.cert a { color: var(--accent); overflow-wrap: anywhere; }
+.cert .muted { color: var(--muted); }
+.cert .small { font-size: 13px; }
+.cert .row { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; }
+.cert .badge { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px; font-size: 12px;
   font-weight: 600; background: var(--soft); color: var(--muted); border: 1px solid var(--line); white-space: nowrap; }
-.badge.accent { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
-.count { font-size: 42px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; }
-.qual { font-size: 18px; font-weight: 600; color: var(--muted); margin-right: 6px; }
-.meter { display: inline-flex; gap: 4px; vertical-align: middle; }
-.meter span { width: 26px; height: 10px; border-radius: 3px; background: var(--line); }
-.meter span.on { background: var(--accent); }
-details { border-top: 1px solid var(--line); }
-details:first-of-type { border-top: 0; }
-summary { cursor: pointer; list-style: none; padding: 10px 0; display: flex; gap: 8px; align-items: baseline; }
-summary > span:last-child { flex: 1 1 auto; min-width: 0; }
-.section > summary, summary.wrap { flex-wrap: wrap; row-gap: 4px; }
-summary::-webkit-details-marker { display: none; }
-summary::before { content: "▸"; color: var(--muted); font-size: 12px; width: 10px; flex: none; }
-details[open] > summary::before { content: "▾"; }
-summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
-.section > summary { padding: 0; }
-.section > summary h2 { display: inline; }
-.section[open] > summary { margin-bottom: 8px; }
-.body { padding: 0 0 12px 18px; }
-.status { display: inline-flex; gap: 4px; align-items: center; font-size: 12px; font-weight: 700; padding: 1px 8px;
+.cert .badge.accent { background: var(--accent-soft); color: var(--text); border-color: transparent; }
+.cert .badge.warn { background: var(--yellow-bg); color: var(--yellow); border-color: transparent; }
+.cert .count { font-size: 44px; font-weight: 750; letter-spacing: -.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.cert .qual { font-size: 18px; font-weight: 600; color: var(--muted); margin-right: 6px; }
+.cert .meter { display: inline-flex; gap: 4px; vertical-align: middle; }
+.cert .meter span { width: 26px; height: 10px; border-radius: 3px; background: var(--line); }
+.cert .meter span.on { background: var(--meter); }
+.cert details { border-top: 1px solid var(--line); }
+.cert details:first-of-type { border-top: 0; }
+.cert summary { cursor: pointer; list-style: none; padding: 10px 0; display: flex; gap: 8px; align-items: baseline; }
+.cert summary > span:last-child { flex: 1 1 auto; min-width: 0; }
+.cert .section > summary, .cert summary.wrap { flex-wrap: wrap; row-gap: 4px; }
+.cert summary::-webkit-details-marker { display: none; }
+.cert summary::before { content: "▸"; color: var(--muted); font-size: 12px; width: 10px; flex: none; }
+.cert details[open] > summary::before { content: "▾"; }
+.cert summary:focus-visible, .cert a:focus-visible, .cert button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+.cert .section > summary { padding: 0; }
+.cert .section > summary h2 { display: inline; }
+.cert .section[open] > summary { margin-bottom: 8px; }
+.cert .body { padding: 0 0 12px 18px; }
+.cert .status { display: inline-flex; gap: 4px; align-items: center; font-size: 12px; font-weight: 700; padding: 1px 8px;
   border-radius: 999px; white-space: nowrap; flex: none; }
-.status.green { color: var(--green); background: var(--green-bg); }
-.status.yellow { color: var(--yellow); background: var(--yellow-bg); }
-.status.red { color: var(--red); background: var(--red-bg); }
-.group-title { margin: 12px 0 0; font-size: 13px; font-weight: 600; color: var(--muted); }
-.badge.warn { background: var(--yellow-bg); color: var(--yellow); border-color: transparent; }
-.indicated { margin-top: 8px; padding: 6px 10px; border: 1px dashed var(--line); border-radius: 8px; font-size: 14px; }
-mark { background: var(--accent-soft); color: inherit; padding: 0 2px; border-radius: 3px; font-weight: 600; }
-.where { margin-top: 6px; }
-blockquote { margin: 8px 0; padding: 8px 12px; border-left: 3px solid var(--accent); background: var(--soft);
+.cert .status.green { color: var(--green); background: var(--green-bg); }
+.cert .status.yellow { color: var(--yellow); background: var(--yellow-bg); }
+.cert .status.red { color: var(--red); background: var(--red-bg); }
+.cert .group-title { margin: 12px 0 0; font-size: 13px; font-weight: 600; color: var(--muted); }
+.cert .indicated { margin-top: 8px; padding: 6px 10px; border: 1px dashed var(--line); border-radius: 8px; font-size: 14px; }
+.cert .direction { margin: 0 0 10px; padding: 8px 12px; background: var(--soft); border-radius: 8px; font-size: 14px; }
+.cert mark { background: var(--accent-soft); color: inherit; padding: 0 2px; border-radius: 3px; font-weight: 600; }
+.cert .where { margin-top: 6px; }
+.cert blockquote { margin: 8px 0; padding: 8px 12px; border-left: 3px solid var(--loop-blue); background: var(--soft);
   border-radius: 0 6px 6px 0; }
-.lines { width: 100%; border-collapse: collapse; font-size: 14px; }
-.lines td { padding: 6px 4px; border-top: 1px solid var(--line); vertical-align: top; }
-.lines td.pts { width: 48px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
-.lines tr.total td { font-weight: 700; }
-.src-sum { display: grid; grid-template-columns: 38px 64px 1fr 96px 92px; gap: 8px; width: 100%; align-items: baseline;
+.cert .lines { width: 100%; border-collapse: collapse; font-size: 14px; }
+.cert .lines td { padding: 6px 4px; border-top: 1px solid var(--line); vertical-align: top; }
+.cert .lines td.pts { width: 48px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.cert .lines tr.total td { font-weight: 700; }
+.cert .src-sum { display: grid; grid-template-columns: 38px 64px 1fr 96px 92px; gap: 8px; width: 100%; align-items: baseline;
   font-variant-numeric: tabular-nums; }
-.src-head { padding: 0 0 6px 18px; font-size: 12px; color: var(--muted); font-weight: 600; }
-.src-sum .host { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.chip { font-size: 12px; padding: 0 6px; border-radius: 4px; background: var(--soft); border: 1px solid var(--line);
+.cert .src-head { padding: 0 0 6px 18px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.cert .src-sum .host { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cert .chip { font-size: 12px; padding: 0 6px; border-radius: 4px; background: var(--soft); border: 1px solid var(--line);
   color: var(--text); text-decoration: none; }
-.kv { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; font-size: 14px; }
-.kv dt { color: var(--muted); }
-.kv dd { margin: 0; overflow-wrap: anywhere; }
-svg.spark { width: 100%; max-width: 420px; height: 90px; display: block; }
-button { font: inherit; font-size: 14px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--accent);
-  background: var(--accent); color: #fff; cursor: pointer; }
-button.secondary { background: transparent; color: var(--accent); }
-footer.block { font-size: 13px; color: var(--muted); }
-:target { scroll-margin-top: 12px; }
-.flash { animation: flash 1.2s ease-out; }
-@keyframes flash { from { background: var(--accent-soft); } to { background: transparent; } }
+.cert .kv { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; font-size: 14px; }
+.cert .kv dt { color: var(--muted); }
+.cert .kv dd { margin: 0; overflow-wrap: anywhere; }
+.cert svg.spark { width: 100%; max-width: 420px; height: 90px; display: block; }
+.cert button { font: inherit; font-size: 14px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--primary-bg);
+  background: var(--primary-bg); color: var(--primary-text); cursor: pointer; }
+.cert button.secondary { background: transparent; color: var(--text); border-color: var(--line); }
+.cert footer.block { font-size: 13px; color: var(--muted); }
+.cert :target { scroll-margin-top: 12px; }
+.cert .flash { animation: cert-flash 1.2s ease-out; }
+@keyframes cert-flash { from { background: var(--accent-soft); } to { background: transparent; } }
 @media (max-width: 560px) {
-  .count { font-size: 34px; }
-  .src-sum { grid-template-columns: 34px 56px 1fr 80px; }
-  .src-sum .date, .src-head .date { display: none; }
+  .cert .count { font-size: 34px; }
+  .cert .src-sum { grid-template-columns: 34px 56px 1fr 80px; }
+  .cert .src-sum .date, .cert .src-head .date { display: none; }
 }
-</style>
-</head>
-<body>
-<main id="root"><p class="muted">Waiting for the certification…</p></main>
-<script type="application/json" id="record-data">__DATA__</script>
-<script>
+@media (prefers-reduced-motion: reduce) { .cert .flash { animation: none; } }
+"""
+
+CARD_JS = r"""
 (function () {
   "use strict";
   var STATUS = { green: ["✓", "Green"], yellow: ["!", "Yellow"], red: ["✕", "Red"] };
   var QUAL = { exact: "", approximately: "approx.", more_than: "more than", up_to: "up to" };
-  var ROLE = { selected: "Used: primary", corroborates: "Used: corroborates", derived_input: "Used: derived",
+  var ROLE = { selected: "Used: key source", corroborates: "Used: corroborates", derived_input: "Used: derived",
                supporting: "Excluded", conflicts: "Excluded: conflicts" };
+  var DIRECTION = { higher: "↑ Likely higher", lower: "↓ Likely lower", in_line: "→ Likely in line", unknown: "· Direction unclear" };
 
   function el(tag, attrs, children) {
     var n = document.createElement(tag);
@@ -169,7 +173,6 @@ footer.block { font-size: 13px; color: var(--muted); }
     a.addEventListener("click", function (e) { e.preventDefault(); jump(prefix + id); });
     return a;
   }
-
   function passage(loc, quote) {
     var text = (loc && loc.detailed_excerpt) || quote || "";
     var q = (quote || "").trim(), bq = el("blockquote");
@@ -194,6 +197,11 @@ footer.block { font-size: 13px; color: var(--muted); }
               loc.deep_link ? link(loc.deep_link, "open at the quote") : null])],
             ["Location note", loc.note]];
   }
+  function asOfText(h) {
+    if (!h.as_of_date) return "undated";
+    var est = h.as_of_estimated ? (h.as_of_estimated_from === "url" ? " (estimated from URL)" : " (estimated)") : "";
+    return "as of " + h.as_of_date + est;
+  }
 
   function header(r) {
     var e = r.entity;
@@ -215,7 +223,7 @@ footer.block { font-size: 13px; color: var(--muted); }
         el("div", null, [QUAL[h.qualifier] ? el("span", { cls: "qual", text: QUAL[h.qualifier] }) : null, el("span", { cls: "count", text: num(h.count) })]),
         el("div", { cls: "row small" }, [el("span", { text: basis }),
           h.range && h.range[0] !== h.range[1] ? el("span", { cls: "muted", text: "range " + num(h.range[0]) + "–" + num(h.range[1]) }) : null,
-          h.as_of_date ? el("span", { cls: "muted", text: "as of " + h.as_of_date + (h.as_of_estimated ? " (estimated)" : "") }) : el("span", { cls: "muted", text: "undated" }),
+          el("span", { cls: "muted", text: asOfText(h) }),
           h.count_type ? el("span", { cls: "badge accent", text: h.count_type }) : null,
           h.adjustment_status === "pre-adjustment" ? el("span", { cls: "badge warn", text: "! pre-adjustment" }) : null])
       ]);
@@ -228,7 +236,7 @@ footer.block { font-size: 13px; color: var(--muted); }
         el("td", null, [line.rationale + " ", chip(line.finding_id, k + "-")])]));
     });
     table.appendChild(el("tr", { cls: "total" }, [el("td", { cls: "pts", text: String(c.score) }), el("td", { text: "= " + c.arithmetic })]));
-    var conf = el("details", null, [el("summary", { cls: "wrap" }, [el("span", null, [meter]), el("strong", { text: c.score + "/5 " + c.level }),
+    var conf = el("details", null, [el("summary", { cls: "wrap" }, [el("span", null, [meter]), el("strong", { text: "Confidence " + c.score + "/5 · " + c.level }),
       el("span", { cls: "muted small", text: "score breakdown" })]), table]);
     var extra = [];
     if (h.known_changes && h.known_changes.length) {
@@ -242,7 +250,7 @@ footer.block { font-size: 13px; color: var(--muted); }
         el("span", { cls: "muted small", text: " · newer data-provider figures, " + ir.earliest.slice(0, 7) + (ir.latest !== ir.earliest ? " to " + ir.latest.slice(0, 7) : "") + " · context only, not certified" })]));
     }
     var p = r.primary_source;
-    var src = p && p.source_id ? el("div", { cls: "row small muted where" }, [el("span", { text: "Source: " + where(p.url, p.location) })]) : null;
+    var src = p && p.source_id ? el("div", { cls: "row small muted where" }, [el("span", { text: "Key source: " + where(p.url, p.location) })]) : null;
     return el("div", { cls: "block" }, [top].concat(extra).concat([src, el("div", { style: "margin-top:12px" }, [conf])]).filter(Boolean));
   }
 
@@ -331,30 +339,37 @@ footer.block { font-size: 13px; color: var(--muted); }
     svg.setAttribute("aria-label", "Trend: " + points.map(function (p) { return p.as_of_date.slice(0, 4) + " " + num(p.value) + (p.estimated ? " (estimated)" : ""); }).join(", "));
     function add(tag, attrs) { var n = document.createElementNS(ns, tag); for (var a in attrs) n.setAttribute(a, attrs[a]); svg.appendChild(n); return n; }
     for (var i = 1; i < points.length; i++) {
-      add("line", { x1: x(i - 1), y1: y(points[i - 1].value), x2: x(i), y2: y(points[i].value), stroke: "var(--accent)", "stroke-width": 2,
+      add("line", { x1: x(i - 1), y1: y(points[i - 1].value), x2: x(i), y2: y(points[i].value), stroke: "var(--meter)", "stroke-width": 2,
         "stroke-dasharray": points[i].estimated ? "5 4" : "" });
     }
     points.forEach(function (p, i) {
       if (p.estimated && p.low != null) add("line", { x1: x(i), y1: y(p.low), x2: x(i), y2: y(p.high), stroke: "var(--muted)", "stroke-width": 1.5 });
-      add("circle", { cx: x(i), cy: y(p.value), r: 4, fill: p.estimated ? "var(--card)" : "var(--accent)", stroke: "var(--accent)", "stroke-width": 2 });
+      add("circle", { cx: x(i), cy: y(p.value), r: 4, fill: p.estimated ? "var(--card)" : "var(--meter)", stroke: "var(--meter)", "stroke-width": 2 });
     });
     return svg;
   }
 
   function trend(r) {
-    var items = r.trend.items;
-    if (!items.length) return section("Trend", "none", [none(r.trend.none_reason)]);
-    var list = el("div", { cls: "row small" });
-    items.forEach(function (p) { list.appendChild(el("span", { title: p.rationale, text: p.as_of_date + ": " + num(p.value) + (p.estimated ? " (estimated" + (p.low != null ? ", " + num(p.low) + "–" + num(p.high) : "") + ")" : "") })); });
-    return section("Trend", items.length + " points", [sparkline(items), list,
-      el("p", { cls: "muted small", text: "Solid points are reported; a hollow point on a dashed line is an estimate, not a reported figure." })]);
+    var items = r.trend.items, h = r.headline;
+    var nodes = [];
+    if (h.direction) nodes.push(el("p", { cls: "direction" }, [el("strong", { text: DIRECTION[h.direction] || h.direction }), " · " + (h.direction_reason || "")]));
+    if (items.length) {
+      var list = el("div", { cls: "row small" });
+      items.forEach(function (p) { list.appendChild(el("span", { title: p.rationale, text: p.as_of_date + ": " + num(p.value) + (p.estimated ? " (estimated" + (p.low != null ? ", " + num(p.low) + "–" + num(p.high) : "") + ")" : "") })); });
+      nodes.push(sparkline(items), list,
+        el("p", { cls: "muted small", text: "Solid points are reported; a hollow point on a dashed line is an estimate, not a reported figure." }));
+    } else {
+      nodes.push(none(r.trend.none_reason));
+    }
+    var extra = (items.length ? items.length + " points" : "no points") + (h.direction ? " · " + (DIRECTION[h.direction] || "").replace(/^\S+ /, "").toLowerCase() : "");
+    return section("Trend and direction", extra, nodes);
   }
 
   function events(r) {
     var items = r.events.items, li = r.linkedin_check, k = r.__k;
     var nodes = items.length ? items.map(function (e) {
-      return el("details", null, [el("summary", null, [el("span", { cls: "badge" + (e.penalized ? "" : ""), text: e.penalized ? "Lowered confidence" : "Noted" }),
-        el("span", { text: e.description + (e.close_date ? " (closed " + e.close_date + ")" : "") })]),
+      return el("details", null, [el("summary", null, [el("span", { cls: "badge", text: e.penalized ? "Lowered confidence" : "Noted" }),
+        el("span", { text: e.description + (e.close_date ? " (" + e.close_date + ")" : "") })]),
         el("div", { cls: "body" }, [el("p", { style: "margin:0", text: e.rationale }), e.url ? link(e.url, host(e.url)) : null].filter(Boolean))]);
     }) : [none(r.events.none_reason)];
     nodes.push(el("p", { cls: "group-title", text: "LinkedIn check" }));
@@ -362,19 +377,20 @@ footer.block { font-size: 13px; color: var(--muted); }
     return section("Events and LinkedIn", (items.length ? items.length + " event(s)" : "no events") + " · LinkedIn " + li.status.replace("_", " "), nodes);
   }
 
-  function footer(r, all) {
+  function footer(r, all, opts) {
     var m = r.methodology;
     var models = Object.keys(m.models || {}).map(function (k) { return k + ": " + m.models[k]; }).join(", ");
-    var dl = el("button", { type: "button", text: "Download JSON" });
-    dl.addEventListener("click", function () { download(all); });
-    var cp = el("button", { type: "button", cls: "secondary", text: "Copy JSON" });
-    cp.addEventListener("click", function () { copy(all, cp); });
-    return el("footer", { cls: "block" }, [
-      kv([["Method", m.method], ["Models", models || "none (rule-based)"], ["Policy version", m.policy_version + " · record " + m.record_version],
+    var parts = [kv([["Method", m.method], ["Models", models || "none (rule-based)"], ["Policy version", m.policy_version + " · record " + m.record_version],
           ["Cost", "$" + Number(m.cost_usd).toFixed(2) + " · " + m.web_searches + " searches, " + m.web_fetches + " fetches"],
-          ["Run", (m.run_at ? m.run_at.replace("T", " ").slice(0, 19) + " UTC" : m.lookup_date) + (m.duration_s != null ? " · " + m.duration_s + " s" : "")]]),
-      el("div", { cls: "row", style: "margin-top:12px" }, [dl, cp])
-    ]);
+          ["Run", (m.run_at ? m.run_at.replace("T", " ").slice(0, 19) + " UTC" : m.lookup_date) + (m.duration_s != null ? " · " + m.duration_s + " s" : "")]])];
+    if (opts.actions) {
+      var dl = el("button", { type: "button", text: "Download JSON" });
+      dl.addEventListener("click", function () { download(all); });
+      var cp = el("button", { type: "button", cls: "secondary", text: "Copy JSON" });
+      cp.addEventListener("click", function () { copy(all, cp); });
+      parts.push(el("div", { cls: "row", style: "margin-top:12px" }, [dl, cp]));
+    }
+    return el("footer", { cls: "block" }, parts);
   }
 
   function json(all) { return JSON.stringify(all.length === 1 ? all[0] : all, function (k, v) { return k === "__k" ? undefined : v; }, 2); }
@@ -392,20 +408,6 @@ footer.block { font-size: 13px; color: var(--muted); }
     function fallback() { var t = el("textarea"); t.value = text; document.body.appendChild(t); t.select(); try { document.execCommand("copy"); done(); } catch (e) {} t.remove(); }
   }
 
-  function render(data) {
-    var records = toRecords(data);
-    var root = document.getElementById("root");
-    root.textContent = "";
-    if (!records.length) { root.appendChild(el("p", { cls: "muted", text: "No certification record in this result." })); return; }
-    records.forEach(function (r, i) {
-      r.__k = "r" + i;
-      root.appendChild(el("article", { cls: "card", "aria-label": "Certification for " + r.entity.name }, [
-        header(r), headline(r), primary(r), findings(r), sources(r), adjustments(r), trend(r), events(r), footer(r, records)]));
-    });
-    if (location.hash === "#expand-all") Array.prototype.forEach.call(document.querySelectorAll("details"), function (d) { d.open = true; });
-    if (records[0]) document.title = records.map(function (r) { return r.entity.name; }).join(" + ") + " · Employee count";
-    reportSize();
-  }
   function toRecords(data) {
     if (!data) return [];
     if (data.result && !data.headline && !data.entity) data = data.result;  // structured output wrapper
@@ -416,7 +418,30 @@ footer.block { font-size: 13px; color: var(--muted); }
     return out;
   }
 
-  // --- MCP Apps bridge (inline; see DECISIONS.md D2) ---
+  function render(root, data, opts) {
+    opts = opts || {};
+    var records = toRecords(data);
+    root.textContent = "";
+    if (!records.length) { root.appendChild(el("p", { cls: "muted", text: "No certification record in this result." })); return records; }
+    records.forEach(function (r, i) {
+      r.__k = "r" + i;
+      root.appendChild(el("article", { cls: "card", "aria-label": "Certification for " + r.entity.name }, [
+        header(r), headline(r), primary(r), findings(r), sources(r), adjustments(r), trend(r), events(r), footer(r, records, opts)]));
+    });
+    if (location.hash === "#expand-all") Array.prototype.forEach.call(root.querySelectorAll("details"), function (d) { d.open = true; });
+    if (opts.onRender) opts.onRender(records);
+    return records;
+  }
+
+  window.GTMCard = { render: render, toRecords: toRecords };
+})();
+"""
+
+# Boot for the standalone file and the MCP App: render embedded data, or data pushed by the host.
+BOOT_JS = r"""
+(function () {
+  "use strict";
+  var root = document.getElementById("root");
   var nextId = 1, pending = {}, inFrame = window.parent && window.parent !== window;
   function post(msg) { try { window.parent.postMessage(msg, "*"); } catch (e) {} }
   function request(method, params) { var id = nextId++; post({ jsonrpc: "2.0", id: id, method: method, params: params });
@@ -424,6 +449,10 @@ footer.block { font-size: 13px; color: var(--muted); }
   function notify(method, params) { post({ jsonrpc: "2.0", method: method, params: params || {} }); }
   function applyTheme(ctx) { if (ctx && (ctx.theme === "dark" || ctx.theme === "light")) document.documentElement.setAttribute("data-theme", ctx.theme); }
   function reportSize() { if (inFrame) notify("ui/notifications/size-changed", { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight }); }
+  function show(data) {
+    var records = window.GTMCard.render(root, data, { actions: true, onRender: reportSize });
+    if (records.length) document.title = records.map(function (r) { return r.entity.name; }).join(" + ") + " · GTM Data Certifier";
+  }
   window.addEventListener("message", function (event) {
     var m = event.data;
     if (!m || m.jsonrpc !== "2.0") return;
@@ -431,23 +460,36 @@ footer.block { font-size: 13px; color: var(--muted); }
     var p = m.params || {};
     if (m.method === "ui/notifications/host-context-changed") applyTheme(p.hostContext || p);
     var result = p.structuredContent ? p : (p.result && p.result.structuredContent ? p.result : null);
-    if (result) render(result.structuredContent);
+    if (result) show(result.structuredContent);
   });
-
   var embedded = null;
   try { embedded = JSON.parse(document.getElementById("record-data").textContent); } catch (e) {}
-  if (embedded) render(embedded);
+  if (embedded) show(embedded);
   if (inFrame) {
-    request("ui/initialize", { protocolVersion: "2025-06-18", appInfo: { name: "Employee count card", version: "1.0.0" },
-      clientInfo: { name: "Employee count card", version: "1.0.0" }, appCapabilities: {}, capabilities: {} })
+    request("ui/initialize", { protocolVersion: "2025-06-18", appInfo: { name: "GTM Data Certifier card", version: "1.0.0" },
+      clientInfo: { name: "GTM Data Certifier card", version: "1.0.0" }, appCapabilities: {}, capabilities: {} })
       .then(function (res) { if (res) applyTheme(res.hostContext); notify("ui/notifications/initialized", {}); reportSize(); });
     if (window.ResizeObserver) new ResizeObserver(reportSize).observe(document.body);
   }
 })();
-</script>
-</body>
-</html>
 """
+
+_STANDALONE_BASE_CSS = r"""
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: var(--gap); }
+"""
+
+TEMPLATE = (
+    "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
+    "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
+    "<meta name=\"color-scheme\" content=\"light dark\">\n<title>__TITLE__</title>\n<style>"
+    + TOKENS_CSS + _STANDALONE_BASE_CSS + CARD_CSS
+    + "</style>\n</head>\n<body>\n<main id=\"root\" class=\"cert\"><p class=\"muted\">Waiting for the certification…</p></main>\n"
+    "<script type=\"application/json\" id=\"record-data\">__DATA__</script>\n<script>"
+    + CARD_JS + BOOT_JS + "</script>\n</body>\n</html>\n"
+)
 
 
 def _embed(data) -> str:
@@ -458,13 +500,13 @@ def _embed(data) -> str:
 def render_card(records: list[CertificationRecord]) -> str:
     """A standalone card file for one lookup (the entity, plus its parent when certified)."""
     payload = {"records": [json.loads(r.model_dump_json()) for r in records]}
-    title = " + ".join(r.entity.name for r in records) + " · Employee count"
+    title = " + ".join(r.entity.name for r in records) + " · GTM Data Certifier"
     return TEMPLATE.replace("__TITLE__", _html_escape(title)).replace("__DATA__", _embed(payload))
 
 
 def app_html() -> str:
     """The MCP App resource: same template, no embedded data (the host sends the tool result)."""
-    return TEMPLATE.replace("__TITLE__", "Employee count").replace("__DATA__", "null")
+    return TEMPLATE.replace("__TITLE__", "GTM Data Certifier").replace("__DATA__", "null")
 
 
 def save_card(records: list[CertificationRecord], directory: Path | None = None) -> Path:

@@ -234,7 +234,7 @@ def _known_block(known: list[Source]) -> str:
 
 def research_entity(entity: Entity, snippets: list[Snippet], lookup_date: date, claude: Claude,
                     spend: Spend, site: list[PageSnippet] | None = None,
-                    known: list[Source] | None = None) -> ResearchResult:
+                    known: list[Source] | None = None, on_extract=None) -> ResearchResult:
     """`known` are structured sources fetched directly (e.g., Form 990 line 5); research skips them."""
     site, known = site or [], known or []
     brief = _policy_brief(claude.policy)
@@ -250,6 +250,8 @@ def research_entity(entity: Entity, snippets: list[Snippet], lookup_date: date, 
                             f"{_entity_block(entity, lookup_date)}\n\n{edgar_note}\n\n{_known_block(known)}\n\n"
                             f"{_site_block(site)}", spend,
                             max_searches=budget.max_web_searches_when_sec_filer if have_primary else None)
+    if on_extract is not None:
+        on_extract()
     extraction = claude.extract(
         EXTRACT_SYSTEM.format(brief=brief),
         f"{_entity_block(entity, lookup_date)}\n\n{_snippet_block(snippets)}\n\n{_site_block(site)}"

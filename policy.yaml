@@ -49,6 +49,11 @@ tiers:
 recency:
   certified_max_age_months: 18   # tier 1-2 as-of date must be within this for Certified (4)
   stale_after_months: 24         # older dated sources are supporting evidence only
+  # Lagging official releases (D76): the latest available release counts as current for recency, and is never
+  # stale, until the next release is due: as-of date + these days + the grace below. Then normal rules apply.
+  latest_release_current:
+    ipeds: 765                   # staff as of Nov 1 of the fall collection; the next is released ~25 months later
+  latest_release_grace_days: 60
 
 agreement:
   corroborates_within: 0.15      # relative difference counted as agreeing

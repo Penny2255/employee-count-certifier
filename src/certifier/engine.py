@@ -84,6 +84,15 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
                         for q in subsidiary_questions or []]
     else:
         flags += [f"Complexity: {q}" for q in subsidiary_questions or []]
+    # One root cause, one penalty: an open entity scope question (e.g. an affiliated health system) explains
+    # a LinkedIn figure above the certified count, so that gap is linked to it instead of penalized again.
+    scope_flags = [f for f in flags if f.startswith("Complexity:")]
+    explained: list[tuple[str, str]] = []
+    if selected is not None and selected.document_type in policy.recency.latest_release_current \
+            and rules.latest_release_current(selected, lookup_date, policy):
+        due = rules.next_release_due(selected, policy)
+        selected.notes.append(f"Latest release: as of {selected.as_of_date.isoformat()}; treated as current for "
+                              f"recency until the next release is due (around {due.strftime('%B %Y')}).")
     for s in selection.inconsistent:
         s.role = "conflicts"  # a detailed figure out of line with the headline never corroborates it
         s.role_reason = ("A more detailed figure not in line with the headline statement for the same date; "
@@ -217,9 +226,15 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
             elif diff > policy.agreement.conflict_above:
                 s.role = "conflicts"
                 if policy.tier_class(s.tier) in ("primary", "secondary") and not rules.is_stale(s, lookup_date, policy):
-                    flags.append(f"Conflict: tier {s.tier} source ({s.url}) reports {effective[id(s)]:,}, "
-                                 f"{diff:.0%} from the certified value.")
-                    s.role_reason = f"Disagrees with the certified value by {diff:.0%}; flagged as a conflict."
+                    flag = (f"Conflict: tier {s.tier} source ({s.url}) reports {effective[id(s)]:,}, "
+                            f"{diff:.0%} from the certified value.")
+                    if scope_flags and _is_linkedin(s) and effective[id(s)] > value:
+                        explained.append((flag, scope_flags[0]))
+                        s.role_reason = (f"Disagrees by {diff:.0%}, most likely for the same reason as the open scope "
+                                         "question (it counts more of the organization); counted once, there.")
+                    else:
+                        flags.append(flag)
+                        s.role_reason = f"Disagrees with the certified value by {diff:.0%}; flagged as a conflict."
                 else:
                     s.role_reason = (f"Disagrees by {diff:.0%}, but a tier {s.tier} or stale source never lowers "
                                      "confidence; recorded only.")
@@ -234,6 +249,8 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
     if li.status == "flag":
         if linkedin_was_input:
             notes.append(f"LinkedIn check not applied as a penalty because LinkedIn was an input. {li.note}")
+        elif scope_flags and value is not None and (linkedin.member_count or 0) > value:
+            explained.append((f"LinkedIn: {li.note}", scope_flags[0]))
         else:
             flags.append(f"LinkedIn: {li.note}")
 
@@ -257,7 +274,7 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
                                                or bool(selected is not None and selected.predates_change)),
         direction=_direction(selected, value, event_outcomes, sources, effective, lookup_date, policy,
                              growth is not None),
-        scope_notes=scope_notes,
+        scope_notes=scope_notes, explained_flags=explained,
         indicated_range=rules.indicated_range(selected, value, sources, lookup_date, policy) if growth is None else None,
         sources=_explain_unassigned(sources, value), linkedin_check=li, adjustments=adjustments, flags=flags,
         events=event_outcomes,
@@ -320,6 +337,10 @@ def _direction(selected: Source | None, value: int | None, outcomes: list[EventO
                                                     f"{value:,}, {change:+.0%}); no later change is known.")
     return Direction(direction="unknown", reason="No newer evidence to say whether the figure has moved since its "
                                                  "as-of date.")
+
+
+def _is_linkedin(s: Source) -> bool:
+    return s.tier == 5 or "linkedin.com" in s.url.lower()
 
 
 def _short(description: str, limit: int = 90) -> str:

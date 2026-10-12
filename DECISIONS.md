@@ -538,3 +538,37 @@ Allowances, salts and the admin's "today" use America/Los_Angeles. `tzdata` is a
 - **In-memory limits:** the rate limit and the one-at-a-time rule reset on restart. That's fine for one instance; several would need a shared store.
 - **Shared networks:** visitors behind one IP (an office or campus) share an allowance.
 - **UC Davis scoring:** see D73.
+
+## Scoring decisions (2026-10-12, yours)
+
+### D76. The latest IPEDS release counts as current
+- **What:** `recency.latest_release_current` in `policy.yaml` lists lagging official source types with the days from as-of
+  to the next release (IPEDS: 765, so staff as of Nov 1 are superseded about 25 months later), plus a 60-day grace.
+- **While it's the latest release:** no recency penalty, never stale, and it keeps the corroboration bonus. A note and a
+  green finding give the as-of term and when the next release is due. The record's "Next update" uses the same number.
+- **Also:** no growth adjustment for such a source. The live UC Davis rerun showed why: Revelio figures of about
+  20,000–21,000 (likely including UC Davis Health) otherwise moved IPEDS's 15,029 to a 19,000 estimate. The latest
+  release is current, so there's no lag to correct, and that gap belongs to the scope question.
+- **Not applied to Form 990:** you described this as "the same approach as Form 990", but Form 990 has no such allowance
+  today. Donor Network West still takes the recency −1 (513, 3/5). Adding `form_990: <days>` to the list would give it
+  the same treatment; left for you to decide.
+
+### D77. One root cause, one penalty
+- **What:** with an open entity scope question, a LinkedIn figure (company description or member count) *above* the
+  certified figure is attributed to that question. It's recorded in `explained_flags` and shown as a linked finding,
+  "No extra penalty (same cause as F#)". The scope finding keeps the −1 and notes "Related: F#".
+- **Still penalized:** a LinkedIn figure below the certified count, and any LinkedIn gap with no open scope question.
+
+### D78. Health-system "so what"
+The scope flag stays (−1). Its "so what" reads: "The campus figure likely excludes health-system staff, so the
+full-organization count is likely higher; use the campus figure only if that's the organization you mean."
+
+### UC Davis rerun (live, $0.12; $0.14 for the earlier run that exposed the growth issue)
+
+| | Before | After |
+| --- | --- | --- |
+| Count | 15,029 (IPEDS, Fall 2024) | 15,029 (reported) |
+| Score | 1/5 Unverified | **3/5 Supported** |
+| Breakdown | 4 − 1 health system − 1 LinkedIn conflict − 1 recency | **4 − 1 health system** |
+| LinkedIn description 21,000 and 17,847 members | penalized | linked to the health-system finding, no extra penalty |
+| Bottom line | Directional only | Usable. Note the range and the as-of date. |

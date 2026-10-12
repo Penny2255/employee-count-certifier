@@ -5,7 +5,7 @@ from __future__ import annotations
 import calendar
 import math
 import re
-from datetime import date
+from datetime import date, timedelta
 from typing import NamedTuple
 from urllib.parse import urlsplit
 
@@ -23,10 +23,26 @@ def within_months(d: date, lookup_date: date, months: int) -> bool:
     return d >= date(year, month + 1, day)
 
 
+def next_release_due(source: Source, policy: Policy) -> date | None:
+    """When the next release of a lagging official source (e.g. IPEDS) is expected, if it is one."""
+    lag = policy.recency.latest_release_current.get(source.document_type or "")
+    if lag is None or source.as_of_date is None:
+        return None
+    return source.as_of_date + timedelta(days=lag)
+
+
+def latest_release_current(source: Source, lookup_date: date, policy: Policy) -> bool:
+    """The latest available release of a lagging official source counts as current until the next is due."""
+    due = next_release_due(source, policy)
+    return due is not None and lookup_date <= due + timedelta(days=policy.recency.latest_release_grace_days)
+
+
 def is_stale(source: Source, lookup_date: date, policy: Policy) -> bool:
-    """Dated (as-of, else published) and older than the stale window. Undated is never stale."""
+    """Dated (as-of, else published) and older than the stale window. Undated is never stale, and neither
+    is the latest release of a lagging official source."""
     ref = source.recency_date
-    return ref is not None and not within_months(ref, lookup_date, policy.recency.stale_after_months)
+    return (ref is not None and not within_months(ref, lookup_date, policy.recency.stale_after_months)
+            and not latest_release_current(source, lookup_date, policy))
 
 
 def relative_diff(value: int, reference: int) -> float:
@@ -264,6 +280,8 @@ def growth_adjustment(source: Source, value: int, evidence: LinkedInEvidence | N
     rule = policy.growth_adjustment
     if source.tier not in rule.applies_to_tiers or source.basis == "fte":  # FTE is never estimated upward
         return None
+    if latest_release_current(source, lookup_date, policy):  # the latest official release is current: no lag to correct
+        return None
     min_age = rule.min_age_months[policy.tier_class(source.tier)]
     if source.recency_date and within_months(source.recency_date, lookup_date, min_age):
         return None
@@ -357,7 +375,8 @@ def confidence_steps(selected: Source | None, derivation: Derivation | None, cor
     cls = policy.tier_class(selected.tier)
     as_of = selected.as_of_date
     est = " (estimated)" if selected.as_of_estimated else ""
-    recent = as_of is not None and within_months(as_of, lookup_date, months)
+    recent = as_of is not None and (within_months(as_of, lookup_date, months)
+                                    or latest_release_current(selected, lookup_date, policy))
 
     if cls == "primary":
         steps = [ScoreStep(points=4, reason=f"base 4: tier {selected.tier} primary source")]

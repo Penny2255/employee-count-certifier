@@ -49,6 +49,8 @@ class Pricing(BaseModel):
 class Recency(BaseModel):
     certified_max_age_months: int
     stale_after_months: int
+    latest_release_current: dict[str, int] = {}
+    latest_release_grace_days: int = 60
 
 
 class Agreement(BaseModel):

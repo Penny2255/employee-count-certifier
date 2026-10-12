@@ -47,5 +47,5 @@ Stripe was certified at 8,500 with confidence 2; it should have been about 0–1
 - [x] Free cached and sample results; "About N searches left today" (D71)
 - [x] Connector guest sign-in bound to the sign-in IP; admin codes (D72)
 - [x] Logos on confirm, samples and results; trend moved up (D75)
-- [ ] **Decide UC Davis scoring:** IPEDS lag vs recency, health-system flag vs LinkedIn conflict (D73)
+- [x] **UC Davis scoring decided** (D76–D78): 15,029, 3/5 Supported. Open: should Form 990 get the same lag allowance?
 - [ ] **Verify `CERTIFIER_PROXY_HOPS` on Render** using `/admin` → Proxy check

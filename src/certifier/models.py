@@ -190,6 +190,9 @@ class Certification(BaseModel):
     pre_adjustment: bool = False  # a known change took effect after the as-of date (tier 3+ anchors only)
     direction: Direction | None = None
     scope_notes: list[str] = Field(default_factory=list)  # scope remarks that can't change the entity counted
+    # LinkedIn gaps explained by an open scope question: (flag text, the scope flag it shares a cause with).
+    # One root cause, one penalty: the scope flag carries it; these are recorded without one.
+    explained_flags: list[tuple[str, str]] = Field(default_factory=list)
     indicated_range: IndicatedRange | None = None
     sources: list[Source]
     linkedin_check: LinkedInCheck

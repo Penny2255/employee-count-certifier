@@ -239,6 +239,7 @@ def linkedin_check(value: int | None, evidence: LinkedInEvidence | None, policy:
     low = math.ceil(members / (1 + tolerance)) if tolerance > 0 else implied[0]
     pass_range = (min(low, implied[0]), implied[1])
     over = members / value - 1 if value else math.inf
+    gap = over if value < members else (value / pass_range[1] - 1 if value > pass_range[1] else 0.0)
     if pass_range[0] <= value <= pass_range[1]:
         status = "pass"
         note = (f"Pass: LinkedIn shows {members:,} members, {over:.0%} above the certified {value:,}, within the "
@@ -254,7 +255,7 @@ def linkedin_check(value: int | None, evidence: LinkedInEvidence | None, policy:
         side = "below" if value < pass_range[0] else "above"
         note = (f"Flag: certified {value:,} is {side} the range {pass_range[0]:,}-{pass_range[1]:,} implied by "
                 f"{members:,} LinkedIn members for a {profile.replace('_', '-')} workforce.")
-    return LinkedInCheck(**base, implied_range=pass_range, status=status, note=note)
+    return LinkedInCheck(**base, implied_range=pass_range, status=status, note=note, gap=round(gap, 3))
 
 
 # --- Growth adjustment -------------------------------------------------------

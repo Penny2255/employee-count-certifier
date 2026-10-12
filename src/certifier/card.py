@@ -234,7 +234,12 @@ CARD_CSS = r"""
 .cert .crm-lbl svg { width: 15px; height: 15px; }
 .cert .crm-inline input { width: 118px; font: inherit; font-size: 14px; padding: 5px 9px; border-radius: 8px; border: 1px solid var(--line);
   background: var(--card); color: var(--text); }
-.cert .crm-inline button { padding: 5px 12px; font-size: 13px; }
+.cert .crm-inline .crm-go { padding: 6px 14px; font-size: 13.5px; font-weight: 700; border-radius: 8px; border: 0; cursor: pointer;
+  background: var(--accent); color: var(--card); box-shadow: 0 1px 2px rgba(10, 37, 69, .25); }
+.cert .crm-inline .crm-go:hover { filter: brightness(1.1); }
+.cert .crm-inline .crm-go:focus-visible { outline: 2px solid var(--loop-green); outline-offset: 2px; }
+.cert .trust .breakdown { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
+.cert .trust .breakdown > summary { color: var(--accent); font-size: 14px; font-weight: 600; cursor: pointer; }
 .cert .crm-out:empty { display: none; }
 .cert .crm-out { margin-top: 8px; }
 .cert .crm-verdict { margin: 0; padding: 8px 12px; border-radius: 10px; font-size: 13.5px; }
@@ -244,6 +249,8 @@ CARD_CSS = r"""
 .cert .crm-verdict.light { background: var(--soft); color: var(--text); }
 .cert .crm-copy { font-weight: 700; text-decoration: underline; color: inherit; padding: 0; font-size: inherit; background: none; border: 0; }
 .cert .crm-see { opacity: .8; }
+.cert .chart .pt-faint { opacity: .55; font-weight: 600; font-size: 11.5px; }
+.cert .chart .pt-cert { font-size: 10.5px; font-weight: 800; letter-spacing: .08em; fill: var(--green); }
 .cert .chart .gap-label { font-size: 11px; fill: var(--muted); font-style: italic; }
 .cert .chart .ov-label { font-size: 11.5px; font-weight: 700; }
 .cert .legend .lg.gap { width: auto; height: auto; border: 0; background: none; color: var(--muted); font-style: normal; font-weight: 700; font-size: 11px; }
@@ -626,17 +633,10 @@ CARD_JS = r"""
     ]);
 
     var crm = h.count != null ? crmCheck(r) : null;
-    var table = el("table", { cls: "lines" });
-    c.breakdown.forEach(function (line) {
-      table.appendChild(el("tr", null, [el("td", { cls: "pts", text: (line.points > 0 && line !== c.breakdown[0] ? "+" : "") + line.points }),
-        el("td", null, [line.rationale + " ", chip(line.finding_id, k + "-")])]));
-    });
-    table.appendChild(el("tr", { cls: "total" }, [el("td", { cls: "pts", text: String(c.score) }), el("td", { text: "= " + c.arithmetic })]));
     return el("div", { cls: "block answer " + b }, [
       el("div", { cls: "hero-row" }, [hero, seal(c)]),
       bottom, facts,
-      el("div", { cls: "row answer-actions" }, [downloadMenu(r, opts), crm ? crm.form : null,
-        el("details", { cls: "breakdown" }, [el("summary", null, [el("span", { text: "How the score adds up" })]), table])]),
+      el("div", { cls: "row answer-actions" }, [downloadMenu(r, opts), crm ? crm.form : null]),
       crm ? crm.out : null]);
   }
 
@@ -653,6 +653,14 @@ CARD_JS = r"""
       b.addEventListener("click", function () { jump(target); });
       return b;
     }
+    var c = r.confidence, table = el("table", { cls: "lines" });
+    c.breakdown.forEach(function (line) {
+      table.appendChild(el("tr", null, [el("td", { cls: "pts", text: (line.points > 0 && line !== c.breakdown[0] ? "+" : "") + line.points }),
+        el("td", null, [line.rationale + " ", chip(line.finding_id, k + "-")])]));
+    });
+    table.appendChild(el("tr", { cls: "total" }, [el("td", { cls: "pts", text: String(c.score) }), el("td", { text: "= " + c.arithmetic })]));
+    var breakdown = el("details", { cls: "breakdown" }, [el("summary", null, [el("span", { text: "How the score adds up" }),
+      el("span", { cls: "muted small", text: " · " + c.score + "/5 = " + c.arithmetic })]), table]);
     return el("div", { cls: "block trust", role: "group", "aria-label": "Why you can trust this" }, [
       el("div", { cls: "block-title" }, [icon("trust"), el("h2", { text: "Why you can trust this" })]),
       el("div", { cls: "trust-strip" }, [
@@ -660,13 +668,19 @@ CARD_JS = r"""
         item("As of", h.as_of_date ? h.as_of_date + (h.as_of_estimated ? " (est.)" : "") : "undated", k + "-key", "", "◷"),
         item("Independent confirmations", String(corr.length), corrFinding ? k + "-" + corrFinding.id : k + "-sources", corr.length ? "good" : "", "⇄"),
         item("Adjustments to the count", String(adj), k + "-adjustments", "", "±"),
-        item("Needs attention", String(attention), k + "-findings", attention ? "bad" : "good", attention ? "⚑" : "✓")])]);
+        item("Needs attention", String(attention), k + "-findings", attention ? "bad" : "good", attention ? "⚑" : "✓")]),
+      breakdown]);
   }
 
   // Trend and forecast. The chart always spans five reported years and four forecast years: a year with no
   // reported figure is an ✕ on a dotted line, so every chart reads the same. A CRM comparison adds the
   // recommended range (a soft band) and the CRM's number (an orange dashed line).
   var HISTORY_YEARS = 5, FORECAST_YEARS = 4, CRM_COLOR = "#E8833A";
+  // Forecast labels are rounded to a step that suits the size: 10s, 25s, 100s, and 1,000s only for the largest.
+  function roundForecast(v) {
+    var step = v < 2000 ? 10 : v < 20000 ? 25 : v < 500000 ? 100 : 1000;
+    return Math.round(v / step) * step;
+  }
   function yearDate(year, md) { return year + (md === "-02-29" ? "-02-28" : md); }
   function chart(r, overlay) {
     var h = r.headline, items = r.trend.items.slice(), ir = h.indicated_current_range;
@@ -819,17 +833,22 @@ CARD_JS = r"""
     var finalForecast = future.length ? future[future.length - 1] : null;
     items.forEach(function (p, i) {
       var cx = X(t(p.as_of_date)), cy = Y(p.value), isLast = p === last;
-      if (isLast) add("circle", { cx: cx, cy: cy, r: 11, fill: "var(--loop-green)", "fill-opacity": .22 });
+      if (isLast) {  // the certified figure: a soft halo and a guide down to its as-of date
+        add("line", { x1: cx, x2: cx, y1: cy + 12, y2: H - B, stroke: "var(--loop-green)", "stroke-width": 1.5, "stroke-dasharray": "2 4", "class": "cert-guide" });
+        add("circle", { cx: cx, cy: cy, r: 11, fill: "var(--loop-green)", "fill-opacity": .22 });
+      }
       add("circle", { cx: cx, cy: cy, r: isLast ? 6.5 : (p.estimated ? 4 : 5), fill: p.estimated ? "var(--card)" : "var(--meter)", stroke: isLast ? "var(--loop-green)" : "var(--meter)", "stroke-width": isLast ? 3 : 2.5 });
       // Values only on the chart; the certified point and the forecast range are named in the legend. The
       // forecast label sits below its point so it never collides with the certified label above.
-      var below = !!p.estimated;
-      if (p.estimated && p !== finalForecast) return;  // only the final forecast year is labelled
+      var below = p === finalForecast;  // the final forecast below its point; the faint yearly ones above
+      if (W < 480 && p.estimated && p !== finalForecast) return;  // phones: only the final forecast year
       if (W < 480 && !p.estimated && !isLast && i !== 0) return;  // phones: first, certified and final forecast only
       var first = i === 0 && !gaps.some(function (g) { return g.kind === "history" && t(g.as_of_date) < t(p.as_of_date); });
       add("text", { x: cx, y: below ? cy + 20 : cy - (isLast ? 16 : 11),
         "text-anchor": first && items.length > 1 ? "start" : (i === items.length - 1 && !gaps.some(function (g) { return g.kind === "forecast"; }) ? "end" : "middle"),
-        "class": "pt-label" + (isLast ? " pt-key" : "") + (p.estimated ? " pt-est" : "") }, num(p.value));
+        "class": "pt-label" + (isLast ? " pt-key" : "") + (p.estimated ? " pt-est" + (p === finalForecast ? "" : " pt-faint") : "") },
+        p.estimated ? "≈" + num(roundForecast(p.value)) : num(p.value));
+      if (isLast) add("text", { x: cx, y: cy - 34 < T - 8 ? cy + 28 : cy - 34, "text-anchor": first && items.length > 1 ? "start" : "middle", "class": "pt-cert" }, "✓ CERTIFIED");
     });
     return svgEl;
   }
@@ -858,8 +877,8 @@ CARD_JS = r"""
     var h = r.headline, fcs = r.trend.items.filter(function (p) { return p.estimated; }), fc = fcs[fcs.length - 1];
     return el("div", { cls: "legend small muted" }, [el("span", null, [el("i", { cls: "lg solid" }), "Reported"]),
       el("span", null, [el("i", { cls: "lg key" }), "Certified figure"]),
-      fc ? el("span", null, [el("i", { cls: "lg hollow" }), "Forecast " + (fcs.length > 1 ? "to " : "") + fc.as_of_date.slice(0, 4) + ": " + num(fc.value) +
-        (fc.low != null ? " (range " + num(fc.low) + "–" + num(fc.high) + ")" : "")]) : null,
+      fc ? el("span", null, [el("i", { cls: "lg hollow" }), "Forecast " + (fcs.length > 1 ? "to " : "") + fc.as_of_date.slice(0, 4) + ": ≈" + num(roundForecast(fc.value)) +
+        (fc.low != null ? " (range " + num(roundForecast(fc.low)) + "–" + num(roundForecast(fc.high)) + ")" : "")]) : null,
       svgEl.__gaps ? el("span", null, [el("i", { cls: "lg gap", text: "✕" }), "No reported figure"]) : null,
       h.indicated_current_range ? el("span", null, [el("i", { cls: "lg box" }), "Indicated current range (context only)"]) : null,
       overlay ? el("span", null, [el("i", { cls: "lg range" }), "Recommended range " + num(overlay.lo) + "–" + num(overlay.hi)]) : null,
@@ -1007,7 +1026,7 @@ CARD_JS = r"""
   function crmCheck(r) {
     var k = r.__k, input = el("input", { type: "text", inputmode: "numeric", autocomplete: "off", id: k + "-crm-input",
       placeholder: "e.g. 95,000", "aria-label": "Your CRM employee count" });
-    var go = el("button", { type: "submit", cls: "secondary", text: "Compare" }), out = el("div", { cls: "crm-out", "aria-live": "polite" });
+    var go = el("button", { type: "submit", cls: "crm-go", text: "Compare →" }), out = el("div", { cls: "crm-out", "aria-live": "polite" });
     var form = el("form", { cls: "crm-inline", id: k + "-crm" }, [el("label", { "for": k + "-crm-input", cls: "crm-lbl" }, [icon("compare"), "Compare with your CRM"]), input, go]);
     form.addEventListener("submit", function (e) {
       e.preventDefault();
@@ -1155,7 +1174,7 @@ CARD_JS = r"""
     return records;
   }
 
-  window.GTMCard = { render: render, toRecords: toRecords, crmAdvice: crmAdvice, parseCount: parseCount };
+  window.GTMCard = { render: render, toRecords: toRecords, crmAdvice: crmAdvice, parseCount: parseCount, roundForecast: roundForecast };
 })();
 """
 

@@ -244,26 +244,18 @@ def deck(record: dict, theme: str = "light") -> bytes:
     for i in range(5):  # the confidence meter, as on the card
         rect(s, 0.92 + i * 0.4, 3.75, 0.32, 0.12, "brand_green" if i < c["score"] else "line", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.5)
     text(s, 3.0, 3.66, 2.9, 0.3, f"{c['score']}/5 · {c['level']}", 11, bold=True)
-    stamp = s.shapes.add_shape(MSO_SHAPE.OVAL, Inches(6.05), Inches(2.42), Inches(1.6), Inches(1.6))
-    stamp.fill.solid()
-    stamp.fill.fore_color.rgb = rgb(tone + "_bg")
-    stamp.line.color.rgb, stamp.line.width, stamp.rotation = rgb(tone), Pt(3), -8
-    stamp.shadow.inherit = False
-    frame(stamp, [(0, [("CERTIFIED" if band != "directional" else c["level"].split(",")[0].upper(), 10, True, tone, False, None)]),
-                  (0, [(f"{c['score']}/5", 24, True, tone, False, None)])], anchor=MSO_ANCHOR.MIDDLE, margin=0.05)
-    for para in stamp.text_frame.paragraphs:
-        para.alignment = PP_ALIGN.CENTER
+    _seal(s, 5.98, 2.3, 1.78, c["score"], t)
     bl = rect(s, 0.55, 4.35, 7.3, 0.62, tone + "_bg", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.18)
     frame(bl, [(0, [({"ready": "✓  ", "usable": "!  ", "directional": "✕  "}[band], 14, True, tone, False, None),
                     ("Bottom line: ", 14, True, tone, False, None), (h.get("bottom_line") or "", 14, False, tone, False, None)])],
           anchor=MSO_ANCHOR.MIDDLE)
-    ks = rect(s, 0.55, 5.15, 7.3, 1.6, "soft", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.08)
+    ks = rect(s, 0.55, 5.1, 7.3, 1.72, "soft", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.06)
     if p.get("source_id"):
         loc = p.get("location") or {}
         paras = [(0, [("KEY SOURCE", 9, True, "muted", False, None)]),
                  (2, [(_source_label(p), 13, True, "text", False, None)])]
         if p.get("excerpt"):
-            paras.append((4, [("“" + _short(p["excerpt"], h.get("count"), 150) + "”", 11, False, "text", True, None)]))
+            paras.append((4, [("“" + _excerpt(p["excerpt"], h.get("count")) + "”", 11, False, "text", True, None)]))
         paras.append((4, [("Open the source at the quote ↗", 10.5, True, "accent", False, loc.get("deep_link") or p["url"]),
                           (("  ·  " + _line_in_source(p)) if _line_in_source(p) else "", 10, False, "muted", False, None)]))
         frame(ks, paras)
@@ -311,8 +303,8 @@ def deck(record: dict, theme: str = "light") -> bytes:
         years = int(last["as_of_date"][:4]) - int(first["as_of_date"][:4])
         change = (last["value"] - first["value"]) / first["value"] if first["value"] and years else None
         stats = [("CERTIFIED", _num(last["value"]), "as of " + last["as_of_date"], "brand_green"),
-                 (f"FORECAST {f['as_of_date'][:4]}" if f else "FORECAST", _num(f["value"]) if f else "No forecast",
-                  f"range {_num(f['low'])}–{_num(f['high'])}" if f else "needs 3 reported years", "blue"),
+                 (f"FORECAST {f['as_of_date'][:4]}" if f else "FORECAST", "≈" + _num(round_forecast(f["value"])) if f else "No forecast",
+                  f"range {_num(round_forecast(f['low']))}–{_num(round_forecast(f['high']))}" if f else "needs 3 reported years", "blue"),
                  (f"CHANGE OVER {years} YEAR{'S' if years != 1 else ''}" if change is not None else "CHANGE",
                   f"{change:+.1%}" if change is not None else "–",
                   f"{_num(first['value'])} → {_num(last['value'])}" if change is not None else "one reported year", "accent")]
@@ -408,6 +400,86 @@ def deck(record: dict, theme: str = "light") -> bytes:
     return out.getvalue()
 
 
+def round_forecast(value) -> int:
+    """Forecasts are estimates: round them to a step that suits their size (10s, 25s, 100s; 1,000s only when large)."""
+    step = 10 if value < 2_000 else 25 if value < 20_000 else 100 if value < 500_000 else 1_000
+    return int(round(value / step) * step)
+
+
+def _excerpt(text: str, count, limit: int = 300) -> str:
+    """The exact excerpt; when it's long, a verbatim window around the figure that keeps its "as of" phrase."""
+    text = " ".join((text or "").split())
+    if len(text) <= limit:
+        return text
+    i = text.find(_num(count)) if count is not None else -1
+    i = i if i >= 0 else 0
+    a = max(0, i - 140)
+    as_of = max(text.lower().rfind("as of", 0, i + 1), text.lower().rfind("as at", 0, i + 1))
+    if as_of >= 0 and i - as_of < 220:
+        a = min(a, as_of)
+    b = min(len(text), a + limit)
+    return ("…" if a else "") + text[a:b].strip() + ("…" if b < len(text) else "")
+
+
+# Seal grades by confidence score: (grade, gradient from, gradient to, ink).
+GRADES = {5: ("PLATINUM", "3FCF8E", "599AF5", "17794A"), 4: ("GOLD", "F7D774", "D99A1E", "8A5A00"),
+          3: ("SILVER", "DDE4EE", "9AA8BC", "4B5D75"), 2: ("BRONZE", "E8B48A", "A86A3D", "6E3F1C"),
+          1: ("PROVISIONAL", "F4B4AC", "C2463A", "8E1F14"), 0: ("NOT CERTIFIED", "C9D1DC", "8A97A8", "4B5D75")}
+
+
+def _seal(s, x: float, y: float, size: float, score: int, t: dict) -> None:
+    """A certification seal: a scalloped rosette in the grade's colours, an inner ring, and
+    "GTM Data Certifier · stars · score · grade · Hyperloop grade" set inside. Tilted slightly, like a stamp."""
+    grade, c1, c2, ink = GRADES.get(score, GRADES[0])
+    if t["bg"] < "8":  # dark theme: lighter ink reads better on the dark centre
+        ink = {"PLATINUM": "6FE0A8", "GOLD": "F2C35B", "SILVER": "C9D3E0", "BRONZE": "E8B48A",
+               "PROVISIONAL": "FF9A90", "NOT CERTIFIED": "A7B8CF"}[grade]
+    tilt = -8
+
+    def grad(shape, angle=45):
+        shape.fill.gradient()
+        shape.fill.gradient_angle = angle
+        stops = shape.fill.gradient_stops
+        stops[0].color.rgb, stops[1].color.rgb = RGBColor.from_string(c1), RGBColor.from_string(c2)
+        shape.line.fill.background()
+        shape.shadow.inherit = False
+
+    rosette = s.shapes.add_shape(MSO_SHAPE.STAR_32_POINT, Inches(x), Inches(y), Inches(size), Inches(size))
+    rosette.adjustments[0] = 0.44
+    rosette.rotation = tilt
+    grad(rosette)
+    inset = size * 0.12
+    centre = s.shapes.add_shape(MSO_SHAPE.OVAL, Inches(x + inset), Inches(y + inset), Inches(size - 2 * inset),
+                                Inches(size - 2 * inset))
+    centre.fill.solid()
+    centre.fill.fore_color.rgb = RGBColor.from_string(t["card"])
+    centre.line.color.rgb, centre.line.width = RGBColor.from_string(c2), Pt(2.25)
+    centre.shadow.inherit = False
+    inner = size * 0.19
+    ring = s.shapes.add_shape(MSO_SHAPE.OVAL, Inches(x + inner), Inches(y + inner), Inches(size - 2 * inner),
+                              Inches(size - 2 * inner))
+    ring.fill.background()
+    ring.line.color.rgb, ring.line.width, ring.line.dash_style = RGBColor.from_string(ink), Pt(0.75), MSO_LINE_DASH_STYLE.ROUND_DOT
+    ring.shadow.inherit = False
+    box = s.shapes.add_textbox(Inches(x + inner), Inches(y + inner), Inches(size - 2 * inner), Inches(size - 2 * inner))
+    box.rotation = tilt
+    tf = box.text_frame
+    tf.word_wrap = True
+    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = 0
+    lines = [("GTM DATA CERTIFIER", 6, True, ink), ("★" * score + "☆" * (5 - score), 9, False, ink),
+             (f"{score}/5", 22, True, t["text"]), (grade, 8.5, True, ink), ("HYPERLOOP GRADE", 5.5, True, t["muted"])]
+    for n, (value, size_pt, bold, color) in enumerate(lines):
+        para = tf.paragraphs[0] if n == 0 else tf.add_paragraph()
+        para.alignment = PP_ALIGN.CENTER
+        para.space_before = Pt(0)
+        para.line_spacing = 0.95
+        run = para.add_run()
+        run.text = value
+        run.font.size, run.font.bold, run.font.name = Pt(size_pt), bold, "Segoe UI"
+        run.font.color.rgb = RGBColor.from_string(color)
+
+
 def _clip(value: str, limit: int) -> str:
     value = " ".join((value or "").split())
     return value if len(value) <= limit else value[: limit - 1].rsplit(" ", 1)[0].rstrip(",;:") + "…"
@@ -500,16 +572,25 @@ def _trend_chart(s, reported: list[dict], forecast: list[dict], t: dict, x, y, w
             marker.format.fill.fore_color.rgb = rgb("blue" if reported_series else "card")
             marker.format.line.color.rgb = rgb("blue")
             for i, yr in enumerate(years):
-                label_it = (reported_series and yr in rep) or (not reported_series and i == final)
+                label_it = (reported_series and yr in rep) or (not reported_series and yr in fc)
                 if not label_it:
                     continue
                 dl = series.points[i].data_label
                 dl.position = XL_LABEL_POSITION.ABOVE if reported_series else XL_LABEL_POSITION.BELOW
                 tf = dl.text_frame
-                tf.text = _num(rep[yr] if reported_series else fc[yr]["value"])
+                if reported_series and yr == ly:  # the certified figure, named
+                    tf.text = "✓ CERTIFIED"
+                    head = tf.paragraphs[0].runs[0]
+                    head.font.size, head.font.bold, head.font.color.rgb = Pt(8.5), True, rgb("green")
+                    para = tf.add_paragraph()
+                    run = para.add_run()
+                    run.text = _num(rep[yr])
+                    run.font.size, run.font.bold, run.font.color.rgb = Pt(13), True, rgb("green")
+                    continue
+                tf.text = _num(rep[yr]) if reported_series else "≈" + _num(round_forecast(fc[yr]["value"]))
                 run = tf.paragraphs[0].runs[0]
-                run.font.size, run.font.bold = Pt(11 if yr != ly else 12.5), reported_series
-                run.font.color.rgb = rgb("green" if yr == ly else "text" if reported_series else "muted")
+                run.font.size, run.font.bold = Pt(11 if reported_series else 10), reported_series
+                run.font.color.rgb = rgb("text" if reported_series else "muted")
             if reported_series and ly in rep:  # the certified point: a green ring
                 pt = series.points[years.index(ly)]
                 pt.marker.size = 12

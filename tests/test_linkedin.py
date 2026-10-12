@@ -1,4 +1,5 @@
 # © 2026 Matthew Beltrano. All rights reserved. Proprietary and confidential. Not open source. See LICENSE.
+from datetime import date
 from certifier import LinkedInEvidence, certify
 from certifier.rules import implied_headcount, linkedin_check
 
@@ -29,14 +30,34 @@ def test_pass_inside_implied_range(policy):
     assert check.status == "pass"
 
 
-def test_below_member_count_is_flag_not_floor(entity):
-    li = LinkedInEvidence(member_count=12_000, workforce_profile="white_collar")
+def test_members_within_the_allowance_pass(entity):
+    li = LinkedInEvidence(member_count=12_000, workforce_profile="white_collar")  # 20% above: lingering profiles
     cert = certify(entity, [src(1, 10_000)], linkedin=li, lookup_date=LOOKUP)
+    assert cert.linkedin_check.status == "pass" and not cert.flags
+
+
+def test_a_large_gap_against_an_older_source_is_flagged_not_floored(entity):
+    li = LinkedInEvidence(member_count=25_000, workforce_profile="white_collar")  # 150% above
+    cert = certify(entity, [src(1, 10_000, as_of=date(2024, 1, 31))], linkedin=li, lookup_date=LOOKUP)
     assert cert.certified_count == 10_000          # value is kept, not raised to the member count
-    assert cert.linkedin_check.status == "flag"
-    assert "20% above the certified 10,000; more than the 15% tolerance" in cert.linkedin_check.note
-    assert cert.confidence_score == 3              # Certified (4) lowered one level
+    assert cert.linkedin_check.status == "flag" and cert.linkedin_check.not_penalized is None
+    assert "150% above the certified 10,000; more than the 30% tolerance" in cert.linkedin_check.note
     assert any(f.startswith("LinkedIn") for f in cert.flags)
+    assert cert.confidence_score == 2              # 4, -1 recency, -1 LinkedIn
+
+
+def test_a_current_filing_is_not_overruled_by_linkedin(entity):
+    li = LinkedInEvidence(member_count=25_000, workforce_profile="white_collar")
+    cert = certify(entity, [src(1, 10_000)], linkedin=li, lookup_date=LOOKUP)
+    assert cert.linkedin_check.status == "flag" and "current tier 1 filing" in cert.linkedin_check.not_penalized
+    assert not cert.flags and cert.confidence_score == 4
+
+
+def test_a_moderate_gap_is_worth_knowing_without_a_penalty(entity):
+    li = LinkedInEvidence(member_count=16_000, workforce_profile="white_collar")  # 60% above, under the 100% gap
+    cert = certify(entity, [src(4, 10_000, as_of=None)], linkedin=li, lookup_date=LOOKUP)
+    assert cert.linkedin_check.status == "flag" and "under the 100%" in cert.linkedin_check.not_penalized
+    assert not any(f.startswith("LinkedIn") for f in cert.flags)
 
 
 def test_above_implied_range_is_flag(policy):

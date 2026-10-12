@@ -38,7 +38,7 @@ def test_linkedin_within_tolerance_after_adjustment(entity):
 
 
 def test_linkedin_flag_not_penalized_when_linkedin_was_an_input(entity):
-    far = GROWING.model_copy(update={"member_count": 5_000})  # adjusts to 4,100; members 22% above
+    far = GROWING.model_copy(update={"member_count": 50_000})  # adjusts to 38,000; members 32% above
     cert = run(entity, src(4, 1_500, as_of=None), far)
     assert cert.linkedin_check.status == "flag"
     assert cert.flags == []

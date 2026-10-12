@@ -110,6 +110,8 @@ class LinkedInCheck(BaseModel):
     size_range_agrees: bool | None
     status: LinkedInStatus
     note: str
+    gap: float | None = None            # how far apart, as a fraction (0.5 = 50%)
+    not_penalized: str | None = None    # why a flag didn't lower confidence, when it didn't
 
 
 class Event(BaseModel):

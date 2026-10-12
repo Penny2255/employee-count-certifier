@@ -79,6 +79,7 @@ class LinkedInPolicy(BaseModel):
     default_profile: str
     profiles: dict[str, LinkedInProfile]
     member_overage_tolerance: dict[str, float] = {}
+    penalty_gap: float = 1.0
 
 
 class GrowthAdjustment(BaseModel):

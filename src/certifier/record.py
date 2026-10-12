@@ -625,6 +625,10 @@ def _build_findings(cert: Certification, policy: Policy, ids: dict[int, str], by
                              f"{_sentence(li.note.removeprefix('Pass: '))} The member count is a sanity check, never "
                              "a floor. No action was needed.",
                              group="background", so_what="No action needed; LinkedIn agrees with the figure")
+    elif li.status == "flag" and li.not_penalized:
+        li_id = findings.add("linkedin", "yellow", "LinkedIn member count differs; not penalized",
+                             f"{_sentence(li.note.removeprefix('Flag: '))} {_sentence(li.not_penalized)}",
+                             group="worth_knowing", so_what="No action needed; worth a look if the gap matters to you")
     elif li.status == "flag":
         li_id = findings.add("linkedin", "yellow", "LinkedIn differs, but LinkedIn was used to estimate the figure",
                              f"{_sentence(li.note.removeprefix('Flag: '))} LinkedIn data was already used to estimate "

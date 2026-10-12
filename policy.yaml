@@ -163,9 +163,13 @@ linkedin:
   # Members may exceed the certified count by this much and still pass (profiles of former
   # employees and contractors linger). The member count is a flag, never a floor.
   member_overage_tolerance:
-    white_collar: 0.15
-    mixed: 0.0
-    blue_collar: 0.0
+    white_collar: 0.30
+    mixed: 0.25
+    blue_collar: 0.25
+  # A LinkedIn flag lowers confidence only when the gap is at least this large (members at least double the
+  # certified count, or the count at least double the range the members imply) and the key source isn't a
+  # current tier 1-2 filing. Smaller gaps, or a current filing, are reported as worth knowing with no penalty.
+  penalty_gap: 1.0
   profiles:
     white_collar: {members_per_employee: [0.90, 0.95]}
     mixed: {members_per_employee: [0.50, 0.90]}

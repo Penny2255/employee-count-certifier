@@ -802,3 +802,38 @@ The record's entity carries `address` and `address_source`, shown as **HQ addres
 - The list is PowerPoint, CSV, JSON, Copy for CRM, then the Word document greyed out ("coming soon").
 - PowerPoint opens a second step with light and dark slide previews, preselecting the theme you're viewing; CSV opens
   Summary (the default) or Sources. Each has Back and Download. Closing the menu returns it to the list.
+
+### D104. Read careers pages; "team members" means employees (the Mortenson case)
+- **What happened:** mortenson.com/careers states "10,000+ team members", but the website reader only tried the
+  homepage and a few /about paths, so the figure was derived from data providers (about 6,761, 2/5).
+- **Fix:** the reader also tries /careers and /who-we-are and follows the homepage's own links to About, Careers,
+  Company, Facts and similar pages (up to 10 pages, fetched in parallel). A "10,000+" tile keeps its plus ("more
+  than"), and a label is never paired with the next tile's number. Extraction is told that "team members",
+  "teammates", "associates" and similar words on careers, about, company and fact-sheet pages and in the LinkedIn
+  description mean employees, as a whole-organization figure.
+- **Labels:** careers pages get their own source type, "Website: Careers Page" (tier 4), even when extraction labels
+  the page generically.
+- **Result (live):** more than 10,000 from the careers page, 2/5 (tier 4, undated); the data providers' 6,000-7,200
+  are recorded as supporting.
+
+### D105. Always a chart and a forecast, even with a short history
+- With no dated figures of the same kind, the certified figure is still charted (at its as-of date, or at the
+  certification date when the source is undated, and labelled so), with the missing years shown as ✕.
+- With fewer than three reported points the forecast is a best guess: half of LinkedIn's yearly headcount growth when
+  research finds it (LinkedIn over-represents office staff, so only half carries over), else half the change between
+  two reported figures, else level. The range starts at ±8% and widens each year, capped at ±15% a year of change,
+  and is always marked as an estimate. Research is asked to look for LinkedIn's 6m/1y/2y growth and to treat
+  construction, manufacturing and similar field workforces as blue-collar (a low member count is expected).
+- Forecast labels sit on the open side of the line: rising, the yearly labels below and the final above; falling, the
+  reverse.
+
+### D106. Context for private companies
+- When no tier 1-2 source exists (no annual report, regulatory filing, Form 990 or IPEDS), the organization is treated
+  as private. At 3/5 the card and deck say it's a strong result for a private company; at 4-5/5 they celebrate it as
+  rare (a sparkle and a short burst of confetti on the card, which respects reduced motion). Public filers,
+  nonprofits and universities get no such note.
+
+### D107. A quieter home page
+- One line under the title, in blue: "Certified answers · giving you transparency & trust to take real action" (the
+  "Deep sweeps" line is gone). The "soon" metrics are fainter, admins no longer see "Admin · no limits", sample cards
+  keep the name to one line (trimmed, full name on hover) so every card is two lines, and the footer is three lines.

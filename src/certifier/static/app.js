@@ -116,7 +116,7 @@
   function showAllowance(d) {
     var n = $("allowance");
     if (!d) { n.textContent = ""; return; }
-    if (d.admin) n.textContent = "Admin · no limits";
+    if (d.admin) n.textContent = "";
     else if (d.searches_left > 0) n.textContent = "About " + d.searches_left + " search" + (d.searches_left === 1 ? "" : "es") + " left today · cached and sample results are free";
     else n.textContent = (d.message || "You've reached today's beta limit. Back tomorrow.") + " Cached and sample results still work.";
   }
@@ -135,7 +135,7 @@
       d.samples.forEach(function (s) {
         var b = el("button", { type: "button", cls: "sample-card" }, [
           logo({ name: s.name, logo_url: logoUrl(s.website) }),
-          el("span", { cls: "sc-text" }, [el("span", { cls: "sc-name", text: s.name }),
+          el("span", { cls: "sc-text" }, [el("span", { cls: "sc-name", text: s.name, title: s.name }),
             el("span", { cls: "sc-meta", text: (s.count == null ? "not certified" : num(s.count)) + " employees" })]),
           el("span", { cls: "sc-score s" + s.score, text: s.score + "/5" })]);
         b.addEventListener("click", function () { openSample(s.slug); });

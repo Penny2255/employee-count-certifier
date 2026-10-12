@@ -72,8 +72,12 @@ types:
     The company's own About, Company or similar page. The company controls the wording, but these
     pages are rarely dated and can stay unchanged for years, so the figure may be out of date. It
     ranks Tier 4.
+  "Website: Careers Page": >-
+    The company's own careers or jobs page, where companies often state their size to recruits ("10,000+
+    team members"). "Team members", "teammates" and similar words there mean employees. Usually undated and
+    often rounded, so it ranks Tier 4.
   "Website: Other Page": >-
-    Another page on the company's own website, such as a careers or locations page. It comes from the
+    Another page on the company's own website, such as a locations or news page. It comes from the
     company but is less prominent and less maintained than the About page, and usually undated, so it
     ranks Tier 4 with less weight.
   "LinkedIn: Company Description": >-

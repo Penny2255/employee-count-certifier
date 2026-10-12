@@ -123,6 +123,11 @@ growth_adjustment:
 # Guidance for the research step (build step 3). Grows with reviewed cases in examples/.
 research_guidelines:
   - >-
+    Look for LinkedIn headcount growth (the Insights "6m / 1y / 2y growth" figures), often quoted in search
+    results or third-party pages, and record it in linkedin.growth_6m, growth_1y and growth_2y. It feeds the
+    forecast when history is short. Construction, manufacturing, retail, healthcare delivery and similar
+    field workforces are blue_collar: most of their people aren't on LinkedIn, so a low member count is expected.
+  - >-
     For tier 1, find both the regulatory filing (10-K, 20-F, 40-F) and the company's full annual
     or integrated report. The filing often rounds ("more than 110,000") while the full report has
     a detailed statement or table with the exact figure (SAP: 112,234).

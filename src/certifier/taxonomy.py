@@ -31,7 +31,7 @@ DOCUMENT_TYPES = {
     "fact_sheet": "Corporate Fact Sheet", "form_990": "IRS Form 990", "ipeds": "IPEDS Filing",
     "non_financial_report": "Non-Financial Annual Report", "press_release": "Press Release",
     "company_document": "Company Document", "website_about": "Website: About Us",
-    "website_other": "Website: Other Page", "linkedin_description": "LinkedIn: Company Description",
+    "website_other": "Website: Other Page", "website_careers": "Website: Careers Page", "linkedin_description": "LinkedIn: Company Description",
     "news": "News: {p}", "data_provider": "Data Provider: {p}", "other": "Web Page: {p}",
 }
 _CATEGORY = {
@@ -40,7 +40,7 @@ _CATEGORY = {
     "fact_sheet": "Official Company Report", "form_990": "Official Company Report", "ipeds": "Official Company Report",
     "non_financial_report": "Official Company Report",
     "press_release": "Company Publication", "company_document": "Company Publication",
-    "website_about": "Company Website", "website_other": "Company Website",
+    "website_about": "Company Website", "website_other": "Company Website", "website_careers": "Company Website",
     "linkedin_description": "Company Social Profile",
 }
 
@@ -60,6 +60,10 @@ PUBLISHERS = {
 MEDIA_HOSTS = {"reuters.com", "bloomberg.com", "ft.com", "wsj.com", "nytimes.com", "cnbc.com", "techcrunch.com",
                "forbes.com", "businessinsider.com", "theinformation.com", "axios.com", "yahoo.com", "paymentsdive.com",
                "marketwatch.com", "fortune.com", "sfchronicle.com", "bizjournals.com"}
+def _careers(path: str) -> bool:
+    return any(w in path for w in ("career", "jobs", "join-us", "working-at", "life-at"))
+
+
 _ABOUT = ("about", "company", "who-we-are", "our-story", "facts", "overview")
 
 
@@ -96,6 +100,8 @@ def infer_document_type(s: Source) -> str:
     if s.tier == 3:
         return "press_release" if any(w in url for w in ("press", "release", "newsroom", "/news/")) else "company_document"
     if s.tier == 4:
+        if _careers(path):
+            return "website_careers"
         return "website_about" if not path or any(w in path for w in _ABOUT) else "website_other"
     if s.tier == 5:
         return "linkedin_description"
@@ -111,6 +117,8 @@ def infer_document_type(s: Source) -> str:
 def classify(s: Source) -> tuple[str, str]:
     """(source_category, source_type) for one source."""
     kind = s.document_type if s.document_type in DOCUMENT_TYPES else infer_document_type(s)
+    if kind in ("website_about", "website_other") and _careers(urlsplit(s.url).path.lower()):
+        kind = "website_careers"  # a careers page, however extraction labelled it
     label = DOCUMENT_TYPES[kind].format(p=publisher_of(s.url, s.publisher))
     if kind in _CATEGORY:
         return _CATEGORY[kind], label
@@ -151,7 +159,7 @@ GLOSSARY_GROUPS = {
     "Financial Filing": ["10-K", "20-F", "40-F", "Annual Report", "Annual Comprehensive Financial Report (ACFR)"],
     "Official Company Report": ["Corporate Fact Sheet", "IRS Form 990", "IPEDS Filing", "Non-Financial Annual Report"],
     "Company Publication": ["Press Release", "Company Document"],
-    "Company Website": ["Website: About Us", "Website: Other Page"],
+    "Company Website": ["Website: About Us", "Website: Careers Page", "Website: Other Page"],
     "Company Social Profile": ["LinkedIn: Company Description", "LinkedIn: Member Count"],
     "News (Executive Quote)": ["News"],
     "Data Provider": ["Data Provider"],

@@ -256,6 +256,24 @@ CARD_CSS = r"""
 .cert .dl-thumb.dark .t-panel { background: #0D2440; border: 1px solid #1E3A5C; }
 .cert .dl-group { margin: 6px 10px 2px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .cert .footer-actions { margin-top: 12px; }
+.cert .peer-note { position: relative; display: flex; gap: 8px; align-items: flex-start; margin: -4px 0 12px; padding: 8px 12px;
+  border-radius: 10px; font-size: 13.5px; overflow: hidden; }
+.cert .peer-note.strong { background: var(--soft); color: var(--text); }
+.cert .peer-note.strong .peer-ico { color: var(--accent); }
+.cert .peer-note.rare { background: linear-gradient(90deg, rgba(63, 207, 142, .18), rgba(89, 154, 245, .18)); color: var(--text);
+  border: 1px solid var(--loop-green); }
+.cert .peer-note.rare .peer-ico { color: #D99A1E; font-size: 16px; animation: cert-twinkle 1.8s ease-in-out infinite; }
+.cert .confetti i { position: absolute; top: -6px; width: 6px; height: 9px; border-radius: 1px; opacity: 0;
+  animation: cert-confetti 1.6s ease-out .3s 2 forwards; }
+.cert .confetti i:nth-child(1) { left: 8%; background: #3FCF8E; }
+.cert .confetti i:nth-child(2) { left: 24%; background: #599AF5; animation-delay: .45s; }
+.cert .confetti i:nth-child(3) { left: 41%; background: #F2C35B; animation-delay: .35s; }
+.cert .confetti i:nth-child(4) { left: 59%; background: #3FCF8E; animation-delay: .55s; }
+.cert .confetti i:nth-child(5) { left: 76%; background: #599AF5; animation-delay: .4s; }
+.cert .confetti i:nth-child(6) { left: 92%; background: #F2C35B; animation-delay: .5s; }
+@keyframes cert-confetti { 0% { opacity: 0; transform: translateY(0) rotate(0); } 15% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(46px) rotate(220deg); } }
+@keyframes cert-twinkle { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .55; transform: scale(.85); } }
 .cert .owner-notice { margin: 12px 0 0; font-size: 11px; line-height: 1.45; color: var(--muted); }
 .cert .footer-actions .dl-items { top: auto; bottom: calc(100% + 6px); }
 .cert .crm-inline { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 3px 4px 3px 10px;
@@ -369,7 +387,8 @@ CARD_CSS = r"""
   .cert button { font-size: 13px; padding: 6px 10px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .cert .flash, .cert .card > .block, .cert .card > footer, .cert .meter span.on, .cert .seal, .cert .hint i { animation: none; }
+  .cert .flash, .cert .card > .block, .cert .card > footer, .cert .meter span.on, .cert .seal, .cert .hint i,
+  .cert .peer-note .peer-ico, .cert .confetti i { animation: none; }
   .cert .spark { display: none; }
 }
 """
@@ -667,6 +686,17 @@ CARD_JS = r"""
     return menu;
   }
 
+  // Private companies: 3/5 is strong and 4-5 is rare, so say so (and celebrate a rare one).
+  function peerNote(h) {
+    if (!h.peer_note) return null;
+    var rare = h.peer_level === "rare";
+    return el("p", { cls: "peer-note " + (rare ? "rare" : "strong") }, [
+      el("span", { cls: "peer-ico", "aria-hidden": "true", text: rare ? "✦" : "◆" }),
+      el("span", null, [el("strong", { text: rare ? "Rare for a private company · " : "Strong for a private company · " }),
+        h.peer_note.replace(/^(Rare|A strong result) for a private company: /, "")]),
+      rare ? el("span", { cls: "confetti", "aria-hidden": "true" }, [el("i"), el("i"), el("i"), el("i"), el("i"), el("i")]) : null]);
+  }
+
   function answer(r, opts) {
     var h = r.headline, c = r.confidence, k = r.__k, p = r.primary_source;
     var meter = el("span", { cls: "meter", role: "img", "aria-label": "Confidence " + c.score + " of 5" });
@@ -713,7 +743,7 @@ CARD_JS = r"""
     var crm = h.count != null ? crmCheck(r) : null;
     return el("div", { cls: "block answer " + b }, [
       el("div", { cls: "hero-row" }, [hero, seal(c)]),
-      bottom, facts,
+      bottom, peerNote(h), facts,
       el("div", { cls: "row answer-actions" }, [downloadMenu(r, opts), crm ? crm.form : null]),
       crm ? crm.out : null]);
   }
@@ -918,7 +948,10 @@ CARD_JS = r"""
       add("circle", { cx: cx, cy: cy, r: isLast ? 6.5 : (p.estimated ? 4 : 5), fill: p.estimated ? "var(--card)" : "var(--meter)", stroke: isLast ? "var(--loop-green)" : "var(--meter)", "stroke-width": isLast ? 3 : 2.5 });
       // Values only on the chart; the certified point and the forecast range are named in the legend. The
       // forecast label sits below its point so it never collides with the certified label above.
-      var below = p === finalForecast;  // the final forecast below its point; the faint yearly ones above
+      // Forecast labels sit on the open side of the line: rising, the yearly ones below and the final one above;
+      // falling, the reverse. So none of them meets the certified caption or each other.
+      var rising = finalForecast && last && finalForecast.value >= last.value;
+      var below = p.estimated ? (p === finalForecast ? !rising : rising) : false;
       if (W < 480 && p.estimated && p !== finalForecast) return;  // phones: only the final forecast year
       if (W < 480 && !p.estimated && !isLast && i !== 0) return;  // phones: first, certified and final forecast only
       var first = i === 0 && !gaps.some(function (g) { return g.kind === "history" && t(g.as_of_date) < t(p.as_of_date); });

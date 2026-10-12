@@ -126,7 +126,7 @@ def test_access_code_cli_round_trip():
 
 def test_page_and_single_css_and_js(client):
     page = client.get("/")
-    assert page.status_code == 200 and "GTM Data Certifier" in page.text and "Deep sweeps. Certified answers." in page.text
+    assert page.status_code == 200 and "GTM Data Certifier" in page.text and "Certified answers · giving you transparency" in page.text
     assert "Matthew Beltrano" in page.text and "linkedin.com/in/matthewbeltrano" in page.text
     assert "Certified under policy v0.2 from public sources. Verify before contractual use." in page.text
     css = client.get("/static/app.css").text

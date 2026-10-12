@@ -43,7 +43,7 @@ def test_terms_page_and_footer_link(client):
                   "All rights reserved", OWNER_LINE):
         assert words in terms.text
     home = client.get("/").text
-    assert '<a href="/terms">© 2026 Matthew Beltrano · Proprietary · Not open source</a>' in home
+    assert '<a class="owner-notice" href="/terms">© 2026 Matthew Beltrano · Proprietary · Not open source</a>' in home
     assert 'data-open="dlg-privacy">Privacy</button>' in home and '<a class="link" href="/terms">Terms</a>' in home
 
 

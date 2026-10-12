@@ -832,3 +832,8 @@ The record's entity carries `address` and `address_source`, shown as **HQ addres
   as private. At 3/5 the card and deck say it's a strong result for a private company; at 4-5/5 they celebrate it as
   rare (a sparkle and a short burst of confetti on the card, which respects reduced motion). Public filers,
   nonprofits and universities get no such note.
+
+### D107. A quieter home page
+- One line under the title, in blue: "Certified answers · giving you transparency & trust to take real action" (the
+  "Deep sweeps" line is gone). The "soon" metrics are fainter, admins no longer see "Admin · no limits", sample cards
+  keep the name to one line (trimmed, full name on hover) so every card is two lines, and the footer is three lines.

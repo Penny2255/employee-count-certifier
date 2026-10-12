@@ -5,7 +5,9 @@
       "website": "https://www.nexteraenergy.com",
       "hq": "Juno Beach, FL, USA",
       "legal_parent": null,
-      "relationship_to_parent": null
+      "relationship_to_parent": null,
+      "address": "700 Universe Blvd, Juno Beach, FL 33408",
+      "address_source": "SEC EDGAR (registered business address)"
     },
     "certified_count": 17400,
     "count_type": "reported",

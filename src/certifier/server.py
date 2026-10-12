@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 import sys
+import uuid
 from contextlib import contextmanager
 from typing import Any, Iterator
 
@@ -88,11 +89,28 @@ def _summary(cert: Certification) -> str:
             f"({cert.count_type}); confidence {cert.confidence_score} ({cert.confidence_level}); {source}.{extra}")
 
 
-def _result(o: hosted.Outcome, record) -> dict[str, Any]:
+def _result(o: hosted.Outcome, record, who: hosted.Who | None = None, query: str = "") -> dict[str, Any]:
     out = {"summary": _summary(o.result.certification), "record": record.model_dump(mode="json")}
     if o.cached:
         out["cached_at"] = o.cached_at.isoformat() if o.cached_at else None
+    links = _downloads(o, record, who, query)
+    if links:
+        out["downloads"] = links
     return out
+
+
+def _downloads(o: hosted.Outcome, record, who: hosted.Who | None, query: str) -> dict[str, str] | None:
+    """Hosted service only: store the result like a web lookup and link its downloads (JSON, CSV, PowerPoint,
+    Word). The in-chat card can't save files itself, so it opens these links instead."""
+    if _controls is None or not _public_base_url:
+        return None
+    query_id = uuid.uuid4().hex
+    _controls.store.save_query(query_id, who.bucket if who else "connector", query or record.entity.name,
+                               record.entity.name, record.headline.count, record.confidence.score, o.cached,
+                               0.0 if o.cached else o.result.cost_usd, record.model_dump_json())
+    base = f"{_public_base_url}/api/lookups/{query_id}/export?format="
+    return {"json": base + "json", "summary_csv": base + "summary_csv", "sources_csv": base + "sources_csv",
+            "pptx_light": base + "pptx&theme=light", "pptx_dark": base + "pptx&theme=dark", "docx": base + "docx"}
 
 
 async def find_entity(name: str, website: str | None = None) -> dict[str, Any]:
@@ -151,9 +169,9 @@ async def certify_employee_count(name: str, website: str | None = None, hq: str 
     except hosted.LimitExceeded as e:  # shown to the user as is
         return _plain_error(str(e))  # the beta message as is, without the SDK's tool-error prefix
     records = [record_from_lookup(o.result) for o in outcomes]
-    out: dict[str, Any] = {"entity": _result(outcomes[0], records[0])}
+    out: dict[str, Any] = {"entity": _result(outcomes[0], records[0], who, name)}
     if len(outcomes) > 1:
-        out["parent"] = _result(outcomes[1], records[1])
+        out["parent"] = _result(outcomes[1], records[1], who, legal_parent or "")
     try:
         if _public_base_url:
             path = save_card(records, data_dir() / "cards")

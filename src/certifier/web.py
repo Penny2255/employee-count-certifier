@@ -13,7 +13,7 @@ Routes
   GET  /api/samples[/{slug}]     pre-certified sample results (free)
   POST /api/find                 matching entities
   POST /api/lookup               certify one confirmed entity; streams progress as server-sent events
-  GET  /api/lookups/{id}         a stored result; /export?format=json|summary_csv|sources_csv; POST /rating
+  GET  /api/lookups/{id}         a stored result; /export?format=json|summary_csv|sources_csv|pptx|docx[&theme=dark]; POST /rating
   GET  /cards/{file}             saved company cards (used by the Claude connector)
   GET  /logos/{host}.png         company logos, fetched once server-side and cached (no third-party calls from browsers)
   GET/POST /oauth/login          connector sign-in: "Continue as beta guest", or an admin code
@@ -51,7 +51,7 @@ from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions, Re
 from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import BaseModel
 
-from . import hosted, taxonomy
+from . import hosted, office, taxonomy
 from . import server as mcp_server
 from .access import AccessCodes
 from .card import CARD_CSS, CARD_JS, TOKENS_CSS, save_card
@@ -450,10 +450,19 @@ def create_app() -> FastAPI:
                 "record": record}
 
     @app.get("/api/lookups/{query_id}/export")
-    async def export(query_id: str, format: str = "json"):
+    async def export(query_id: str, format: str = "json", theme: str = "light"):
         row = await stored(query_id)
         record = json.loads(row["record"])
         slug = re.sub(r"[^a-z0-9]+", "-", record["entity"]["name"].lower()).strip("-") or "certification"
+        if format in ("pptx", "docx"):  # slides (light or dark) and the full Word document
+            if format == "pptx":
+                theme = theme if theme in ("light", "dark") else "light"
+                data = await anyio.to_thread.run_sync(lambda: office.deck(record, theme))
+                media, name = "application/vnd.openxmlformats-officedocument.presentationml.presentation",                     f"{slug}-certification-{theme}.pptx"
+            else:
+                data = await anyio.to_thread.run_sync(lambda: office.document(record))
+                media, name = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",                     f"{slug}-certification.docx"
+            return Response(data, media_type=media, headers={"Content-Disposition": f'attachment; filename="{name}"'})
         if format == "json":
             body, media, name = json.dumps(record, indent=2, ensure_ascii=False), "application/json", f"{slug}.json"
         elif format == "summary_csv":

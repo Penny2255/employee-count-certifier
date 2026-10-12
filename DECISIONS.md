@@ -626,3 +626,52 @@ plays the journey for about 5 seconds.
   year is labeled.
 - **Research:** asked for the prior 3–4 years' figures from the same kind of source.
 - **Home page:** the "Try Salesforce · Stripe · Adobe" chips are gone; the sample results cover them.
+
+## Downloads, guidance and polish (2026-10-12)
+
+### D85. One Download menu, top and bottom, including in Claude
+- **Where:** a **Download** button sits next to "How the score adds up" and again at the bottom of the card.
+- **What it offers:**
+  - Copy for CRM
+  - PowerPoint · light and PowerPoint · dark (the one matching the current view is marked)
+  - Word document
+  - CSV · summary and CSV · sources
+  - JSON · full record
+
+  It replaces the separate buttons.
+- **In Claude:** the in-chat card runs in a sandboxed frame that can't save files, which is why there was no working
+  download before. The hosted connector now stores each result like a web lookup and returns links for every format. The
+  card asks Claude to open them (`ui/open-link`), falling back to a new tab.
+- **Not yet tested inside Claude:** the open-link request needs testing in the Claude app itself.
+
+### D86. Slides and document
+- **Slides:** `office.deck` builds 4 slides in the GTM Data Certifier brand, light or dark:
+  1. The answer: count, stamp, bottom line, key facts, and a source link that opens at the quote
+  2. Trend and forecast: a native, editable PowerPoint line chart with data labels and the dashed four-year forecast
+  3. Why you can trust this: tiles plus the findings that affect the answer and those worth knowing
+  4. Sources: a table with status (key source, used, prior year · trend, excluded) and the method
+- **Theme choice:** you can't know a viewer's PowerPoint theme, so the menu asks: light or dark.
+- **Word:** `office.document` builds the full supporting detail: facts, the trend table, every finding with its "so
+  what" and rationale, the key-source passage, sources with their reasons, events, LinkedIn and method.
+- **Credits:** both carry "Designed and created by Matthew Beltrano & Claude Code", with the name linked to LinkedIn on
+  every slide and in the document.
+- **Dependencies:** python-pptx and python-docx.
+
+### D87. Guided drill-in hints
+A pulsing "Drill in" chip appears on Sources, plus one inside it on the source whose figure differs most from the
+certified one ("why it wasn't used" or "why it still counts"). Prior years of the key source are skipped as trend
+points. Another chip appears on Events and LinkedIn when there are events. Each disappears once opened and is
+remembered per browser.
+
+### D88. HQ address
+The record's entity carries `address` and `address_source`, shown as **HQ address** in the facts table:
+- **SEC filers:** the registered business address from SEC EDGAR
+- **Nonprofits:** the IRS address via ProPublica
+- **Everyone else:** the confirmed headquarters city
+
+### D89. Readability
+- **Finding lines:** they use `text-wrap: balance`, so they're one line or two even lines, never a long line plus a
+  stub.
+- **Facts table labels:** bold small capitals.
+- **A layering bug the click-through caught:** an open menu sat beneath the next section, whose entrance animation
+  forms its own stacking layer. The answer block and the footer are now raised above their neighbours.

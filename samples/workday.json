@@ -5,7 +5,9 @@
       "website": "https://www.workday.com",
       "hq": "Pleasanton, CA, USA",
       "legal_parent": null,
-      "relationship_to_parent": null
+      "relationship_to_parent": null,
+      "address": "6110 Stoneridge Mall Road, Pleasanton, CA 94588",
+      "address_source": "SEC EDGAR (registered business address)"
     },
     "certified_count": 21000,
     "count_type": "reported",

@@ -171,6 +171,8 @@ class Entity(BaseModel):
     hq: str | None = None
     legal_parent: str | None = None
     relationship_to_parent: str | None = None
+    address: str | None = None  # registered headquarters address, when an official registry gives one
+    address_source: str | None = None  # e.g. "SEC EDGAR (registered business address)"
 
 
 class Certification(BaseModel):

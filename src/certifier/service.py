@@ -95,6 +95,14 @@ def _lookup(entity: Entity, cik: int | None, lookup_date: date | None, policy: P
     if cik is None:
         cik = resolve_cik(edgar, entity.name, notes)
     filing_cik = cik or parent_cik
+    if cik and not entity.address:  # the entity's own registered address (never its parent's)
+        try:
+            address = edgar.business_address(cik)
+            if address:
+                entity = entity.model_copy(update={"address": address,
+                                                   "address_source": "SEC EDGAR (registered business address)"})
+        except Exception:
+            pass
     progress("filings", "Reading SEC filings" if filing_cik else "Checking official filings and registers")
     if filing_cik:
         try:
@@ -111,7 +119,11 @@ def _lookup(entity: Entity, cik: int | None, lookup_date: date | None, policy: P
         return LookupResult(certification=cert, cost_usd=0.0, web_searches=0, web_fetches=0,
                             method="edgar-heuristic", notes=notes)
 
-    known = [] if filing_cik else form990_sources(entity, notes, propublica) + ipeds_sources(entity, notes)
+    found_990: dict = {}
+    known = [] if filing_cik else form990_sources(entity, notes, propublica, found_990) + ipeds_sources(entity, notes)
+    if found_990.get("address") and not entity.address:
+        entity = entity.model_copy(update={"address": found_990["address"],
+                                           "address_source": "IRS record via ProPublica (organization address)"})
     claude = claude or Claude(policy)
     spend = spend or Spend(policy)
     site = website_snippets(entity.website) if entity.website else []
@@ -193,8 +205,10 @@ def attach_site_locations(sources: list, site: list) -> list:
     return out
 
 
-def form990_sources(entity: Entity, notes: list[str], propublica: ProPublica | None = None) -> list:
-    """Form 990 line 5 (tier 2) when the name exactly matches one U.S. nonprofit on ProPublica."""
+def form990_sources(entity: Entity, notes: list[str], propublica: ProPublica | None = None,
+                    found: dict | None = None) -> list:
+    """Form 990 line 5 (tier 2) when the name exactly matches one U.S. nonprofit on ProPublica. The
+    organization's IRS address is put in `found["address"]` when available."""
     propublica = propublica or ProPublica()
     try:
         match = propublica.exact_match(entity.name)
@@ -204,6 +218,11 @@ def form990_sources(entity: Entity, notes: list[str], propublica: ProPublica | N
         return []
     if sources:
         notes.append(f"Form 990 filings found on ProPublica (EIN {match.ein}).")
+        if found is not None:
+            try:
+                found["address"] = propublica.address(match.ein)
+            except Exception:
+                pass
     return sources
 
 

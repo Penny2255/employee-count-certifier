@@ -18,6 +18,7 @@ from datetime import date
 from typing import Callable
 
 from ..models import Location, Source
+from .edgar import title_address
 
 BASE = "https://projects.propublica.org/nonprofits"
 _LINE5 = re.compile(r"individuals employed in calendar year (\d{4}).{0,80}?\.\s*5\s+([\d,]+)", re.I)
@@ -67,6 +68,13 @@ class ProPublica:
         norm = lambda s: re.sub(r"[^a-z0-9]+", " ", s.lower()).strip()
         matches = [n for n in self.search(name) if norm(n.name) == norm(name)]
         return matches[0] if len(matches) == 1 else None
+
+    def address(self, ein: int) -> str | None:
+        """The organization's address on its IRS record, e.g. "185 Berry St Ste 200, San Francisco, CA 94107-1777"."""
+        org = json.loads(self._get(f"{BASE}/api/v2/organizations/{ein}.json")).get("organization") or {}
+        street, city = title_address(org.get("address") or ""), (org.get("city") or "").strip()
+        tail = " ".join(x for x in ((org.get("state") or "").strip(), (org.get("zipcode") or "").strip().removesuffix("-0000")) if x)
+        return ", ".join(p for p in (street, city, tail) if p) if street and city else None
 
     def line5_sources(self, ein: int, limit: int = 5) -> list[Source]:
         """Form 990 line 5 from the most recent filings, newest first."""

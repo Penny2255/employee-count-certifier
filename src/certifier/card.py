@@ -223,6 +223,37 @@ CARD_CSS = r"""
   padding: 7px 10px; border-radius: 8px; font-size: 14px; font-weight: 600; }
 .cert .dl-items button:hover, .cert .dl-items button:focus-visible { background: var(--soft); }
 .cert .dl-hint { font-size: 12px; font-weight: 500; color: var(--muted); }
+.cert .dl-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cert .dl-more { color: var(--muted); font-size: 16px; line-height: 1; }
+.cert .dl-items button.dl-disabled { opacity: .45; cursor: not-allowed; }
+.cert .dl-items button.dl-disabled:hover { background: transparent; }
+.cert .dl-items.step2 { min-width: 300px; gap: 8px; padding: 10px; }
+.cert .dl-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cert .dl-items .dl-choice { display: grid; justify-items: center; gap: 4px; padding: 8px; border: 2px solid var(--line); border-radius: 10px;
+  text-align: center; }
+.cert .dl-items .dl-choice.on { border-color: var(--loop-green); background: var(--soft); box-shadow: 0 0 0 3px rgba(63, 207, 142, .18); }
+.cert .dl-choice-label { font-weight: 700; font-size: 14px; }
+.cert .dl-step-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.cert .dl-items .dl-back { color: var(--accent); font-weight: 600; font-size: 13px; padding: 6px 8px; }
+.cert .dl-items .dl-go { display: inline-block; background: var(--primary-bg); color: var(--primary-text); font-weight: 700; padding: 7px 16px; }
+.cert .dl-items .dl-go:hover { background: var(--primary-bg); filter: brightness(1.08); }
+.cert .dl-thumb { position: relative; display: block; width: 116px; height: 66px; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); }
+.cert .dl-thumb.light { background: #F5F7FB; }
+.cert .dl-thumb.dark { background: #06182F; }
+.cert .dl-thumb i { position: absolute; display: block; border-radius: 2px; }
+.cert .dl-thumb .t-head { left: 7px; top: 6px; width: 30px; height: 6px; background: #3FCF8E; }
+.cert .dl-thumb .t-rule { left: 7px; right: 7px; top: 15px; height: 2px; background: linear-gradient(90deg, #3FCF8E 37%, #599AF5 37%); }
+.cert .dl-thumb .t-num { left: 7px; top: 23px; width: 40px; height: 11px; }
+.cert .dl-thumb.light .t-num { background: #0A2545; }
+.cert .dl-thumb.dark .t-num { background: #EAF2FF; }
+.cert .dl-thumb .t-seal { left: 52px; top: 21px; width: 15px; height: 15px; border-radius: 50%; background: conic-gradient(#3FCF8E, #599AF5, #3FCF8E); }
+.cert .dl-thumb .t-line { left: 7px; top: 41px; width: 58px; height: 4px; }
+.cert .dl-thumb .t-line.short { top: 49px; width: 40px; }
+.cert .dl-thumb.light .t-line { background: #C9D3E0; }
+.cert .dl-thumb.dark .t-line { background: #2A4468; }
+.cert .dl-thumb .t-panel { right: 7px; top: 21px; width: 36px; height: 36px; border-radius: 4px; }
+.cert .dl-thumb.light .t-panel { background: #FFFFFF; border: 1px solid #DCE3EC; }
+.cert .dl-thumb.dark .t-panel { background: #0D2440; border: 1px solid #1E3A5C; }
 .cert .dl-group { margin: 6px 10px 2px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .cert .footer-actions { margin-top: 12px; }
 .cert .owner-notice { margin: 12px 0 0; font-size: 11px; line-height: 1.45; color: var(--muted); }
@@ -554,36 +585,83 @@ CARD_JS = r"""
     var a = el("a", { href: url, download: "", target: "_blank", rel: "noopener" });
     document.body.appendChild(a); a.click(); a.remove();
   }
+  // A short list; PowerPoint and CSV open a second step to pick the theme (with previews) or the file.
+  function slidePreview(theme) {
+    return el("span", { cls: "dl-thumb " + theme, "aria-hidden": "true" }, [
+      el("i", { cls: "t-head" }), el("i", { cls: "t-rule" }), el("i", { cls: "t-num" }), el("i", { cls: "t-seal" }),
+      el("i", { cls: "t-line" }), el("i", { cls: "t-line short" }), el("i", { cls: "t-panel" })]);
+  }
   function downloadMenu(r, opts) {
     var menu = el("details", { cls: "dl-menu" });
-    var label = el("span", { text: "Download" });
     menu.appendChild(el("summary", { cls: "dl-button", "aria-label": "Download or copy this certification" },
-      [el("span", { cls: "dl-ico", "aria-hidden": "true", text: "⤓" }), label, el("span", { cls: "dl-caret", "aria-hidden": "true", text: "▾" })]));
+      [el("span", { cls: "dl-ico", "aria-hidden": "true", text: "⤓" }), el("span", { text: "Download" }),
+        el("span", { cls: "dl-caret", "aria-hidden": "true", text: "▾" })]));
     var list = el("div", { cls: "dl-items", role: "menu" });
-    function item(text, hint, fn) {
-      var b = el("button", { type: "button", role: "menuitem" }, [el("span", { text: text }), hint ? el("span", { cls: "dl-hint", text: hint }) : null]);
-      b.addEventListener("click", function () { fn(b); });
-      list.appendChild(b);
+    var has = exportUrl(r, opts, "json") != null;
+    function close() { menu.open = false; }
+    function item(text, hint, fn, more) {
+      var b = el("button", { type: "button", role: "menuitem" }, [el("span", { cls: "dl-label" }, [text, more ? el("span", { cls: "dl-more", "aria-hidden": "true", text: "›" }) : null]),
+        hint ? el("span", { cls: "dl-hint", text: hint }) : null]);
+      if (fn) b.addEventListener("click", function (e) { e.stopPropagation(); fn(b); });
       return b;
     }
-    item("Copy for CRM", "count, date, confidence, source", function (b) {
-      copyText(crmText(r), b.firstChild, "Copy for CRM");
-    });
-    var theme = pageTheme(), has = exportUrl(r, opts, "json") != null;
-    if (has) {
-      list.appendChild(el("p", { cls: "dl-group", text: "Slides and document" }));
-      ["light", "dark"].forEach(function (t) {
-        item("PowerPoint · " + t, t === theme ? "matches this view · 5 slides" : "5 slides", function () { openUrl(exportUrl(r, opts, "pptx", t)); menu.open = false; });
+    // Step 2: a small chooser in place of the list, with Back and Download.
+    function chooser(title, options, preselect, onGo) {
+      var picked = preselect, tiles = [];
+      var go = el("button", { type: "button", cls: "dl-go", text: "Download" });
+      var back = el("button", { type: "button", cls: "dl-back", text: "‹ Back" });
+      var grid = el("div", { cls: "dl-choices", role: "radiogroup", "aria-label": title });
+      options.forEach(function (o) {
+        var tile = el("button", { type: "button", role: "radio", cls: "dl-choice" }, [o.preview || null,
+          el("span", { cls: "dl-choice-label", text: o.label }), o.hint ? el("span", { cls: "dl-hint", text: o.hint }) : null]);
+        tile.addEventListener("click", function (e) { e.stopPropagation(); picked = o.value; paint(); });
+        tile.__value = o.value;
+        tiles.push(tile);
+        grid.appendChild(tile);
       });
-      item("Word document", "full detail and sources", function () { openUrl(exportUrl(r, opts, "docx")); menu.open = false; });
-      list.appendChild(el("p", { cls: "dl-group", text: "Data" }));
-      item("CSV · summary", "one row", function () { openUrl(exportUrl(r, opts, "summary_csv")); menu.open = false; });
-      item("CSV · sources", "one row per source", function () { openUrl(exportUrl(r, opts, "sources_csv")); menu.open = false; });
-      item("JSON · full record", null, function () { openUrl(exportUrl(r, opts, "json")); menu.open = false; });
-    } else {
-      item("JSON · full record", null, function () { download([r]); menu.open = false; });
+      function paint() { tiles.forEach(function (t) { var on = t.__value === picked; t.classList.toggle("on", on); t.setAttribute("aria-checked", on ? "true" : "false"); }); }
+      paint();
+      back.addEventListener("click", function (e) { e.stopPropagation(); showList(); });
+      go.addEventListener("click", function (e) { e.stopPropagation(); onGo(picked); close(); });
+      list.textContent = "";
+      list.classList.add("step2");
+      list.appendChild(el("p", { cls: "dl-group", text: title }));
+      list.appendChild(grid);
+      list.appendChild(el("div", { cls: "dl-step-actions" }, [back, go]));
+      (tiles.filter(function (t) { return t.__value === picked; })[0] || go).focus();
     }
+    function showList() {
+      list.textContent = "";
+      list.classList.remove("step2");
+      if (has) {
+        list.appendChild(item("PowerPoint", "5 slides · light or dark", function () {
+          chooser("PowerPoint · pick a theme", [
+            { value: "light", label: "Light", hint: pageTheme() === "light" ? "matches this view" : null, preview: slidePreview("light") },
+            { value: "dark", label: "Dark", hint: pageTheme() === "dark" ? "matches this view" : null, preview: slidePreview("dark") }],
+            pageTheme(), function (t) { openUrl(exportUrl(r, opts, "pptx", t)); });
+        }, true));
+        list.appendChild(item("CSV", "summary or sources", function () {
+          chooser("CSV · pick a file", [
+            { value: "summary_csv", label: "Summary", hint: "one row" },
+            { value: "sources_csv", label: "Sources", hint: "one row per source" }],
+            "summary_csv", function (f) { openUrl(exportUrl(r, opts, f)); });
+        }, true));
+        list.appendChild(item("JSON", "the full certification record", function () { openUrl(exportUrl(r, opts, "json")); close(); }));
+      } else {
+        list.appendChild(item("JSON", "the full certification record", function () { download([r]); close(); }));
+      }
+      list.appendChild(item("Copy for CRM", "count, date, confidence, source", function (b) {
+        copyText(crmText(r), b.querySelector(".dl-label"), "Copy for CRM");
+      }));
+      var word = item("Word document", "coming soon", null);
+      word.disabled = true;
+      word.setAttribute("aria-disabled", "true");
+      word.classList.add("dl-disabled");
+      list.appendChild(word);
+    }
+    showList();
     menu.appendChild(list);
+    menu.addEventListener("toggle", function () { if (!menu.open) showList(); });
     document.addEventListener("click", function (e) { if (menu.open && !menu.contains(e.target)) menu.open = false; });
     document.addEventListener("keydown", function (e) { if (e.key === "Escape" && menu.open) { menu.open = false; menu.querySelector("summary").focus(); } });
     return menu;

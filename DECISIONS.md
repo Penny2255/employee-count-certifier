@@ -797,3 +797,8 @@ The record's entity carries `address` and `address_source`, shown as **HQ addres
   just replicate what humans do. It should elevate human needs and outcomes.", the loop, Matthew's LinkedIn card
   (clickable) and two buttons, Connect on LinkedIn and Try GTM Data Certifier.
 - Buttons are clickable shapes rather than linked text: PowerPoint recolours linked text with the theme's link colour.
+
+### D103. A shorter Download menu with a second step
+- The list is PowerPoint, CSV, JSON, Copy for CRM, then the Word document greyed out ("coming soon").
+- PowerPoint opens a second step with light and dark slide previews, preselecting the theme you're viewing; CSV opens
+  Summary (the default) or Sources. Each has Back and Download. Closing the menu returns it to the list.

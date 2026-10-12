@@ -298,12 +298,14 @@ CARD_CSS = r"""
 .cert .crm-verdict.light { background: var(--soft); color: var(--text); }
 .cert .crm-copy { font-weight: 700; text-decoration: underline; color: inherit; padding: 0; font-size: inherit; background: none; border: 0; }
 .cert .crm-see { opacity: .8; }
+.cert .legend .lg.hist { border: 2px dashed var(--muted); background: var(--card); }
 .cert .chart .pt-faint { opacity: .55; font-weight: 600; font-size: 11.5px; }
 .cert .chart .pt-cert { font-size: 10.5px; font-weight: 800; letter-spacing: .08em; fill: var(--green); }
 .cert .chart .gap-label { font-size: 11px; fill: var(--muted); font-style: italic; }
 .cert .chart .ov-label { font-size: 11.5px; font-weight: 700; }
 .cert .legend .lg.gap { width: auto; height: auto; border: 0; background: none; color: var(--muted); font-style: normal; font-weight: 700; font-size: 11px; }
-.cert .legend .lg.range { background: rgba(63, 207, 142, .22); border: 1px dashed var(--loop-green); border-radius: 2px; }
+.cert .legend .lg.range { background: rgba(63, 207, 142, .14); border: 1px dashed var(--loop-green); border-radius: 2px; }
+.cert .legend .lg.range.strong { background: rgba(63, 207, 142, .38); border-style: solid; }
 .cert .legend .lg.crm { height: 0; border-radius: 0; border: 0; border-top: 2px dashed #E8833A; background: none; }
 .cert .legend .lg.target { background: none; border: 2px solid #E8833A; border-radius: 50%; }
 .cert .hint { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; padding: 2px 10px 2px 8px; border-radius: 999px;
@@ -724,7 +726,7 @@ CARD_JS = r"""
     var dirShort = h.direction ? (DIRECTION[h.direction] || h.direction) : null;
     var facts = factRows([
       ["Employees", countVal],
-      ["Range", range],
+      ["Certified range", range],
       ["As of", h.as_of_date ? h.as_of_date + (h.as_of_estimated ? (h.as_of_estimated_from === "url" ? " (estimated from URL)" : " (estimated)") : "") : "undated"],
       ["Confidence", conf],
       ["HQ address", r.entity.address ? el("span", null, [r.entity.address,
@@ -806,7 +808,9 @@ CARD_JS = r"""
     if (last) {
       var md = last.as_of_date.slice(4), lastYear = +last.as_of_date.slice(0, 4), have = {};
       reported.forEach(function (p) { have[+p.as_of_date.slice(0, 4)] = true; });
-      for (var gy = lastYear - HISTORY_YEARS + 1; gy < lastYear; gy++) if (!have[gy]) gaps.push({ as_of_date: yearDate(gy, md), kind: "history" });
+      // Five years back, or further when a historical estimate reaches further.
+      var fromYear = Math.min(lastYear - HISTORY_YEARS + 1, +reported[0].as_of_date.slice(0, 4));
+      for (var gy = fromYear; gy < lastYear; gy++) if (!have[gy]) gaps.push({ as_of_date: yearDate(gy, md), kind: "history" });
       if (!future.length) for (gy = lastYear + 1; gy <= lastYear + FORECAST_YEARS; gy++) gaps.push({ as_of_date: yearDate(gy, md), kind: "forecast" });
       gaps.forEach(function (g) {  // on the line between its neighbours, or level with the nearest figure
         var ms = t(g.as_of_date), prev = null, next = null;
@@ -860,7 +864,11 @@ CARD_JS = r"""
     add("line", { x1: L, x2: W - R, y1: H - B, y2: H - B, stroke: "var(--muted)", "stroke-width": 1 });
     add("text", { x: 4, y: 12, "class": "axis-title", "text-anchor": "start" }, "Employees");
     add("text", { x: L + (W - L - R) / 2, y: H - 4, "class": "axis-title", "text-anchor": "middle" }, "As-of date");
-    if (overlay) {  // recommended range: a soft band behind everything else
+    if (overlay && overlay.xlo != null && overlay.xhi > overlay.xlo) {  // the certified range: a firmer band
+      add("rect", { x: L, y: Y(overlay.xhi), width: W - L - R, height: Math.max(2, Y(overlay.xlo) - Y(overlay.xhi)), fill: "var(--loop-green)",
+        "fill-opacity": .16, "class": "ov-cert" });
+    }
+    if (overlay) {  // the acceptable range: a soft band behind everything else
       add("rect", { x: L, y: Y(overlay.hi), width: W - L - R, height: Math.max(2, Y(overlay.lo) - Y(overlay.hi)), fill: "var(--loop-green)", "fill-opacity": .12, "class": "ov-band" });
       [overlay.lo, overlay.hi].forEach(function (b) {
         add("line", { x1: L, x2: W - R, y1: Y(b), y2: Y(b), stroke: "var(--loop-green)", "stroke-width": 1, "stroke-opacity": .7, "stroke-dasharray": "2 4" });
@@ -884,7 +892,8 @@ CARD_JS = r"""
     // Reported years in runs; a missing year breaks the run and is bridged by a dotted line.
     var runs = [[]], gapAt = gaps.filter(function (g) { return g.kind === "history"; }).map(function (g) { return t(g.as_of_date); });
     reported.forEach(function (p, i) {
-      if (i && gapAt.some(function (gm) { return gm > t(reported[i - 1].as_of_date) && gm < t(p.as_of_date); })) runs.push([]);
+      var prev = reported[i - 1];
+      if (i && (p.historical || prev.historical || gapAt.some(function (gm) { return gm > t(prev.as_of_date) && gm < t(p.as_of_date); }))) runs.push([]);
       runs[runs.length - 1].push(pts[i]);
     });
     runs.forEach(function (run) {
@@ -893,12 +902,13 @@ CARD_JS = r"""
       add("path", { d: line + " L " + run[run.length - 1][0] + " " + (H - B) + " L " + run[0][0] + " " + (H - B) + " Z", fill: "url(#" + gid + ")", stroke: "none" });
       add("path", { d: line, fill: "none", stroke: "var(--meter)", "stroke-width": 3, "stroke-linecap": "round", "stroke-linejoin": "round" });
     });
-    if (gaps.length) {
+    if (gaps.length || reported.some(function (p) { return p.historical; })) {
       var chain = gaps.map(function (g) { return { ms: t(g.as_of_date), y: Y(g.value), gap: g }; })
-        .concat(reported.map(function (p, i) { return { ms: t(p.as_of_date), y: pts[i][1] }; }))
+        .concat(reported.map(function (p, i) { return { ms: t(p.as_of_date), y: pts[i][1], hist: p.historical }; }))
         .sort(function (a, b) { return a.ms - b.ms; });
       for (var ci = 1; ci < chain.length; ci++) {
-        if (!chain[ci].gap && !chain[ci - 1].gap) continue;  // reported to reported is drawn above
+        var a0 = chain[ci - 1], a1 = chain[ci];
+        if (!a1.gap && !a0.gap && !a1.hist && !a0.hist) continue;  // reported to reported is drawn above
         add("line", { x1: X(chain[ci - 1].ms), y1: chain[ci - 1].y, x2: X(chain[ci].ms), y2: chain[ci].y, stroke: "var(--muted)",
           "stroke-width": 1.5, "stroke-dasharray": "1.5 5", "stroke-linecap": "round", "class": "gap-line" });
       }
@@ -907,7 +917,7 @@ CARD_JS = r"""
         var gx = X(t(g.as_of_date)), gyy = Y(g.value), s = 4;
         add("path", { d: "M " + (gx - s) + " " + (gyy - s) + " L " + (gx + s) + " " + (gyy + s) + " M " + (gx + s) + " " + (gyy - s) + " L " + (gx - s) + " " + (gyy + s),
           stroke: "var(--muted)", "stroke-width": 2, "stroke-linecap": "round", fill: "none", "class": "gap-x" });
-        if (labelled[g.kind]) return;
+        if (labelled[g.kind] || (g.kind === "history" && reported.some(function (p) { return p.historical; }))) return;
         labelled[g.kind] = true;
         add("text", { x: gx, y: gyy + 18, "text-anchor": g.kind === "forecast" ? "middle" : "middle", "class": "gap-label" },
           g.kind === "forecast" ? "no forecast" : "no data");
@@ -941,6 +951,11 @@ CARD_JS = r"""
     var finalForecast = future.length ? future[future.length - 1] : null;
     items.forEach(function (p, i) {
       var cx = X(t(p.as_of_date)), cy = Y(p.value), isLast = p === last;
+      if (p.historical) {  // a historical estimate: hollow, muted, labelled as an estimate with its year
+        add("circle", { cx: cx, cy: cy, r: 5, fill: "var(--card)", stroke: "var(--muted)", "stroke-width": 2.5, "stroke-dasharray": "3 2", "class": "hist-pt" });
+        add("text", { x: cx, y: cy - 12, "text-anchor": i === 0 ? "start" : "middle", "class": "pt-label pt-faint hist-label" }, "≈" + num(p.value) + " est.");
+        return;
+      }
       if (isLast) {  // the certified figure: a soft halo and a guide down to its as-of date
         add("line", { x1: cx, x2: cx, y1: cy + 12, y2: H - B, stroke: "var(--loop-green)", "stroke-width": 1.5, "stroke-dasharray": "2 4", "class": "cert-guide" });
         add("circle", { cx: cx, cy: cy, r: 11, fill: "var(--loop-green)", "fill-opacity": .22 });
@@ -953,6 +968,10 @@ CARD_JS = r"""
       var rising = finalForecast && last && finalForecast.value >= last.value;
       var below = p.estimated ? (p === finalForecast ? !rising : rising) : false;
       if (W < 480 && p.estimated && p !== finalForecast) return;  // phones: only the final forecast year
+      if (p.estimated && p !== finalForecast && future.length > 1) {  // tight spacing: every other year, counting back from the final
+        var gapPx = Math.abs(X(t(future[1].as_of_date)) - X(t(future[0].as_of_date)));
+        if (gapPx < 56 && (future.length - 1 - future.indexOf(p)) % 2 === 1) return;
+      }
       if (W < 480 && !p.estimated && !isLast && i !== 0) return;  // phones: first, certified and final forecast only
       var first = i === 0 && !gaps.some(function (g) { return g.kind === "history" && t(g.as_of_date) < t(p.as_of_date); });
       add("text", { x: cx, y: below ? cy + 20 : cy - (isLast ? 16 : 11),
@@ -991,8 +1010,11 @@ CARD_JS = r"""
       fc ? el("span", null, [el("i", { cls: "lg hollow" }), "Forecast " + (fcs.length > 1 ? "to " : "") + fc.as_of_date.slice(0, 4) + ": ≈" + num(roundForecast(fc.value)) +
         (fc.low != null ? " (range " + num(roundForecast(fc.low)) + "–" + num(roundForecast(fc.high)) + ")" : "")]) : null,
       svgEl.__gaps ? el("span", null, [el("i", { cls: "lg gap", text: "✕" }), "No reported figure"]) : null,
+      r.trend.items.some(function (p) { return p.historical; }) ? el("span", null, [el("i", { cls: "lg hist" }),
+        "Historical estimate (older statement, not certified)"]) : null,
       h.indicated_current_range ? el("span", null, [el("i", { cls: "lg box" }), "Indicated current range (context only)"]) : null,
-      overlay ? el("span", null, [el("i", { cls: "lg range" }), "Recommended range " + num(overlay.lo) + "–" + num(overlay.hi)]) : null,
+      overlay && overlay.xhi > overlay.xlo ? el("span", null, [el("i", { cls: "lg range strong" }), "Certified range " + num(overlay.xlo) + "–" + num(overlay.xhi)]) : null,
+      overlay ? el("span", null, [el("i", { cls: "lg range" }), "Acceptable for your CRM " + num(overlay.lo) + "–" + num(overlay.hi)]) : null,
       overlay ? el("span", null, [el("i", { cls: "lg crm" }), "Your CRM " + num(overlay.crm)]) : null,
       overlay && overlay.target != null ? (overlay.target === h.count ? el("span", null, [el("i", { cls: "lg key" }), "Suggested: the certified figure"])
         : el("span", null, [el("i", { cls: "lg target" }), "Suggested " + num(overlay.target)])) : null]);
@@ -1103,35 +1125,44 @@ CARD_JS = r"""
     var v = parseFloat(m[1]) * (m[2] === "k" ? 1e3 : m[2] === "m" ? 1e6 : 1);
     return v > 0 ? Math.round(v) : null;
   }
+  // Two ranges, one story: the certified range (X) is what we stand behind; the acceptable range (Y) is wider,
+  // as wide as the confidence warrants, for leaving a CRM number alone. Outside Y we suggest moving into X (its
+  // nearest edge), and at the very least to Y's edge. When the likely direction since the as-of date points toward
+  // your number, we suggest only Y's edge.
   function crmAdvice(r, v) {
     var h = r.headline, c = h.count, score = r.confidence.score, t = CRM_TOLERANCE[score];
     if (c == null || !t) return { kind: "none", text: "There's no certified figure to compare against." };
-    var lo = Math.min(h.range ? h.range[0] : c, c * (1 - t)), hi = Math.max(h.range ? h.range[1] : c, c * (1 + t));
-    if (h.direction === "lower") lo -= c * t / 2;  // the true figure has likely moved down: widen the lower bumper
+    var xlo = h.range ? h.range[0] : c, xhi = h.range ? h.range[1] : c;
+    var lo = Math.min(xlo, c * (1 - t)), hi = Math.max(xhi, c * (1 + t));
+    if (h.direction === "lower") lo -= c * t / 2;  // the true figure has likely moved down: widen the lower side
     if (h.direction === "higher") hi += c * t / 2;
     lo = Math.round(lo); hi = Math.round(hi);
-    var band = { lo: lo, hi: hi, certified: c };
+    var band = { lo: lo, hi: hi, certified: c, xlo: xlo, xhi: xhi };
+    var xText = xlo === xhi ? num(c) : num(xlo) + "–" + num(xhi);
     if (v >= lo && v <= hi) {
+      var inX = v >= xlo && v <= xhi;
       return { kind: "keep", band: band, label: "Keep your number",
-        text: num(v) + " is inside the " + score + "/5 range (" + num(lo) + "–" + num(hi) + "). No change needed" +
-          (Math.abs(v - c) / c > 0.02 ? "; the exact figure is " + num(c) + "." : ".") };
+        text: num(v) + " is inside the " + score + "/5 acceptable range (" + num(lo) + "–" + num(hi) + ")" +
+          (inX ? " and the certified range. No change needed." : ". No change needed; the certified range is " + xText + ".") };
     }
     var above = v > hi, edge = above ? hi : lo, off = above ? (v - hi) / hi : (lo - v) / lo;
     var agrees = (above && h.direction === "lower") || (!above && h.direction === "higher");
     var against = (above && h.direction === "higher") || (!above && h.direction === "lower");
-    var target = score >= 4 ? c : score === 3 ? Math.round((edge + c) / 2) : edge;
+    var target = above ? xhi : xlo;
     var strength = score >= 4 ? "strong" : score === 3 ? "moderate" : "light";
     if (agrees) strength = strength === "light" ? "moderate" : "strong";
     if (against) {
-      target = edge;  // the true figure may be beyond ours in your direction: move only into the lane
+      target = edge;  // the true figure may have moved your way: the acceptable range's edge is enough
       if (strength === "strong" && score < 5) strength = "moderate";
     }
-    var why = agrees ? " The recent direction agrees." : against ? " Only to the range edge: the figure has likely moved " +
+    var why = agrees ? " The recent direction agrees." : against ? " Only to the acceptable range: the figure has likely moved " +
       (h.direction === "higher" ? "up" : "down") + " since." : "";
-    return { kind: strength, band: band, target: target, label: CRM_STRENGTH[strength],
-      text: num(v) + " is " + Math.round(off * 100) + "% " + (above ? "above" : "below") + " the " + score + "/5 range (" + num(lo) + "–" +
-        num(hi) + "). Suggest " + num(target) + "." + why };
+    return { kind: strength, band: band, target: target, minimum: edge, label: CRM_STRENGTH[strength],
+      text: num(v) + " is " + Math.round(off * 100) + "% " + (above ? "above" : "below") + " the " + score + "/5 acceptable range (" +
+        num(lo) + "–" + num(hi) + "). Suggest " + num(target) + (target === edge ? "." : (xlo === xhi ? ", the certified figure" :
+        ", the edge of the certified range " + xText) + " (at least " + num(edge) + ").") + why };
   }
+
   // Compact: an inline box beside Download. The verdict appears below it, and the chart above gains the
   // recommended range and the CRM's number.
   function crmCheck(r) {
@@ -1155,7 +1186,8 @@ CARD_JS = r"""
       }
       if (r.__redraw) parts.push(el("span", { cls: "crm-see", text: " Shown on the chart above." }));
       out.appendChild(el("p", { cls: "crm-verdict " + adv.kind }, parts));
-      if (r.__redraw) r.__redraw({ crm: v, lo: adv.band.lo, hi: adv.band.hi, target: adv.target != null ? adv.target : null });
+      if (r.__redraw) r.__redraw({ crm: v, lo: adv.band.lo, hi: adv.band.hi, xlo: adv.band.xlo, xhi: adv.band.xhi,
+        target: adv.target != null ? adv.target : null });
     });
     return { form: form, out: out };
   }

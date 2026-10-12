@@ -321,7 +321,8 @@ def deck(record: dict, theme: str = "light", logo: bytes | None = None, site_url
         top += 0.8
     if reported:
         _trend_chart(s, reported, forecast, t, 0.55, top, 8.5, 6.2 - top)
-        legend = [("●", "blue", "Reported"), ("◯", "blue", "Forecast (estimate)" if forecast else None),
+        legend = [("●", "blue", "Reported"), ("◌", "muted", "Historical estimate" if any(p.get("historical") for p in reported) else None),
+                  ("◯", "blue", "Forecast (estimate)" if forecast else None),
                   ("┅", "muted", "Forecast range" if forecast else None), ("✕", "muted", "No reported figure")]
         box = text(s, 0.65, 6.3, 8.4, 0.28, "", 10, "muted")
         para = box.text_frame.paragraphs[0]
@@ -336,7 +337,8 @@ def deck(record: dict, theme: str = "light", logo: bytes | None = None, site_url
         if forecast:
             why = forecast[-1].get("rationale") or ""
             note = ("Best-guess forecast (short history): " + why.split(": ", 1)[-1].split(", with a range")[0]
-                    .replace(", since LinkedIn over-represents office staff", "") + "; the range widens each year."
+                    .replace(", since LinkedIn over-represents office staff", "").replace(" carried forward, at most ±3%", "")
+                    + "; the range widens each year."
                     if why.startswith("Best-guess") else
                     "The forecast carries the reported trend forward from the latest figure; an estimate, not a reported figure.")
             text(s, 0.65, 6.58, 8.4, 0.28, note, 9, "muted", italic=True)
@@ -345,11 +347,13 @@ def deck(record: dict, theme: str = "light", logo: bytes | None = None, site_url
         f = forecast[-1] if forecast else None
         years = int(last["as_of_date"][:4]) - int(first["as_of_date"][:4])
         change = (last["value"] - first["value"]) / first["value"] if first["value"] and years else None
+        since_estimate = bool(first.get("historical"))
         stats = [("CERTIFIED", _num(last["value"]), ("as of " + last["as_of_date"]) if h.get("as_of_date")
                   else "undated source · shown at " + last["as_of_date"], "brand_green"),
                  (f"FORECAST {f['as_of_date'][:4]}" if f else "FORECAST", "≈" + _num(round_forecast(f["value"])) if f else "No forecast",
                   f"range {_num(round_forecast(f['low']))}–{_num(round_forecast(f['high']))}" if f else "needs 3 reported years", "blue"),
-                 (f"CHANGE OVER {years} YEAR{'S' if years != 1 else ''}" if change is not None else "CHANGE",
+                 ((f"CHANGE SINCE {first['as_of_date'][:4]} (EST.)" if since_estimate else
+                   f"CHANGE OVER {years} YEAR{'S' if years != 1 else ''}") if change is not None else "CHANGE",
                   f"{change:+.1%}" if change is not None else "–",
                   f"{_num(first['value'])} → {_num(last['value'])}" if change is not None else "one reported year", "accent")]
         gap = (6.2 - top - 3 * 1.2) / 2
@@ -604,34 +608,40 @@ def _trend_chart(s, reported: list[dict], forecast: list[dict], t: dict, x, y, w
     rgb = lambda key: RGBColor.from_string(t[key])  # noqa: E731
     last = reported[-1]
     ly = int(last["as_of_date"][:4])
-    years = list(range(ly - HISTORY_YEARS + 1, ly + FORECAST_YEARS + 1))
-    rep = {int(p["as_of_date"][:4]): p["value"] for p in reported if int(p["as_of_date"][:4]) in years}
+    # Five years back, or further when a historical estimate reaches further.
+    n_hist = max(HISTORY_YEARS, ly - int(reported[0]["as_of_date"][:4]) + 1)
+    years = list(range(ly - n_hist + 1, ly + FORECAST_YEARS + 1))
+    rep = {int(p["as_of_date"][:4]): p["value"] for p in reported if not p.get("historical") and int(p["as_of_date"][:4]) in years}
+    hist = {int(p["as_of_date"][:4]): p["value"] for p in reported if p.get("historical") and int(p["as_of_date"][:4]) in years}
+    anchors = {**hist, **rep}
     fc = {int(p["as_of_date"][:4]): p for p in forecast}
-    known = sorted(rep)
+    known = sorted(anchors)
 
     def held(year):  # a placeholder sits on the line between its neighbours, or level with the nearest figure
         prev = max((k for k in known if k < year), default=None)
         nxt = min((k for k in known if k > year), default=None)
         if prev is not None and nxt is not None:
-            return rep[prev] + (rep[nxt] - rep[prev]) * (year - prev) / (nxt - prev)
-        return rep[prev if prev is not None else nxt]
+            return anchors[prev] + (anchors[nxt] - anchors[prev]) * (year - prev) / (nxt - prev)
+        return anchors[prev if prev is not None else nxt]
 
-    gaps = [yr for yr in years[:HISTORY_YEARS] if yr not in rep] + ([] if fc else years[HISTORY_YEARS:])
+    gaps = [yr for yr in years[:n_hist] if yr not in anchors] + ([] if fc else years[n_hist:])
     placeholder: list[float | None] = [None] * len(years)
     for i, yr in enumerate(years):
         if yr in gaps:
             placeholder[i] = held(yr)
             for j in (i - 1, i + 1):  # reach the neighbouring reported point so the dotted line connects
-                if 0 <= j < len(years) and years[j] in rep:
-                    placeholder[j] = rep[years[j]]
+                if 0 <= j < len(years) and years[j] in anchors:
+                    placeholder[j] = anchors[years[j]]
     data = CategoryChartData()
     data.categories = [str(yr) for yr in years]
     series_spec = [("No reported figure", placeholder)]
+    if hist:
+        series_spec.append(("Historical estimate", [hist.get(yr) for yr in years]))
     if fc:
-        lead = [None] * (HISTORY_YEARS - 1) + [last["value"]]
-        series_spec += [("Forecast high", lead + [fc[yr]["high"] if yr in fc else None for yr in years[HISTORY_YEARS:]]),
-                        ("Forecast low", lead + [fc[yr]["low"] if yr in fc else None for yr in years[HISTORY_YEARS:]]),
-                        ("Forecast", lead + [fc[yr]["value"] if yr in fc else None for yr in years[HISTORY_YEARS:]])]
+        lead = [None] * (n_hist - 1) + [last["value"]]
+        series_spec += [("Forecast high", lead + [fc[yr]["high"] if yr in fc else None for yr in years[n_hist:]]),
+                        ("Forecast low", lead + [fc[yr]["low"] if yr in fc else None for yr in years[n_hist:]]),
+                        ("Forecast", lead + [fc[yr]["value"] if yr in fc else None for yr in years[n_hist:]])]
     series_spec.append(("Reported", [rep.get(yr) for yr in years]))
     for name, values in series_spec:
         data.add_series(name, values)
@@ -669,6 +679,19 @@ def _trend_chart(s, reported: list[dict], forecast: list[dict], t: dict, x, y, w
         elif series.name in ("Forecast high", "Forecast low"):
             line.width, line.color.rgb, line.dash_style = Pt(1), rgb("blue"), MSO_LINE_DASH_STYLE.SQUARE_DOT
             marker.style = XL_MARKER_STYLE.NONE
+        elif series.name == "Historical estimate":  # hollow, muted, "≈7,000 est."; never certified
+            line.fill.background()
+            marker.style, marker.size = XL_MARKER_STYLE.CIRCLE, 9
+            marker.format.fill.solid()
+            marker.format.fill.fore_color.rgb = rgb("card")
+            marker.format.line.color.rgb, marker.format.line.width = rgb("muted"), Pt(2)
+            for i, yr in enumerate(years):
+                if yr in hist:
+                    dl = series.points[i].data_label
+                    dl.position = XL_LABEL_POSITION.ABOVE
+                    dl.text_frame.text = "≈" + _num(hist[yr]) + " est."
+                    run = dl.text_frame.paragraphs[0].runs[0]
+                    run.font.size, run.font.italic, run.font.color.rgb = Pt(10), True, rgb("muted")
         else:
             reported_series = series.name == "Reported"
             line.width, line.color.rgb = Pt(3.25 if reported_series else 2.5), rgb("blue")

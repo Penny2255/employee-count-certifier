@@ -837,3 +837,20 @@ The record's entity carries `address` and `address_source`, shown as **HQ addres
 - One line under the title, in blue: "Certified answers · giving you transparency & trust to take real action" (the
   "Deep sweeps" line is gone). The "soon" metrics are fainter, admins no longer see "Admin · no limits", sample cards
   keep the name to one line (trimmed, full name on hover) so every card is two lines, and the footer is three lines.
+
+### D108. Historical estimates give a short history some shape
+- When fewer than three reported figures exist, older company-voice statements (tiers 1-6: filings, the company's own
+  pages and press, its LinkedIn description, an executive quoted in the press), dated before the first trend point,
+  plausible against the certified figure and at most 10 years old, are shown as "historical estimates": at most two,
+  one per year, hollow and labelled "est.", joined by a dotted line. They are never certified; data providers
+  (tiers 7-9) never count. Mortenson: the CEO's 2019 "7,000 team members" before the 2026 "10,000+".
+- The forecast then leans gently with the growth since the historical estimate: about a third of it, capped at ±3% a
+  year, since older statements often count differently (office staff versus craft workers). Mortenson: +1.8% a year,
+  about 10,725 by 2030.
+
+### D109. Compare with your CRM: one story with two ranges
+- The **certified range** is what we stand behind (the card's "Certified range"); the **acceptable range** is wider,
+  as wide as the confidence warrants, for leaving a CRM number alone. Inside the acceptable range: keep it. Outside:
+  suggest the nearest edge of the certified range, and at the least the acceptable range's edge. When the likely
+  direction since the as-of date points toward your number, only the acceptable edge is suggested.
+- The chart shows both: the certified range as a firmer band inside the softer acceptable band.

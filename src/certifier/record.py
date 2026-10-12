@@ -267,6 +267,9 @@ class TrendRow(BaseModel):
     low: int | None = None
     high: int | None = None
     rationale: Rationale
+    # An older company-voice statement (tier 1-6) shown for context when the reported history is short: it shapes
+    # the trend and the forecast, but it is never certified.
+    historical: bool = False
 
 
 class LinkedInSection(BaseModel):
@@ -869,7 +872,11 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
                                           "kind were found." if cert.as_of_date else
                                           f"The certified figure, shown at the certification date ({when.isoformat()}) "
                                           "because its source is undated."))]
-    trend_rows += _forecast(trend_rows) if len(trend_rows) >= 3 else _short_forecast(trend_rows, cert.linkedin_check)
+    if 0 < len(trend_rows) < 3 and cert.certified_count:
+        trend_rows = _historical_points(cert, trend_rows) + trend_rows
+    reported_only = [t for t in trend_rows if not t.historical]
+    trend_rows += (_forecast(trend_rows) if len(reported_only) >= 3 and len(reported_only) == len(trend_rows)
+                   else _short_forecast(trend_rows, cert.linkedin_check))
 
     events = [EventRow(description=e.description, url=e.url, close_date=e.close_date, penalized=e.penalized,
                        rationale=e.reason) for e in cert.events]
@@ -930,9 +937,37 @@ SHORT_SPREAD = 0.08        # a best-guess forecast's yearly range (±8%, widenin
 LINKEDIN_WEIGHT = 0.5      # LinkedIn over-represents office staff: half of its growth carries into the forecast
 
 
+HISTORY_MAX_YEARS = 10     # how far back a historical estimate may reach
+HISTORY_MAX_POINTS = 2     # at most this many historical estimates
+HISTORICAL_WEIGHT = 0.35   # an older statement is weaker evidence: about a third of its growth carries forward
+HISTORICAL_MAX_RATE = 0.03 # ...and never more than ±3% a year: older statements often count differently
+
+
+def _historical_points(cert: Certification, rows: list[TrendRow]) -> list[TrendRow]:
+    """Older company-voice figures (tiers 1-6: filings, the company's own pages and press, LinkedIn description,
+    an executive quoted in the press) dated before the first trend point, one per year, plausible against the
+    certified figure (within 5x either way). They give a short history some shape; they are never certified."""
+    first = rows[0].as_of_date
+    by_year: dict[int, Source] = {}
+    for s in cert.sources:
+        if (s.as_of_date is None or s.as_of_date >= first or s.tier > 6 or s.scope != "global" or s.basis != "headcount"
+                or s.corroboration_only or not s.value or (first - s.as_of_date).days > 365.25 * HISTORY_MAX_YEARS
+                or not 0.2 <= s.value / cert.certified_count <= 5 or s.as_of_date.year == first.year):
+            continue
+        current = by_year.get(s.as_of_date.year)
+        if current is None or (s.tier, -s.as_of_date.toordinal()) < (current.tier, -current.as_of_date.toordinal()):
+            by_year[s.as_of_date.year] = s
+    picks = [by_year[y] for y in sorted(by_year)][-HISTORY_MAX_POINTS:]
+    return [TrendRow(as_of_date=s.as_of_date, value=s.value, tier=s.tier, url=s.url, estimated=False, historical=True,
+                     rationale=f"Historical estimate from a tier {s.tier} statement as of {s.as_of_date.isoformat()}: older "
+                               "context for the trend, not a certified figure.")
+            for s in picks]
+
+
 def _short_forecast(points: list[TrendRow], li) -> list[TrendRow]:
     """A best-guess forecast when there are fewer than 3 reported points: level, or following LinkedIn's headcount
-    growth (half of it, capped) when research found it, or the change between two points (half, capped). The range
+    growth (half of it, capped) when research found it, or the change since the first point (half of it between
+    reported figures; about a third since a historical estimate), capped. The range
     starts at ±8% and widens with the square root of the years ahead. Always marked as an estimate."""
     if not points:
         return []
@@ -943,11 +978,17 @@ def _short_forecast(points: list[TrendRow], li) -> list[TrendRow]:
         rate = max(-FORECAST_MAX_RATE, min(FORECAST_MAX_RATE, growth * LINKEDIN_WEIGHT))
         basis = (f"half of LinkedIn's {growth:+.0%} yearly headcount growth ({rate:+.1%} a year), since LinkedIn "
                  "over-represents office staff")
-    elif len(points) == 2 and points[0].value:
-        years = max(0.5, (points[1].as_of_date - points[0].as_of_date).days / 365.25)
-        change = (points[1].value / points[0].value) ** (1 / years) - 1
-        rate = max(-FORECAST_MAX_RATE, min(FORECAST_MAX_RATE, change * 0.5))
-        basis = f"half the change between the two reported figures ({rate:+.1%} a year)"
+    elif len(points) >= 2 and points[0].value:
+        first = points[0]
+        years = max(0.5, (last.as_of_date - first.as_of_date).days / 365.25)
+        change = (last.value / first.value) ** (1 / years) - 1
+        if first.historical:
+            rate = max(-HISTORICAL_MAX_RATE, min(HISTORICAL_MAX_RATE, change * HISTORICAL_WEIGHT))
+            basis = (f"a gentle lean from the growth since the {first.as_of_date.year} historical estimate "
+                     f"({rate:+.1%} a year carried forward, at most ±{HISTORICAL_MAX_RATE:.0%})")
+        else:
+            rate = max(-FORECAST_MAX_RATE, min(FORECAST_MAX_RATE, change * 0.5))
+            basis = f"half the change between the reported figures ({rate:+.1%} a year)"
     else:
         rate, basis = 0.0, "level, since there is no earlier figure or growth signal"
     out = []

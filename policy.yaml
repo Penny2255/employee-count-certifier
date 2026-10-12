@@ -26,10 +26,17 @@ pricing:
     claude-haiku-5-5: {input_per_mtok: 0.10, output_per_mtok: 0.50, cache_read_per_mtok: 0.01}
   web_search_per_1000: 10.00
 
+# Corporate Fact Sheet: the company's official fact sheet or "company facts" page/PDF is primary,
+# right behind 10-K/20-F/40-F and annual financial reports and above every website, press release,
+# LinkedIn and third-party source. With no date at all it drops one tier (DECISIONS.md D54).
+fact_sheet:
+  tier: 2
+  undated_tier: 3
+
 # Tier number -> class. Lower tier number = higher rank.
 tiers:
   1: {class: primary, name: "10-K, 20-F, 40-F or annual financial report"}
-  2: {class: primary, name: "Non-financial annual or regulatory report"}
+  2: {class: primary, name: "Corporate fact sheet, or non-financial annual or regulatory report"}
   3: {class: secondary, name: "Formal press release or company-published document"}
   4: {class: secondary, name: "Company website description"}
   5: {class: secondary, name: "LinkedIn company description"}
@@ -130,6 +137,10 @@ research_guidelines:
     Cities, counties and states: use the Annual Comprehensive Financial Report (ACFR), then the
     adopted budget. Record whether the figure is FTE or headcount, and whether it includes school
     systems. Look for a figure for the government's own workers without schools.
+  - >-
+    Look for the company's official Corporate Fact Sheet (a "fact sheet" or "company facts" page or
+    PDF, often in the newsroom or investor relations section). It is tier 2: behind the 10-K and
+    annual report, ahead of the website, press releases and LinkedIn.
   - >-
     Capture each figure's verbatim excerpt and its as-of date, and record segment or regional
     figures as partial scope.

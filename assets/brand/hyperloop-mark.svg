@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 110" role="img" aria-label="Human in the Hyperloop mark">
+  <defs>
+    <clipPath id="blue"><polygon points="62,0 200,0 200,110 138,110 138,55 62,55"/></clipPath>
+    <clipPath id="green"><polygon points="0,0 62,0 62,55 138,55 138,110 0,110"/></clipPath>
+  </defs>
+  <rect x="17" y="17" width="166" height="76" rx="38" fill="none" stroke="#3FCF8E" stroke-width="22" clip-path="url(#green)"/>
+  <rect x="17" y="17" width="166" height="76" rx="38" fill="none" stroke="#599AF5" stroke-width="22" clip-path="url(#blue)"/>
+  <circle cx="100" cy="55" r="15" fill="currentColor"/>
+</svg>

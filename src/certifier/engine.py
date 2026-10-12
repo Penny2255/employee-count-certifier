@@ -5,14 +5,20 @@ from __future__ import annotations
 from datetime import date
 
 from . import rules
-from .models import Adjustment, Certification, Entity, Event, EventOutcome, LinkedInEvidence, ScoreStep, Source
+import re
+
+from .models import (Adjustment, Certification, Direction, Entity, Event, EventOutcome, LinkedInEvidence, ScoreStep,
+                     Source)
+
+_URL_DATE = re.compile(r"/((?:19|20)\d{2})/(0[1-9]|1[0-2])(?:/(0[1-9]|[12]\d|3[01]))?(?=/|$|[?#])")
 from .policy import Policy, default_policy
 
 
 def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | None = None,
             lookup_date: date | None = None, event_flags: list[str] | None = None,
             policy: Policy | None = None, review_flags: list[str] | None = None,
-            events: list[Event] | None = None) -> Certification:
+            events: list[Event] | None = None, scope_notes: list[str] | None = None,
+            subsidiary_questions: list[str] | None = None) -> Certification:
     """`event_flags` are pre-judged event flags that always lower confidence; `events` are dated
     events judged here against the selected source's as-of date."""
     policy = policy or default_policy()
@@ -24,11 +30,26 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
 
     effective: dict[int, int] = {}
     for s in sources:
+        # A Corporate Fact Sheet is primary (tier 2); with no date at all it drops to tier 3.
+        if s.document_type == "fact_sheet":
+            dated = s.as_of_date is not None or s.latest_published is not None
+            tier = policy.fact_sheet.tier if dated else policy.fact_sheet.undated_tier
+            if not dated:
+                s.notes.append(f"Corporate fact sheet with no date: ranked tier {tier} instead of "
+                               f"{policy.fact_sheet.tier}, because its age can't be judged.")
+            s.tier = tier
         # An undated figure gets an as-of date estimated from its publication date (research may
         # already have estimated one from wording such as "as of early 2025").
         if s.as_of_date is None and s.latest_published is not None:
             s.as_of_date, s.as_of_estimated = s.latest_published, True
             s.as_of_basis = s.as_of_basis or f"publication date {s.latest_published.isoformat()}"
+        # Lowest priority: a date in the URL path (e.g. /2023/03/), for undated sources only.
+        if s.as_of_date is None:
+            m = _URL_DATE.search(s.url)
+            if m:
+                s.as_of_date = date(int(m.group(1)), int(m.group(2)), int(m.group(3) or 1))
+                s.as_of_estimated, s.as_of_from_url = True, True
+                s.as_of_basis = f"the date in the URL ({m.group(0)}), not the reported text"
         # A source can't report a headcount as of a date after it was published (or after today).
         latest_possible = min(d for d in (s.latest_published, lookup_date) if d is not None)
         if s.as_of_estimated and s.as_of_date is not None and s.as_of_date > latest_possible:
@@ -55,6 +76,14 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
     notes = list(selection.notes)
     linkedin = linkedin or LinkedInEvidence()
     flags.extend(selection.flags)
+    # A consolidated annual filing (tier 1) counts every subsidiary owned at its as-of date, so a question
+    # about whether a subsidiary is included can't change the entity counted: a note, not a flag.
+    scope_notes = list(scope_notes or [])
+    if selected is not None and selected.tier == 1:
+        scope_notes += [f"{q} (The consolidated annual filing includes subsidiaries owned at its as-of date.)"
+                        for q in subsidiary_questions or []]
+    else:
+        flags += [f"Complexity: {q}" for q in subsidiary_questions or []]
     for s in selection.inconsistent:
         s.role = "conflicts"  # a detailed figure out of line with the headline never corroborates it
         s.role_reason = ("A more detailed figure not in line with the headline statement for the same date; "
@@ -102,11 +131,23 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
 
     # Events lower confidence only when they closed after the as-of date (the figure can't include them).
     event_outcomes: list[EventOutcome] = []
+    primary_anchor = selected is not None and policy.tier_class(selected.tier) == "primary"
     for e in events or []:
         where = f" ({e.url})" if e.url else ""
         if e.headcount_change is not None and value:  # a stated change is judged against the certified value
             e = e.model_copy(update={"material": abs(e.headcount_change) / value > policy.agreement.corroborates_within})
-        if e.close_date is not None and as_of is not None and e.close_date > as_of:
+        after = e.close_date is not None and as_of is not None and e.close_date > as_of
+        if after and primary_anchor:
+            # A tier 1-2 figure stands as reported: no relabel, no score change; an awareness note only.
+            effect = "" if e.headcount_change is None else f" (stated change {e.headcount_change:+,})"
+            event_outcomes.append(EventOutcome(
+                description=e.description, url=e.url, close_date=e.close_date, penalized=False, after_as_of=True,
+                headcount_change=e.headcount_change,
+                reason=(f"Took effect {e.close_date.isoformat()}, after the {as_of.isoformat()} as-of date{effect}. "
+                        f"The tier {selected.tier} figure stands as reported; this is noted for awareness and in the "
+                        "directional guidance.")))
+            continue
+        if after:
             effect = "" if e.headcount_change is None else f" (stated change {e.headcount_change:+,})"
             if e.material:
                 reason = (f"Took effect {e.close_date.isoformat()}, after the {as_of.isoformat()} as-of date, so the "
@@ -211,7 +252,12 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
         range=value_range, confidence_score=score, confidence_level=policy.confidence_levels[score],
         confidence_breakdown=steps, policy_tier=policy_tier, as_of_date=as_of,
         as_of_estimated=bool(selected is not None and selected.as_of_estimated),
-        pre_adjustment=any(o.after_as_of for o in event_outcomes),
+        as_of_from_url=bool(selected is not None and selected.as_of_from_url),
+        pre_adjustment=not primary_anchor and (any(o.after_as_of for o in event_outcomes)
+                                               or bool(selected is not None and selected.predates_change)),
+        direction=_direction(selected, value, event_outcomes, sources, effective, lookup_date, policy,
+                             growth is not None),
+        scope_notes=scope_notes,
         indicated_range=rules.indicated_range(selected, value, sources, lookup_date, policy) if growth is None else None,
         sources=_explain_unassigned(sources, value), linkedin_check=li, adjustments=adjustments, flags=flags,
         events=event_outcomes,
@@ -224,6 +270,72 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
 def _pct(x: float) -> str:
     """Percent with a decimal below 1% (0.4%, not 0%)."""
     return f"{x:.1%}" if x < 0.01 else f"{x:.0%}"
+
+
+_KIND_SIGN = {"layoff": -1, "spinoff": -1, "hiring": 1, "acquisition": 1, "merger": 1}
+
+
+def _direction(selected: Source | None, value: int | None, outcomes: list[EventOutcome], sources: list[Source],
+               effective: dict[int, int], lookup_date: date, policy: Policy, grown: bool) -> Direction | None:
+    """Is the true current headcount likely higher, lower or in line with the certified figure?"""
+    if value is None:
+        return None
+    after = [o for o in outcomes if o.after_as_of]
+    if after:
+        net = sum(o.headcount_change or 0 for o in after)
+        signs = {(-1 if (o.headcount_change or 0) < 0 else 1) if o.headcount_change else
+                 _KIND_SIGN.get(_kind_of(o.description), 0) for o in after}
+        sign = (-1 if net < 0 else 1) if net else (signs.pop() if len(signs) == 1 else 0)
+        what = "; ".join(f"{_short(o.description)} ({o.close_date.isoformat()}"
+                         + (f", {o.headcount_change:+,})" if o.headcount_change is not None else ")") for o in after)
+        if sign:
+            size = "somewhat " if net == 0 or abs(net) / value <= policy.agreement.corroborates_within else ""
+            word = "lower" if sign < 0 else "higher"
+            return Direction(direction=word, reason=f"Likely {size}{word} than reported because of a change after the as-of date: {what}.")
+        return Direction(direction="unknown", reason=f"Changes after the as-of date point both ways: {what}.")
+    if selected is not None and selected.predates_change:
+        return Direction(direction="lower", reason="Likely lower than reported: the source says the figure predates "
+                                                   "a change it describes.")
+    ir = rules.indicated_range(selected, value, sources, lookup_date, policy) if not grown else None
+    if ir is not None:
+        mid = (ir.low + ir.high) / 2
+        word = "higher" if mid > value else "lower"
+        span = f"about {ir.low:,}" if ir.low == ir.high else f"{ir.low:,}-{ir.high:,}"
+        when = (ir.earliest.isoformat() if ir.earliest == ir.latest
+                else f"{ir.earliest.isoformat()} to {ir.latest.isoformat()}")
+        return Direction(direction=word, reason=f"Likely {word}: newer data-provider figures put headcount at "
+                                                f"{span} ({when}).")
+    if selected is not None and selected.as_of_date is not None:
+        prior = sorted((s for s in sources if s is not selected and s.tier == selected.tier and s.scope == "global"
+                        and s.basis == selected.basis and s.as_of_date and s.as_of_date < selected.as_of_date
+                        and not s.corroboration_only), key=lambda s: s.as_of_date)
+        if prior:
+            last = effective[id(prior[-1])]
+            change = (value - last) / last if last else 0
+            if abs(change) < 0.03:
+                return Direction(direction="in_line", reason=f"Likely in line: the prior figure was {last:,} "
+                                                              f"({change:+.0%}), and no later change is known.")
+            word = "higher" if change > 0 else "lower"
+            return Direction(direction=word, reason=f"Possibly {word} now if the recent trend continued ({last:,} to "
+                                                    f"{value:,}, {change:+.0%}); no later change is known.")
+    return Direction(direction="unknown", reason="No newer evidence to say whether the figure has moved since its "
+                                                 "as-of date.")
+
+
+def _short(description: str, limit: int = 90) -> str:
+    """First sentence of an event description, trimmed for a one-line reason."""
+    first = description.split(". ")[0].rstrip(".")
+    return first if len(first) <= limit else first[:limit].rsplit(" ", 1)[0] + "…"
+
+
+def _kind_of(description: str) -> str:
+    d = description.lower()
+    for kind, words in (("layoff", ("layoff", "laid off", "cut", "reduction")), ("hiring", ("hiring", "hire")),
+                        ("spinoff", ("spinoff", "spin-off", "spun off")), ("acquisition", ("acquisition", "acquired")),
+                        ("merger", ("merger", "merged"))):
+        if any(w in d for w in words):
+            return kind
+    return "other"
 
 
 def _explain_unassigned(sources: list[Source], value: int | None) -> list[Source]:

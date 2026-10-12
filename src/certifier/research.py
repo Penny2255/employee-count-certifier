@@ -40,8 +40,21 @@ class XSource(BaseModel):
     as_of_estimate_basis: str | None = Field(description="What the estimate rests on, e.g. 'article dated 2025-01-22'")
     published_date: date | None
     modified_date: date | None = Field(description="Page's last-updated date, if shown")
+    predates_change: bool = Field(description="True if the source itself says the figure is from before a change "
+                                              "it describes (e.g. 'before taking the layoffs into account')")
     restates: bool = Field(description="True if this source repeats another source's figure (e.g. Wikipedia, "
                                        "Bullfincher or an aggregator quoting the 10-K) rather than reporting its own")
+    document_type: Literal["10-K", "20-F", "40-F", "annual_report", "acfr", "fact_sheet", "form_990", "ipeds",
+                           "non_financial_report", "press_release", "company_document", "website_about",
+                           "website_other", "linkedin_description", "news", "data_provider", "other"] | None = Field(
+        default=None,
+        description="What the document is. annual_report: full annual/integrated report with financial statements; "
+                    "acfr: a government's Annual Comprehensive Financial Report; fact_sheet: the company's official "
+                    "Corporate Fact Sheet or 'company facts' page/PDF; non_financial_report: impact/sustainability/"
+                    "annual review report; company_document: other company-published document (brochure, packet); "
+                    "website_about: the About/Company page; news: a news article; data_provider: a headcount database")
+    publisher: str | None = Field(default=None, description="Outlet or provider name for news and data providers, "
+                                                            "e.g. 'Reuters', 'ZoomInfo'; null otherwise")
     excerpt: str = Field(description="Verbatim quote containing the figure")
     context: str = Field(description="Detailed excerpt: the verbatim passage around the figure, 2-4 sentences")
     section: str | None = Field(description="Heading or part of the page/document where the figure appears, "
@@ -73,17 +86,25 @@ class XEvent(BaseModel):
         description="Approximate change to headcount as a fraction (0.25 = +25%), null if unknown")
 
 
+class XComplexity(BaseModel):
+    description: str
+    kind: Literal["subsidiary", "health_system", "joint_venture", "affiliate", "other"]
+
+
+ENTITY_CHANGING = {"subsidiary", "health_system", "joint_venture", "affiliate"}
+
+
 class Extraction(BaseModel):
     sources: list[XSource]
     linkedin: XLinkedIn
     workforce_profile: Literal["white_collar", "mixed", "blue_collar"]
     events: list[XEvent] = Field(description="Completed or definitively announced mergers, acquisitions, spinoffs, "
                                              "layoffs or hiring that change headcount. Not bids, proposals or rumors")
-    complexities: list[str] = Field(
-        description="Only genuine entity-scope ambiguity that could change the count materially and needs human "
-                    "review, e.g. 'University has an affiliated health system that IPEDS excludes' or 'city figure "
-                    "may include the school district'. Wholly owned subsidiaries are simply included by policy and "
-                    "are NOT a complexity; neither are partial-scope figures already marked partial. Usually empty")
+    complexities: list[XComplexity] = Field(
+        description="Entity-scope questions. Use kind subsidiary / health_system / joint_venture / affiliate only "
+                    "when the question could change WHICH entity is counted (e.g. 'the university's affiliated health "
+                    "system may or may not be included'). Anything else (data disagreements, missing data, "
+                    "wholly owned subsidiaries already included by policy) is kind other. Usually empty")
     notes: str
 
 
@@ -203,6 +224,8 @@ class ResearchResult(BaseModel):
     linkedin: LinkedInEvidence
     events: list[Event]
     complexities: list[str] = []
+    subsidiary_questions: list[str] = []  # resolved by the engine once the anchor is known
+    scope_notes: list[str] = []
     notes: str
     research_notes: str
 
@@ -223,7 +246,7 @@ def _known_block(known: list[Source]) -> str:
 
 def research_entity(entity: Entity, snippets: list[Snippet], lookup_date: date, claude: Claude,
                     spend: Spend, site: list[PageSnippet] | None = None,
-                    known: list[Source] | None = None) -> ResearchResult:
+                    known: list[Source] | None = None, on_extract=None) -> ResearchResult:
     """`known` are structured sources fetched directly (e.g., Form 990 line 5); research skips them."""
     site, known = site or [], known or []
     brief = _policy_brief(claude.policy)
@@ -239,6 +262,8 @@ def research_entity(entity: Entity, snippets: list[Snippet], lookup_date: date, 
                             f"{_entity_block(entity, lookup_date)}\n\n{edgar_note}\n\n{_known_block(known)}\n\n"
                             f"{_site_block(site)}", spend,
                             max_searches=budget.max_web_searches_when_sec_filer if have_primary else None)
+    if on_extract is not None:
+        on_extract()
     extraction = claude.extract(
         EXTRACT_SYSTEM.format(brief=brief),
         f"{_entity_block(entity, lookup_date)}\n\n{_snippet_block(snippets)}\n\n{_site_block(site)}"
@@ -260,7 +285,10 @@ def research_entity(entity: Entity, snippets: list[Snippet], lookup_date: date, 
             workforce_profile=extraction.workforce_profile,
             growth_6m=extraction.linkedin.growth_6m, growth_1y=extraction.linkedin.growth_1y,
             growth_2y=extraction.linkedin.growth_2y),
-        events=events, complexities=extraction.complexities,
+        events=events, complexities=[c.description for c in extraction.complexities
+                                            if c.kind in ENTITY_CHANGING - {"subsidiary"}],
+        subsidiary_questions=[c.description for c in extraction.complexities if c.kind == "subsidiary"],
+        scope_notes=[c.description for c in extraction.complexities if c.kind not in ENTITY_CHANGING],
         notes=" ".join([extraction.notes, *event_notes]).strip(), research_notes=notes)
 
 
@@ -272,7 +300,8 @@ def to_source(x: XSource) -> Source:
         as_of_basis=(x.as_of_estimate_basis or "context in the source")
         if x.as_of_date is None and x.as_of_estimate is not None else None,
         published_date=x.published_date,
-        modified_date=x.modified_date, restates=x.restates,
+        modified_date=x.modified_date, restates=x.restates, predates_change=x.predates_change,
+        document_type=x.document_type, publisher=x.publisher,
         contractors_included=x.contractors_included or None,
         separately_reported={c.category: c.count for c in x.separately_reported} or None,
         notes=[x.note] if x.note else [],

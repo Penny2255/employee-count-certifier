@@ -1,8 +1,9 @@
 """Spend controls and caching for the hosted service, shared by the MCP tools and the web app.
 
-- Per-user daily lookup limit (CERTIFIER_DAILY_LOOKUPS_PER_USER, default 20). Cached results are free.
+- Per-user daily lookup limit (CERTIFIER_DAILY_LOOKUPS_PER_USER, default 10). Cached results are free;
+  a refresh counts.
 - Global daily dollar cap across all users (CERTIFIER_DAILY_USD_CAP, default $10).
-- Certifications cached per entity (CERTIFIER_CACHE_DAYS, default 30), with a refresh option.
+- Certifications cached per entity and shared by everyone (CERTIFIER_CACHE_DAYS, default 90), with refresh.
 
 Local use (no signed-in user, e.g. Claude Desktop over stdio) runs without limits or cache.
 """
@@ -36,15 +37,15 @@ def _env_number(name: str, default: float) -> float:
 @dataclass
 class Controls:
     store: Store
-    daily_lookups: int = 20
+    daily_lookups: int = 10
     daily_usd_cap: float = 10.0
-    cache_days: int = 30
+    cache_days: int = 90
 
     @classmethod
     def from_env(cls, store: Store | None = None) -> "Controls":
-        return cls(store=store or Store(), daily_lookups=int(_env_number("CERTIFIER_DAILY_LOOKUPS_PER_USER", 20)),
+        return cls(store=store or Store(), daily_lookups=int(_env_number("CERTIFIER_DAILY_LOOKUPS_PER_USER", 10)),
                    daily_usd_cap=_env_number("CERTIFIER_DAILY_USD_CAP", 10.0),
-                   cache_days=int(_env_number("CERTIFIER_CACHE_DAYS", 30)))
+                   cache_days=int(_env_number("CERTIFIER_CACHE_DAYS", 90)))
 
     def check_spend(self) -> None:
         spent = self.store.spend_today()

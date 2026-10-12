@@ -67,6 +67,7 @@ def snippet_sources(snippets: list[Snippet]) -> list[Source]:
                 url=snip.filing.url, tier=1, value=fig.value, qualifier=fig.qualifier, basis=fig.basis,
                 excerpt=snip.text, as_of_date=_as_of(snip.text, snip.filing),
                 published_date=snip.filing.filed, scope="partial" if partial else "global",
+                document_type=snip.filing.form,
             ))
     return out
 

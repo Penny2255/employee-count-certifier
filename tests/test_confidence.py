@@ -95,13 +95,22 @@ def test_event_closed_before_as_of_is_noted_not_penalized(entity):
     assert "not penalized" in cert.rationale
 
 
-def test_event_closed_after_as_of_lowers_confidence(entity):
+def test_event_after_as_of_lowers_confidence_for_secondary_anchor(entity):
+    from certifier.models import Event
+    deal = Event(description="Acquisition of Target Co", close_date=date(2026, 5, 1), url="https://example.com/pr")
+    cert = score(entity, src(4, 10_000, as_of=date(2026, 1, 31)), events=[deal])
+    assert cert.confidence_score == 1  # base 2 - 1 for the event
+    assert cert.flags[0].startswith("Event-driven: Acquisition of Target Co, 2026-05-01, after")
+    assert cert.pre_adjustment
+
+
+def test_event_after_as_of_never_changes_a_primary_anchor(entity):
     from certifier.models import Event
     deal = Event(description="Acquisition of Target Co", close_date=date(2026, 5, 1), url="https://example.com/pr")
     cert = score(entity, src(1, 10_000, as_of=date(2026, 1, 31)), events=[deal])
-    assert cert.confidence_score == 3
-    assert cert.flags[0].startswith("Event-driven: Acquisition of Target Co, 2026-05-01, after")
-    assert cert.pre_adjustment
+    assert (cert.confidence_score, cert.pre_adjustment, cert.flags) == (4, False, [])
+    assert cert.events[0].after_as_of and "stands as reported" in cert.events[0].reason
+    assert cert.direction.direction == "higher"
 
 
 def test_event_without_close_date_is_noted(entity):

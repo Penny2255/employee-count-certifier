@@ -18,6 +18,10 @@ CREATE TABLE IF NOT EXISTS usage (day TEXT, subject TEXT, lookups INTEGER DEFAUL
                                   PRIMARY KEY (day, subject));
 CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY, created_at TEXT, payload TEXT);
 CREATE TABLE IF NOT EXISTS oauth (kind TEXT, key TEXT, payload TEXT, expires_at REAL, PRIMARY KEY (kind, key));
+CREATE TABLE IF NOT EXISTS queries (id TEXT PRIMARY KEY, created_at TEXT, subject TEXT, query TEXT, entity_name TEXT,
+                                    certified_count INTEGER, confidence INTEGER, cached INTEGER, cost_usd REAL,
+                                    record TEXT);
+CREATE TABLE IF NOT EXISTS ratings (query_id TEXT, created_at TEXT, subject TEXT, rating TEXT, comment TEXT);
 """
 
 
@@ -76,6 +80,32 @@ class Store:
         with self._lock, self._conn() as c:
             c.execute("INSERT OR REPLACE INTO cache (key, created_at, payload) VALUES (?, ?, ?)",
                       (key, datetime.now(timezone.utc).isoformat(timespec="seconds"), payload))
+
+    # --- queries, results and ratings (review queue) -----------------------------------------
+
+    def save_query(self, query_id: str, subject: str, query: str, entity_name: str, certified_count: int | None,
+                   confidence: int, cached: bool, cost_usd: float, record_json: str) -> None:
+        with self._lock, self._conn() as c:
+            c.execute("INSERT OR REPLACE INTO queries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                      (query_id, datetime.now(timezone.utc).isoformat(timespec="seconds"), subject, query, entity_name,
+                       certified_count, confidence, int(cached), cost_usd, record_json))
+
+    def get_query(self, query_id: str) -> dict | None:
+        with self._lock, self._conn() as c:
+            row = c.execute("SELECT * FROM queries WHERE id=?", (query_id,)).fetchone()
+        return dict(row) if row else None
+
+    def save_rating(self, query_id: str, subject: str, rating: str, comment: str) -> None:
+        with self._lock, self._conn() as c:
+            c.execute("INSERT INTO ratings VALUES (?, ?, ?, ?, ?)",
+                      (query_id, datetime.now(timezone.utc).isoformat(timespec="seconds"), subject, rating, comment))
+
+    def ratings(self, limit: int = 100) -> list[dict]:
+        with self._lock, self._conn() as c:
+            rows = c.execute("SELECT r.*, q.query, q.entity_name, q.certified_count, q.confidence FROM ratings r "
+                             "LEFT JOIN queries q ON q.id = r.query_id ORDER BY r.created_at DESC LIMIT ?",
+                             (limit,)).fetchall()
+        return [dict(r) for r in rows]
 
     # --- OAuth state --------------------------------------------------------------------------
 

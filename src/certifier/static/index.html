@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>GTM Data Certifier · Human in the Hyperloop</title>
+<meta name="description" content="Certified global employee counts from public sources, with the key source, page reference and a confidence score.">
+<link rel="icon" href="/assets/brand/favicon.png">
+<link rel="stylesheet" href="/static/app.css">
+<script>try { var t = localStorage.getItem("gtm_theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="topbar">
+  <a class="brand" href="/" data-nav="home">
+    <svg class="mark" viewBox="0 0 200 110" aria-hidden="true" width="44" height="24"><defs><clipPath id="mhb"><polygon points="62,0 200,0 200,110 138,110 138,55 62,55"/></clipPath><clipPath id="mhg"><polygon points="0,0 62,0 62,55 138,55 138,110 0,110"/></clipPath></defs><rect x="17" y="17" width="166" height="76" rx="38" fill="none" stroke="#3FCF8E" stroke-width="22" clip-path="url(#mhg)"/><rect x="17" y="17" width="166" height="76" rx="38" fill="none" stroke="#599AF5" stroke-width="22" clip-path="url(#mhb)"/><circle cx="100" cy="55" r="15" fill="currentColor"/></svg>
+    <span class="brand-text"><strong>GTM Data Certifier</strong><small>Human in the Hyperloop</small></span>
+  </a>
+  <nav class="topnav" aria-label="Main">
+    <button type="button" class="link" data-open="dlg-how">How certification works</button>
+    <button type="button" class="icon-btn" id="theme-toggle" aria-label="Switch to dark mode" title="Switch theme">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg>
+    </button>
+  </nav>
+</header>
+
+<main id="main" class="page" tabindex="-1">
+
+  <!-- 1. Home -->
+  <section id="view-home" class="view" aria-labelledby="home-title">
+    <div class="hero">
+      <div class="hero-inner">
+        <svg class="mark hero-logo" viewBox="0 0 200 110" role="img" aria-label="Human in the Hyperloop logo" width="132" height="73"><defs><clipPath id="mxb"><polygon points="62,0 200,0 200,110 138,110 138,55 62,55"/></clipPath><clipPath id="mxg"><polygon points="0,0 62,0 62,55 138,55 138,110 0,110"/></clipPath></defs><rect x="17" y="17" width="166" height="76" rx="38" fill="none" stroke="#3FCF8E" stroke-width="22" clip-path="url(#mxg)"/><rect x="17" y="17" width="166" height="76" rx="38" fill="none" stroke="#599AF5" stroke-width="22" clip-path="url(#mxb)"/><circle cx="100" cy="55" r="15" fill="currentColor"/></svg>
+        <h1 id="home-title">GTM Data Certifier</h1>
+        <p class="tagline">__TAGLINE__</p>
+        <p class="mission">Giving you transparency &amp; trust to take real action</p>
+        <form id="search-form" class="search" role="search" autocomplete="off">
+          <label class="sr-only" for="q">Company name or website</label>
+          <input id="q" name="q" type="search" placeholder="Company or website" required maxlength="120">
+          <button class="primary" type="submit">Certify</button>
+        </form>
+        <div class="chips" aria-label="Examples">
+          <span class="muted small">Try</span>
+          <button type="button" class="chip-btn" data-example="Salesforce">Salesforce</button>
+          <button type="button" class="chip-btn" data-example="Stripe">Stripe</button>
+          <button type="button" class="chip-btn" data-example="Adobe">Adobe</button>
+        </div>
+        <form id="code-form" class="code-form" hidden>
+          <p id="code-help" class="small">GTM Data Certifier is invite-only. Enter your access code to continue; it's remembered in this browser.</p>
+          <div class="code-row">
+            <label class="sr-only" for="code">Access code</label>
+            <input id="code" type="password" autocomplete="off" placeholder="Access code (ecc_…)" required>
+            <button class="primary" type="submit">Continue</button>
+          </div>
+        </form>
+        <p id="home-status" class="status-line" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+    <section id="recent" class="recent" aria-labelledby="recent-title" hidden>
+      <h2 id="recent-title">Recent lookups</h2>
+      <ul id="recent-list" class="recent-list"></ul>
+      <p class="muted small">Stored only in this browser.</p>
+    </section>
+  </section>
+
+  <!-- 2. Confirm -->
+  <section id="view-confirm" class="view" aria-labelledby="confirm-title" hidden>
+    <h1 id="confirm-title" class="view-title">Which one do you mean?</h1>
+    <p class="muted">Choose the organization to certify. One lookup covers one organization.</p>
+    <div id="candidates" class="candidates"></div>
+    <p><button type="button" class="link" id="search-again">Not the right one? Search again</button></p>
+  </section>
+
+  <!-- 3. Expedition -->
+  <section id="view-expedition" class="view" aria-labelledby="exp-title" hidden>
+    <div class="expedition">
+      <div id="scene" class="scene" aria-hidden="true"></div>
+      <p id="exp-theme" class="exp-theme"></p>
+      <h1 id="exp-title" class="view-title">Certifying</h1>
+      <div id="track" class="track" aria-hidden="true" style="--p:0"><span class="track-fill"></span><span class="pod"></span></div>
+      <ol id="stages" class="stages"></ol>
+      <p id="phrase" class="phrase" aria-hidden="true"></p>
+      <p id="exp-live" class="sr-only" role="status" aria-live="polite"></p>
+      <p id="elapsed" class="muted small"></p>
+    </div>
+  </section>
+
+  <!-- 4. Result -->
+  <section id="view-result" class="view" aria-labelledby="result-title" hidden>
+    <h1 id="result-title" class="sr-only">Certification result</h1>
+    <div class="result-head">
+      <p id="certified-on" class="certified-on"></p>
+      <button type="button" id="refresh" class="secondary" hidden>Refresh</button>
+      <span id="theme-done" class="theme-done" hidden></span>
+      <span class="spacer"></span>
+      <span id="saved-note" class="muted small">Saved to Recent lookups</span>
+      <button type="button" class="link" id="discard">Discard</button>
+      <button type="button" class="primary" data-action="reset">Search another company</button>
+    </div>
+    <div id="result-card" class="cert"></div>
+    <div class="actions">
+      <button type="button" class="secondary" id="dl-json">Download JSON</button>
+      <button type="button" class="secondary" id="dl-csv">Download CSV</button>
+      <button type="button" class="secondary" id="dl-sources">Sources CSV</button>
+      <button type="button" class="primary" data-action="reset">Search another company</button>
+      <button type="button" class="link" data-open="dlg-how">How certification works</button>
+    </div>
+    <p id="result-status" class="status-line" role="status" aria-live="polite"></p>
+    <section class="rating" aria-labelledby="rate-title">
+      <h2 id="rate-title">How did we do?</h2>
+      <div class="rate-options" role="group" aria-label="Rating">
+        <button type="button" class="rate" data-rating="great" aria-pressed="false">Great</button>
+        <button type="button" class="rate" data-rating="good" aria-pressed="false">Good</button>
+        <button type="button" class="rate" data-rating="okay" aria-pressed="false">Okay</button>
+        <button type="button" class="rate" data-rating="off" aria-pressed="false">Off</button>
+      </div>
+      <label for="rate-comment" class="small muted">Anything we should know? (optional)</label>
+      <textarea id="rate-comment" rows="2" maxlength="2000"></textarea>
+      <button type="button" class="secondary" id="rate-send">Send</button>
+      <p id="rate-status" class="small" role="status" aria-live="polite"></p>
+    </section>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p>Designed and created by <a href="https://www.linkedin.com/in/matthewbeltrano/" target="_blank" rel="noopener noreferrer">Matthew Beltrano</a> &amp; Claude Code</p>
+  <p class="footer-links">
+    <button type="button" class="link" data-open="dlg-how">How certification works</button> ·
+    <button type="button" class="link" data-open="dlg-privacy">Privacy</button> ·
+    <button type="button" class="link" data-open="dlg-about">About</button>
+  </p>
+  <p class="powered"><span class="powered-badge">Powered by Claude · Custom-built MCP service</span></p>
+  <p class="disclaimer">Certified under policy v__POLICY_VERSION__ from public sources. Verify before contractual use.</p>
+</footer>
+
+<!-- 5. How certification works -->
+<dialog id="dlg-how" class="panel" aria-labelledby="how-title">
+  <div class="panel-head"><h2 id="how-title">How certification works</h2><button type="button" class="icon-btn" data-close aria-label="Close">✕</button></div>
+  <p class="lead">Every figure comes from a public source we can show you, chosen by a fixed policy and scored for confidence.</p>
+  <h3>The source hierarchy</h3>
+  <ol class="hierarchy">
+    <li><span class="h-rank">1</span><div><strong>Primary</strong><p>Annual reports and official filings: 10-K and 20-F, government financial reports; then the company's official Corporate Fact Sheet, nonprofit Form 990 and university IPEDS.</p></div></li>
+    <li><span class="h-rank">2</span><div><strong>Secondary</strong><p>What the organization publishes or says: press releases, its website, its LinkedIn description, executives quoted in reputable press.</p></div></li>
+    <li><span class="h-rank">3</span><div><strong>Tertiary</strong><p>Data providers such as ZoomInfo, Crunchbase and Revelio.</p></div></li>
+    <li><span class="h-rank">4</span><div><strong>Unranked</strong><p>Everything else. Used only as context, never as the answer.</p></div></li>
+  </ol>
+  <h3>The confidence scale</h3>
+  <dl class="scale">
+    <div><dt><span class="dot-meter" data-score="5" aria-hidden="true"></span>5 · Certified, corroborated</dt><dd>A recent official filing, confirmed by an independent source.</dd></div>
+    <div><dt><span class="dot-meter" data-score="4" aria-hidden="true"></span>4 · Certified</dt><dd>A recent official filing.</dd></div>
+    <div><dt><span class="dot-meter" data-score="3" aria-hidden="true"></span>3 · Supported</dt><dd>An older official filing, or a company statement others back up.</dd></div>
+    <div><dt><span class="dot-meter" data-score="2" aria-hidden="true"></span>2 · Estimated</dt><dd>A company statement on its own, or consistent data-provider estimates.</dd></div>
+    <div><dt><span class="dot-meter" data-score="1" aria-hidden="true"></span>1 · Unverified</dt><dd>Thin, old or conflicting evidence. Treat as a lead, not a fact.</dd></div>
+    <div><dt><span class="dot-meter" data-score="0" aria-hidden="true"></span>0 · Unattained</dt><dd>No usable public source was found.</dd></div>
+  </dl>
+  <h3>What each source type means</h3>
+  <p class="small muted">Every source on a certification is labelled with its tier, category and type. Open a type for a plain explanation.</p>
+  <div class="glossary">__GLOSSARY__</div>
+  <h3>Principles</h3>
+  <ul class="principles">
+    <li><strong>The highest source wins.</strong> An official filing outranks a press release, which outranks a data provider.</li>
+    <li><strong>Corroboration must be independent.</strong> Copies of the same figure don't count as confirmation.</li>
+    <li><strong>Recency matters.</strong> Older figures score lower, and newer evidence is shown alongside.</li>
+    <li><strong>Every adjustment is explained.</strong> Each score change and each excluded source comes with a reason.</li>
+    <li><strong>Hard cases get human review.</strong> Ambiguous scope and conflicting sources are flagged for a person to check.</li>
+  </ul>
+</dialog>
+
+<dialog id="dlg-privacy" class="panel" aria-labelledby="privacy-title">
+  <div class="panel-head"><h2 id="privacy-title">Privacy</h2><button type="button" class="icon-btn" data-close aria-label="Close">✕</button></div>
+  <p><strong>What we store:</strong> the company you searched for, the certification result, your rating and comment if you leave one, and the name attached to your access code.</p>
+  <p><strong>Why:</strong> to review the quality of certifications and improve them.</p>
+  <p><strong>What we don't need:</strong> any personal data. Don't enter personal information in comments.</p>
+  <p><strong>In your browser only:</strong> your access code and your last 10 lookups, so you don't have to re-enter them. Clearing your browser's site data removes both.</p>
+  <p><button type="button" class="secondary" id="forget-code">Forget my access code</button></p>
+</dialog>
+
+<dialog id="dlg-about" class="panel" aria-labelledby="about-title">
+  <div class="panel-head"><h2 id="about-title">About</h2><button type="button" class="icon-btn" data-close aria-label="Close">✕</button></div>
+  <svg class="mark" viewBox="0 0 200 110" role="img" aria-label="Human in the Hyperloop logo" width="120" height="66"><defs><clipPath id="mab"><polygon points="62,0 200,0 200,110 138,110 138,55 62,55"/></clipPath><clipPath id="mag"><polygon points="0,0 62,0 62,55 138,55 138,110 0,110"/></clipPath></defs><rect x="17" y="17" width="166" height="76" rx="38" fill="none" stroke="#3FCF8E" stroke-width="22" clip-path="url(#mag)"/><rect x="17" y="17" width="166" height="76" rx="38" fill="none" stroke="#599AF5" stroke-width="22" clip-path="url(#mab)"/><circle cx="100" cy="55" r="15" fill="currentColor"/></svg>
+  <p class="mission about-mission">GTM Data Certifier · Giving you transparency &amp; trust to take real action</p>
+  <p>GTM Data Certifier finds the most authoritative public figure for an organization's global headcount, shows exactly where it came from (down to the page), and scores how far you can rely on it. Machines do the deep sweep; the policy, the evidence and the hard calls stay visible for humans to judge.</p>
+  <h3>How it's built</h3>
+  <p>The certifier is a custom Model Context Protocol (MCP) server built with Claude Code. Claude does the research and extraction: it searches the public web, reads filings and pages, and records each figure with its quote, date and location. The certification rules (which source wins, how confidence is scored, what gets flagged) are deterministic, tested code that follows a published policy, so the same evidence always gets the same answer.</p>
+  <h3>Use it in Claude</h3>
+  <ol class="steps">
+    <li>In the Claude app, open <strong>Settings → Connectors</strong> and choose <strong>Add custom connector</strong>.</li>
+    <li>Name it "GTM Data Certifier" and paste this URL (it ends in <code>/mcp</code>): <code class="mcp-url">__MCP_URL__</code></li>
+    <li>Choose <strong>Connect</strong>, then sign in with your access code when asked.</li>
+    <li>Ask, for example: "What's the certified employee count for Adobe?" Claude confirms the organization, then shows the certification card in the chat.</li>
+  </ol>
+  <p class="powered"><span class="powered-badge">Powered by Claude · Custom-built MCP service</span></p>
+  <p>Designed and created by <a href="https://www.linkedin.com/in/matthewbeltrano/" target="_blank" rel="noopener noreferrer">Matthew Beltrano</a> &amp; Claude Code. A Human in the Hyperloop project.</p>
+</dialog>
+
+<script>window.GTM_DEMO = __DEMO__;</script>
+<script src="/static/app.js" defer></script>
+</body>
+</html>

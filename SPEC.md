@@ -22,7 +22,7 @@ The engine always takes the highest-ranked available source, except where an exc
 | Tier | Class | Source | Requirement | Examples |
 | --- | --- | --- | --- | --- |
 | 1 | Primary | 10-K or annual financial report | Formal, dated, company-published | 10-K Item 1 "Human Capital" or "Employees": "As of [date], we employed X people" |
-| 2 | Primary | Non-financial annual or regulatory report | Formal, dated, company-published | Private-company annual report; university IPEDS staff filing; nonprofit IRS Form 990 |
+| 2 | Primary | Corporate fact sheet, or non-financial annual or regulatory report | Formal, dated, company-published (an undated fact sheet drops to tier 3) | The company's official Corporate Fact Sheet or "company facts" page/PDF; private-company annual report; university IPEDS staff filing; nonprofit IRS Form 990 |
 | 3 | Secondary | Formal press release or company-published document | Company-published; dated by the release | "About [Company]" boilerplate, or a headcount stated in the release body |
 | 4 | Secondary | Company website description | Traceable to the company; often undated | About Us / Company pages, preferred over deep or hidden pages |
 | 5 | Secondary | LinkedIn company description | Company-set text, not member count; often undated | "with more than 4,500 employees across the globe" |
@@ -196,25 +196,42 @@ Some organizations report their parts separately. A university files IPEDS for t
 
 `certify_group` in `src/certifier/group.py` implements this. Finding the affiliates and the ownership proof is part of entity resolution (build step 4).
 
-## Certification record (v1.1)
+## Certification record (v1.2)
 
 Every lookup returns one standardized record per entity (`src/certifier/record.py`). It has the same 11 sections, always in this order, even when a section is empty. List sections are `{items: [...], none_reason}`, and an empty one must say why. `headline` and `primary_source` carry their own `none_reason` when empty. The shape is flat and export-ready (JSON now; CSV, Excel and slides later).
 
 | # | Section | Contents |
 | --- | --- | --- |
 | 1 | `entity` | Name, website, HQ, legal parent, relationship in words |
-| 2 | `headline` | `count`, `qualifier`, `range`, `count_type`, `count_basis`, `as_of_date`, `as_of_estimated`, `adjustment_status` (`current` or `pre-adjustment`), `known_changes[]`, `indicated_current_range` |
+| 2 | `headline` | `count`, `qualifier`, `range`, `count_type`, `count_basis`, `as_of_date`, `as_of_estimated`, `as_of_estimated_from` (`context`, `url` or null), `adjustment_status` (`current` or `pre-adjustment`), `known_changes[]`, `indicated_current_range`, `direction` (`higher`, `lower`, `in_line`, `unknown`), `direction_reason`, `bottom_line`, `next_expected_update`, `next_update_note` |
 | 3 | `confidence` | `score` (0–5), `level`, `breakdown[]`, `arithmetic` (e.g., "4 + 1 + 0 = 5") |
-| 4 | `primary_source` | Source ID, tier and tier name, URL, SEC accession (if any), verbatim `excerpt`, `location`, as-of/published/modified dates, `tier_rationale` |
+| 4 | `primary_source` | Source ID, tier and tier name, `source_category`, `source_type`, `source_type_info`, URL, SEC accession (if any), verbatim `excerpt`, `location`, as-of/published/modified dates, `tier_rationale` |
 | 5 | `findings` | Green/yellow/red findings (below) |
-| 6 | `sources` | Every source: ID (`S1…`), tier, value, qualifier, basis, scope, dates, URL, excerpt, `location`, role, `used`, `tier_rationale`, `use_rationale` |
+| 6 | `sources` | Every source: ID (`S1…`), tier, `source_category`, `source_type`, `source_type_info`, value, qualifier, basis, scope, dates, URL, excerpt, `location`, role, `used`, `tier_rationale`, `use_rationale` |
 | 7 | `adjustments` | ID (`A1…`), source ID, source figure, change, result, `rationale` |
 | 8 | `trend` | Reported same-basis points (oldest to newest), plus a forecast point marked `estimated` with a low–high range when there are at least 3 points (see Trend and forecast) |
 | 9 | `linkedin_check` | Status, member count, size range, workforce profile, pass range, linked finding, `rationale` |
 | 10 | `events` | Mergers, acquisitions and spinoffs: description, URL, close date, `penalized`, `rationale` |
 | 11 | `methodology` | Policy version, record version, method, models, cost, web searches and fetches, run timestamp, duration, lookup date, queries, notes |
 
-**Findings.** Each finding has an `id` (`F1…`), a `category` (`provenance`, `recency`, `corroboration`, `scope`, `linkedin`, `event`, `definition`, `data_gap`), a `status`, a one-line `title`, a `rationale`, `evidence` (source IDs) and a `score_impact` (e.g., −1 or 0). The rationale is 2–3 plain-English sentences: what we found, why it matters, and what we did about it.
+**Source labels (v1.2).** Every source has a `source_category` and a `source_type`, shown as "Tier 1 · Financial Filing · 10-K".
+
+- **Categories:** Financial Filing; Official Company Report; Company Publication; Company Website; Company Social Profile; News (Executive Quote); Data Provider; Specialty Data & Financial Media; Other.
+- **Types:**
+  - filings and reports: 10-K, 20-F, 40-F, SEC Annual Filing, Annual Report, Annual Comprehensive Financial Report (ACFR), Corporate Fact Sheet, IRS Form 990, IPEDS Filing, Non-Financial Annual Report
+  - company publications and pages: Press Release, Company Document, Website: About Us, Website: Other Page, LinkedIn: Company Description, LinkedIn: Member Count
+  - third parties: News: [outlet], Data Provider: [provider], Web Page: [site]
+
+The mapping is deterministic (`src/certifier/taxonomy.py`). `source_type_info` is the plain-English explanation from `source_glossary.yaml`, which is editable without code changes.
+
+**Bottom line.** The bottom line is mapped to confidence:
+- 4–5: "Ready to use. Strong, current primary source."
+- 3: "Usable. Note the range and the as-of date."
+- 0–2: "Directional only. Verify before updating records."
+
+`next_expected_update` is when the next edition of the key source is due: its as-of date plus the typical filing lag.
+
+**Findings.** Each finding has an `id` (`F1…`), a `group` (`affects`, `worth_knowing`, `background`), an `impact` chip (e.g. "Lowered confidence by 1", "Adjusted count −1,100", "No effect on the answer"), a one-sentence `so_what`, a `category` (`provenance`, `recency`, `corroboration`, `scope`, `linkedin`, `event`, `definition`, `data_gap`), a `status`, a one-line `title`, a `rationale`, `evidence` (source IDs) and a `score_impact` (e.g., −1 or 0). The rationale is 2–3 plain-English sentences: what we found, why it matters, and what we did about it.
 - **Green:** supports the certified figure.
 - **Yellow:** a caveat or nuance, with minor or no score impact.
 - **Red:** lowers confidence or needs human review.
@@ -232,7 +249,22 @@ Findings are generated by rule from the engine's output, not by an LLM. That mak
 Finding rationales need at least two sentences. The confidence breakdown must sum to the score. Every breakdown line, and the LinkedIn check, links to a finding, and every evidence ID must exist among the sources. A record that breaks any of these fails validation and can't be built or loaded.
 
 **Known changes and newer data.**
-- **Known changes:** a confirmed change that took effect after the as-of date, such as layoffs, an acquisition or a spinoff, labels the headline `pre-adjustment` and lists the change. The figure itself isn't adjusted. A material change, more than 15% or of unknown size, also lowers confidence one level under the event rule. Bids, proposals and rumors are not changes.
+- **Known changes:** a confirmed change that took effect after the as-of date, such as layoffs, an acquisition or a spinoff, is listed in `known_changes`. The figure itself is never adjusted. Bids, proposals and rumors are not changes. What else happens depends on the anchor's tier:
+  - **Tier 1–2 anchor (filings, annual reports):** never relabelled and never penalized. The change is a yellow note, and `direction` gives guidance, e.g. "Likely somewhat lower than reported because of [event] ([date], [size])".
+  - **Tier 3 or lower anchor:** labelled `pre-adjustment`. A material change, more than 15% or of unknown size, also lowers confidence one level under the event rule. A source that says its own figure predates a change it describes (`predates_change`) is also labelled `pre-adjustment`.
+- **Direction:** every record says whether the true current headcount is likely higher, lower, in line or unknown, with a one-line reason. It's derived in this order:
+  1. changes after the as-of date
+  2. a source saying it predates a change
+  3. the indicated current range
+  4. the prior same-tier trend: under 3% means "in line"
+  5. otherwise "unknown"
+
+  The card shows it in "Trend and direction" with an arrow and words.
+- **As-of date from the URL:** the lowest-priority estimate. Only when a source states no date, has no date in context and no publication date, a `/YYYY/MM/` path segment sets an estimated as-of date, shown as "(estimated from URL)".
+- **Scope notes:** a scope question only lowers confidence when it could change which entity is counted:
+  - an affiliated health system, joint venture or affiliate: a red flag
+  - a subsidiary when the anchor is not a tier-1 consolidated filing: a red flag
+  - anything else is a yellow `scope` finding with no score impact, including data disagreements, tracker coverage, and subsidiaries already included in a consolidated filing
 - **Indicated current range:** newer tier 7–9 figures that diverge from an old certified figure are shown as an `indicated_current_range`, marked context only. This applies when:
   - the certified figure is at least 12 months old
   - the newer figures are dated at least 3 months after it and within the last 12 months
@@ -280,6 +312,11 @@ The engine's `Certification` object, which the record is built from, has these f
 | `confidence_breakdown[]` | list | The base score and each adjustment, with points and reason, summing to `confidence_score` |
 | `policy_tier` | integer 1–9 | Tier of the source that set the value |
 | `as_of_date` | date or null | Date the source states the count applies to |
+| `as_of_estimated`, `as_of_from_url` | boolean | The as-of date is estimated (from context, publication date or, last, the URL) |
+| `pre_adjustment` | boolean | A known change took effect after the as-of date (tier 3+ anchors only) |
+| `direction` | object | `direction` (`higher`, `lower`, `in_line`, `unknown`) and `reason` |
+| `scope_notes[]` | list | Scope remarks that can't change the entity counted (no score impact) |
+| `indicated_range` | object or null | Newer tier 7–9 figures shown as context, never certified |
 | `sources[]` | list | Every source: URL, tier, as-of/published/modified dates, verbatim excerpt, value, qualifier, role and `role_reason` |
 | `linkedin_check` | object | Member count, size range, workforce profile, implied range, status (`pass`, `flag`, `not_available`) |
 | `flags[]` | list | Conditions that lowered confidence or need review (LinkedIn, conflict, event-driven) |
@@ -289,6 +326,25 @@ The engine's `Certification` object, which the record is built from, has these f
 | `events[]` | list | Each event with its close date, whether it was penalized, and why |
 | `forecast` | object | Not used: the forecast is a `trend` point marked `estimated` in the record |
 | `policy_version` | string | Version of this policy used, for audit |
+
+## Hosted experience (GTM Data Certifier)
+
+The web app at `/` is a single page (`src/certifier/static/`), branded GTM Data Certifier by Human in the Hyperloop. Principle: radically simple; fun in the process, sober results.
+
+- **Home:** a search box, three example chips, and recent lookups (last 10, in this browser only). The access code is asked for only when needed, then remembered in the browser.
+- **Confirm:** entity cards ("Which one do you mean?"). One lookup covers one organization.
+- **Expedition:** live progress over the real stages (resolve, SEC and official filings, web sweep, corroboration, scoring, certified), streamed as server-sent events, in one of five themes: Deep Sea Dive, Treasure Map, Galaxy Star-Gazing, Detective's Clues, Frontier Voyage.
+- **Result:** the certification card, with "Key Source". A cached result shows "Certified on [date]" and a Refresh button. Downloads: JSON (record v1.1), summary CSV, sources CSV. "How did we do?" (Great, Good, Okay or Off, plus a comment) is stored with the query.
+- **Panels:** How certification works (the source hierarchy, confidence scale and principles, without thresholds or prompts), About, Privacy.
+- **Rules:**
+  - single lookups only, behind invite codes
+  - 10 new lookups per code per day, and $10 a day of spend overall
+  - a shared 90-day cache: cached results are free, and Refresh counts as a new lookup
+  - queries, results and ratings are stored
+- **Endpoints:** `/health` returns only `{"status":"ok"}`. `/admin/status` (access code required) shows configuration and spend. Every error is JSON. `PUBLIC_BASE_URL` is validated at startup.
+- **Accessibility:** works with a keyboard and a screen reader, status is never shown by color alone, motion stops under `prefers-reduced-motion`, and light and dark themes follow the device, with a toggle.
+
+Screenshots of every screen are in `docs/screenshots/`.
 
 ## Export formats (later phase)
 

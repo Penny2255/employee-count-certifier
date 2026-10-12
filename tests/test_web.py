@@ -9,6 +9,7 @@ import secrets
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
+import anthropic
 import pytest
 
 os.environ.setdefault("CERTIFIER_NO_APP", "1")  # don't build the module-level app at import
@@ -32,8 +33,11 @@ def env(monkeypatch, tmp_path):
     monkeypatch.delenv("CERTIFIER_REVOKED", raising=False)
     calls = []
 
-    def fake_lookup(entity, **kw):
+    def fake_lookup(entity, progress=None, **kw):
         calls.append(entity.name)
+        for stage in ("resolve", "filings", "sweep", "corroborate", "score", "certified"):
+            if progress:
+                progress(stage, stage)
         result = LookupResult.model_validate_json(FIXTURE.read_text(encoding="utf-8"))
         return result.model_copy(update={"certification": result.certification.model_copy(update={"entity": entity})})
 
@@ -53,25 +57,52 @@ def auth(code=CODE):
     return {"Authorization": f"Bearer {code}"}
 
 
-# --- health and access codes ------------------------------------------------------------------
+# --- helpers -----------------------------------------------------------------------------------
 
-def test_health_reports_status_without_secrets(client):
+def stream(client, body, code=CODE):
+    """POST /api/lookup and parse the server-sent events into (event, data) pairs."""
+    r = client.post("/api/lookup", json=body, headers=auth(code))
+    if r.headers.get("content-type", "").startswith("application/json"):
+        return r.status_code, [("http-error", r.json())]
+    events = []
+    for block in r.text.split("\n\n"):
+        ev = next((line[6:].strip() for line in block.splitlines() if line.startswith("event:")), None)
+        data = next((line[5:].strip() for line in block.splitlines() if line.startswith("data:")), None)
+        if ev and data:
+            events.append((ev, json.loads(data)))
+    return r.status_code, events
+
+
+def result_of(events):
+    return next(d for e, d in events if e == "result")
+
+
+SF = {"name": "Salesforce, Inc.", "website": "https://www.salesforce.com", "query": "Salesforce"}
+
+
+# --- health, admin status and access codes ------------------------------------------------------
+
+def test_health_is_minimal(client):
     r = client.get("/health")
-    assert r.status_code == 200
-    body = r.json()
-    assert body["status"] == "ok" and body["access_codes_configured"] == 2
-    assert "sk-ant" not in r.text and CODE not in r.text
+    assert r.status_code == 200 and r.json() == {"status": "ok"}
+
+
+def test_admin_status_requires_a_code_and_has_no_secrets(client):
+    assert client.get("/admin/status").status_code == 401
+    body = client.get("/admin/status", headers=auth()).json()
+    assert body["access_codes_configured"] == 2 and body["daily_lookups_per_code"] == 10 and body["cache_days"] == 90
+    assert "sk-ant" not in json.dumps(body) and CODE not in json.dumps(body)
 
 
 def test_api_requires_a_valid_access_code(client):
-    assert client.post("/api/certify", json={"name": "Salesforce, Inc."}).status_code == 401
-    r = client.post("/api/certify", json={"name": "Salesforce, Inc."}, headers=auth("ecc_wrong"))
+    assert client.post("/api/lookup", json=SF).status_code == 401
+    r = client.post("/api/lookup", json=SF, headers=auth("ecc_wrong"))
     assert r.status_code == 401 and r.json()["error"] == "Enter a valid access code."
 
 
 def test_revoked_code_is_refused(client, monkeypatch):
     monkeypatch.setenv("CERTIFIER_REVOKED", "alice")
-    assert client.post("/api/certify", json={"name": "X"}, headers=auth()).status_code == 401
+    assert client.post("/api/lookup", json=SF, headers=auth()).status_code == 401
 
 
 def test_access_code_cli_round_trip():
@@ -80,50 +111,153 @@ def test_access_code_cli_round_trip():
     assert codes.verify(code) == "carol" and codes.verify(code + "x") is None
 
 
-# --- web certify, cards, cache and limits -------------------------------------------------------
+# --- pages and assets ---------------------------------------------------------------------------
 
-def test_certify_returns_records_and_a_card(client, env):
-    r = client.post("/api/certify", json={"name": "Salesforce, Inc.", "website": "https://www.salesforce.com"},
-                    headers=auth())
-    assert r.status_code == 200, r.text
-    body = r.json()
-    assert body["results"][0]["record"]["headline"]["count"] == 83_334
-    assert body["results"][0]["cached"] is False
-    card = client.get(body["card_url"])
-    assert card.status_code == 200 and "Salesforce" in card.text and env == ["Salesforce, Inc."]
+def test_page_and_single_css_and_js(client):
+    page = client.get("/")
+    assert page.status_code == 200 and "GTM Data Certifier" in page.text and "Deep sweeps. Certified answers." in page.text
+    assert "Matthew Beltrano" in page.text and "linkedin.com/in/matthewbeltrano" in page.text
+    assert "Certified under policy v0.2 from public sources. Verify before contractual use." in page.text
+    css = client.get("/static/app.css").text
+    assert "--loop-blue: #599AF5" in css and ".cert .card" in css and "prefers-reduced-motion" in css
+    js = client.get("/static/app.js").text
+    assert "window.GTMCard" in js and "Deep Sea Dive" in js and "Frontier Voyage" in js
+    assert client.get("/assets/brand/hyperloop-mark-small.png").status_code == 200
+    assert client.get("/assets/brand/../../.env").status_code == 404
+    assert client.get("/favicon.ico").status_code == 200
+
+
+def test_query_fields_treat_domains_as_websites():
+    assert web._query_fields("stripe.com") == ("stripe", "https://stripe.com")
+    assert web._query_fields("https://www.salesforce.com/") == ("salesforce", "https://www.salesforce.com")
+    assert web._query_fields("Donor Network West") == ("Donor Network West", None)
+
+
+# --- streamed lookup, stored results, exports and ratings ----------------------------------------
+
+def test_lookup_streams_real_stages_then_the_result(client, env):
+    status, events = stream(client, SF)
+    assert status == 200
+    names = [e for e, _ in events]
+    assert names[0] == "start" and names[-1] == "result"
+    assert [d["stage"] for e, d in events if e == "progress"] == ["resolve", "filings", "sweep", "corroborate", "score",
+                                                                 "certified"]
+    res = result_of(events)
+    assert res["record"]["headline"]["count"] == 83_334 and res["cached"] is False and env == ["Salesforce, Inc."]
+    stored = client.get(f"/api/lookups/{res['query_id']}", headers=auth()).json()
+    assert stored["record"]["entity"]["name"] == "Salesforce, Inc."
+
+
+def test_exports(client):
+    qid = result_of(stream(client, SF)[1])["query_id"]
+    j = client.get(f"/api/lookups/{qid}/export?format=json", headers=auth())
+    assert j.status_code == 200 and json.loads(j.text)["headline"]["count"] == 83_334
+    summary = client.get(f"/api/lookups/{qid}/export?format=summary_csv", headers=auth())
+    lines = summary.text.strip().splitlines()
+    assert lines[0].startswith("entity_name,website") and len(lines) == 2 and "83334" in lines[1]
+    assert 'filename="salesforce-inc-summary.csv"' in summary.headers["content-disposition"]
+    sources = client.get(f"/api/lookups/{qid}/export?format=sources_csv", headers=auth()).text.strip().splitlines()
+    assert sources[0].startswith("entity_name,source_id,tier") and len(sources) > 2
+    assert client.get(f"/api/lookups/{qid}/export?format=xls", headers=auth()).status_code == 400
+
+
+def test_rating_is_stored_with_the_query(client):
+    qid = result_of(stream(client, SF)[1])["query_id"]
+    assert client.post(f"/api/lookups/{qid}/rating", json={"rating": "Great", "comment": "Spot on"},
+                       headers=auth()).json() == {"ok": True}
+    assert client.post(f"/api/lookups/{qid}/rating", json={"rating": "meh"}, headers=auth()).status_code == 400
+    rows = web.Store().ratings()
+    assert rows[0]["rating"] == "great" and rows[0]["comment"] == "Spot on" and rows[0]["query"] == "Salesforce"
+    assert rows[0]["subject"] == "alice"
 
 
 def test_cache_then_refresh(client, env):
-    body = {"name": "Salesforce, Inc.", "website": "https://www.salesforce.com"}
-    client.post("/api/certify", json=body, headers=auth())
-    second = client.post("/api/certify", json=body, headers=auth()).json()
-    assert second["results"][0]["cached"] is True and len(env) == 1
-    assert "Cached certification" in second["results"][0]["record"]["methodology"]["notes"][0]
-    client.post("/api/certify", json={**body, "refresh": True}, headers=auth())
+    stream(client, SF)
+    second = result_of(stream(client, SF)[1])
+    assert second["cached"] is True and len(env) == 1 and second["certified_on"]
+    assert "Cached certification" in second["record"]["methodology"]["notes"][0]
+    stream(client, {**SF, "refresh": True})
     assert len(env) == 2
 
 
-def test_per_user_daily_limit(client, env, monkeypatch):
+def test_per_code_daily_limit_and_friendly_message(env, monkeypatch):
     monkeypatch.setenv("CERTIFIER_DAILY_LOOKUPS_PER_USER", "1")
     with TestClient(web.create_app(), base_url="http://localhost") as c:
-        assert c.post("/api/certify", json={"name": "A Corp"}, headers=auth()).status_code == 200
-        r = c.post("/api/certify", json={"name": "B Corp"}, headers=auth())
-        assert r.status_code == 429 and "1 of your 1 new lookups today" in r.json()["error"]
-        assert c.post("/api/certify", json={"name": "A Corp"}, headers=auth()).status_code == 200  # cached: free
-        assert c.post("/api/certify", json={"name": "B Corp"}, headers=auth(OTHER)).status_code == 200  # per user
+        assert result_of(stream(c, {"name": "A Corp"})[1])
+        _, events = stream(c, {"name": "B Corp"})
+        err = next(d for e, d in events if e == "error")
+        assert err["kind"] == "limit" and "1 of your 1 new lookups today" in err["message"]
+        assert result_of(stream(c, {"name": "A Corp"})[1])["cached"] is True  # cached: free
+        assert result_of(stream(c, {"name": "B Corp"}, OTHER)[1])  # per code
 
 
-def test_global_daily_dollar_cap(client, env, monkeypatch):
+def test_refresh_counts_against_the_limit(env, monkeypatch):
+    monkeypatch.setenv("CERTIFIER_DAILY_LOOKUPS_PER_USER", "1")
+    with TestClient(web.create_app(), base_url="http://localhost") as c:
+        stream(c, {"name": "A Corp"})
+        _, events = stream(c, {"name": "A Corp", "refresh": True})
+        assert next(d for e, d in events if e == "error")["kind"] == "limit"
+
+
+def test_global_daily_dollar_cap(env, monkeypatch):
     monkeypatch.setenv("CERTIFIER_DAILY_USD_CAP", "0.05")
     with TestClient(web.create_app(), base_url="http://localhost") as c:
-        assert c.post("/api/certify", json={"name": "A Corp"}, headers=auth()).status_code == 200  # spends ~$0.17
-        r = c.post("/api/certify", json={"name": "B Corp"}, headers=auth(OTHER))
-        assert r.status_code == 429 and "spending cap" in r.json()["error"]
+        assert result_of(stream(c, {"name": "A Corp"})[1])  # spends ~$0.17
+        _, events = stream(c, {"name": "B Corp"}, OTHER)
+        assert "spending cap" in next(d for e, d in events if e == "error")["message"]
 
 
 def test_card_paths_are_validated(client):
     assert client.get("/cards/..%2F..%2Fsecret.html").status_code == 404
     assert client.get("/cards/nope.html").status_code == 404
+
+
+# --- hardening ----------------------------------------------------------------------------------
+
+def _auth_error():
+    import httpx2
+    return anthropic.AuthenticationError("invalid x-api-key", response=httpx2.Response(
+        401, request=httpx2.Request("POST", "https://api.anthropic.com/v1/messages")), body=None)
+
+
+def test_anthropic_auth_error_in_lookup_is_a_plain_message(client, monkeypatch, caplog):
+    def broken(entity, **kw):
+        raise _auth_error()
+    monkeypatch.setattr(web, "lookup", broken)
+    _, events = stream(client, SF)
+    err = next(d for e, d in events if e == "error")
+    assert err == {"message": "Service configuration issue, please try again later.", "kind": "config"}
+    assert any("ANTHROPIC_API_KEY" in r.getMessage() for r in caplog.records)
+
+
+def test_anthropic_auth_error_in_find_is_json_503(client, monkeypatch):
+    def broken(*a, **kw):
+        raise _auth_error()
+    monkeypatch.setattr(web, "find_entities", broken)
+    r = client.post("/api/find", json={"query": "Stripe"}, headers=auth())
+    assert r.status_code == 503 and r.json() == {"error": "Service configuration issue, please try again later."}
+
+
+def test_unexpected_errors_are_json(env, monkeypatch):
+    def broken(*a, **kw):
+        raise RuntimeError("boom")
+    monkeypatch.setattr(web, "find_entities", broken)
+    with TestClient(web.create_app(), base_url="http://localhost", raise_server_exceptions=False) as c:
+        r = c.post("/api/find", json={"query": "Stripe"}, headers=auth())
+        assert r.status_code == 500 and r.json()["error"].startswith("Something went wrong")
+        assert "boom" not in r.text
+
+
+@pytest.mark.parametrize("value", [None, "", "onrender.com", "http://my-service.onrender.com",
+                                   "https://x.onrender.com/mcp", "ftp://x.com"])
+def test_public_base_url_must_be_a_full_https_url(value):
+    with pytest.raises(web.StartupError):
+        web.validate_base_url(value)
+
+
+def test_public_base_url_accepts_https_and_localhost():
+    assert web.validate_base_url("https://x.onrender.com/") == "https://x.onrender.com"
+    assert web.validate_base_url("http://localhost:8000") == "http://localhost:8000"
 
 
 # --- OAuth sign-in for the Claude connector, then MCP over HTTP ----------------------------------
@@ -236,3 +370,14 @@ def test_mcp_certify_tool_over_http_applies_cache_and_limits(client, env, monkey
                            {"name": "certify_employee_count", "arguments": {"name": "Another Corp"}}, 5)
     assert limited["result"]["isError"] is True
     assert "new lookups today" in limited["result"]["content"][0]["text"]
+
+
+def test_page_has_start_over_powered_by_mcp_help_and_glossary(client):
+    page = client.get("/").text
+    assert 'data-action="reset"' in page and "Search another company" in page and 'id="discard"' in page
+    assert "Not the right one? Search again" in page
+    assert "Giving you transparency &amp; trust to take real action" in page
+    assert "Powered by Claude · Custom-built MCP service" in page and "Model Context Protocol (MCP)" in page
+    assert "http://localhost/mcp" in page and "Add custom connector" in page
+    assert "Corporate Fact Sheet" in page and "The annual report U.S. public companies must file with the SEC" in page
+    assert "__GLOSSARY__" not in page and "__MCP_URL__" not in page

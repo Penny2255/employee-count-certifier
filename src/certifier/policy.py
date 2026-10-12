@@ -89,6 +89,13 @@ class GrowthAdjustment(BaseModel):
     tertiary_max_age_months: int = 12
 
 
+class FactSheetRule(BaseModel):
+    """A company's official Corporate Fact Sheet is primary: tier 2, or tier 3 when it has no date at all."""
+
+    tier: int = 2
+    undated_tier: int = 3
+
+
 class Policy(BaseModel):
     policy_version: str
     models: Models
@@ -99,6 +106,7 @@ class Policy(BaseModel):
     agreement: Agreement
     provenance: Provenance = Provenance()
     indicated_range: IndicatedRangePolicy = IndicatedRangePolicy()
+    fact_sheet: FactSheetRule = FactSheetRule()
     confidence_levels: dict[int, str]
     range_bands: dict[str, tuple[float, float]]
     qualifier_phrases: dict[str, list[str]]

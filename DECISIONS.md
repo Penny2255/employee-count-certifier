@@ -254,3 +254,192 @@ In the Stripe rerun, research listed data disagreements as "complexity" flags ("
 - **Not deployed or tested in the real Claude app.** The OAuth flow, MCP over HTTP, limits and cache are tested end to end with a test client, and a real `uvicorn` run answered `/health`, the page, the 401 sign-in challenge and discovery correctly. The real Claude sign-in can only be tested once the service is on Render.
 - **Single instance only.** SQLite on one disk suits one Render instance. Scaling out would need Postgres.
 - **No admin page.** Today's spend shows on `/health`. Per-person usage is only in the SQLite file.
+
+## Hosted experience: GTM Data Certifier (2026-10-11)
+
+### D40. Taglines
+Three candidates:
+1. **"Deep sweeps. Certified answers."** (chosen)
+2. "Every headcount, sourced and scored."
+3. "From public record to certified fact."
+
+- **Why the first:** it carries both halves of the principle. "Deep sweeps" is the fun part, the expedition. "Certified answers" is the sober result. It's short enough for the hero and the browser tab. It lives in one constant (`web.TAGLINE`), so swapping it is a one-line change.
+
+### D41. The brand mark is recreated, not supplied
+- **What:** `assets/brand/hyperloop-logo.png` and `hyperloop-mark-small.png` weren't in the repository. `scripts/brand_assets.py` redraws the mark from the lockup PDF:
+  - a rounded loop, blue across the top and right, green across the bottom and left
+  - a center dot
+  - brand colors navy #0A2545, loop blue #599AF5, loop green #3FCF8E
+
+  It writes the SVG, both PNGs and the favicon.
+- **On the page:** the header, hero and About panel use the SVG inline, with the dot drawn in the text color, so it stays visible in dark mode.
+- **To use the official files:** drop them into `assets/brand/` under the same names; the favicon and the PNG routes serve them as is.
+
+### D42. One page, three static files, no framework
+- **What:** `index.html`, `app.css` and `app.js` under `src/certifier/static/`. The server joins them into one stylesheet and one script:
+  - `/static/app.css` is the brand tokens, the app styles and the card styles
+  - `/static/app.js` is the card renderer and the app
+- **Why:** the card renderer is shared with the saved cards and the Claude in-chat card, so the web result is the same card everywhere. That meets "one CSS file, no heavy frameworks".
+- **Theme:** follows the device, with a manual toggle remembered in the browser. Animations stop under `prefers-reduced-motion`.
+
+### D43. Progress is real, streamed with server-sent events
+- **What:** `POST /api/lookup` returns `text/event-stream` with `start`, `progress` (one per stage), `result` or `error` events, plus a keep-alive comment every 10 seconds. The service calls `progress(stage, message)` as each real step starts:
+  1. resolve
+  2. SEC and official filings
+  3. web sweep
+  4. corroboration
+  5. scoring
+  6. certified
+- **Why POST over fetch, not `EventSource`:** the access code travels in the `Authorization` header, never in a URL.
+- **Themes:** five expedition themes (Deep Sea Dive, Treasure Map, Galaxy Star-Gazing, Detective's Clues, Frontier Voyage), one picked at random per lookup. Each has its own scene, icons and stage lines. The stage names stay literal, so the fun never hides what is happening.
+
+### D44. Stored queries, results and ratings
+- **What:** every new or cached lookup is saved as a query, with the access-code name, the text typed, the entity, the full result and cached or not. "How did we do?" (Great, Good, Okay or Off, plus an optional comment) is saved against that query.
+- **Recent lookups:** the last 10, kept only in the browser, as the brief asked.
+
+### D45. Downloads: JSON plus two CSV files
+- **What:**
+  - **Download JSON:** the full certification record v1.1
+  - **Download CSV:** one summary row
+  - **Sources CSV:** one row per source, with tier, value, dates, role, section, page and URL
+- **Why two CSV files:** a summary and its sources don't fit one flat table without repeating every headline field on every row.
+
+### D46. Cache: shared, 90 days; limits: 10 a day per code
+- **Supersedes:** D35's 20 a day and D36's 30 days.
+- **Cache:** a certification is reused by anyone for 90 days. The result shows "Certified on [date]" with a Refresh button.
+- **What counts:** cached results are free. Refresh runs a new lookup and counts against the limit.
+- **Unchanged:** the $10 daily global cap.
+
+### D47. `/health` reveals nothing; details move to `/admin/status`
+- **What:** `/health` returns `{"status":"ok"}`. Configuration and spend are at `/admin/status`, which needs an access code.
+- **Errors:**
+  - every error returns JSON, and unexpected errors never echo internals
+  - an Anthropic authentication or permission error shows "Service configuration issue, please try again later." and logs the cause, never the key
+  - `PUBLIC_BASE_URL` is validated at startup: it must be https (or http for localhost) with no path, or the service refuses to start with a plain message
+
+### D48. Demo mode for screenshots
+`CERTIFIER_DEMO=1` adds `?demo=home|code|confirm|expedition|result|how`, with optional theme, stage, mode and slug parameters. Demo results are served from the saved fixtures, so screenshots cost nothing. It's off in production because the variable isn't set.
+
+## Engine tweaks (2026-10-11)
+
+### D49. A date in the URL is the lowest-priority as-of estimate
+- **What:** only when a source has no stated date, no context estimate and no publication date, a `/YYYY/MM/` (or `/YYYY/MM/DD/`) path segment sets an estimated as-of date. The card shows "(estimated from URL)".
+- **Effect:** Donor Network West's 2023 sponsorship PDF is now dated 2023-03, stale and no longer a current conflict. Score 2 → 3.
+
+### D50. Post-date changes depend on the anchor's tier (amends D30)
+- **Tier 1–2 anchors** (filings, annual reports) are never relabelled or penalized for later changes. The change appears as a yellow note, and the trend area shows directional guidance: "Likely somewhat lower than reported because of [event, date, size]".
+- **Tier 3 or lower anchors:**
+  - may be labelled pre-adjustment, as before
+  - also when the source itself says the figure predates a change it describes (`predates_change`), as with Stripe's "8,500 before the layoffs"
+
+### D51. Directional guidance
+Every certification carries `direction`: higher, lower, in line or unknown, with a one-line reason. It's derived in this order:
+1. changes after the as-of date
+2. the source saying it predates a change
+3. the indicated current range
+4. the prior same-tier trend: under 3% is "in line"; otherwise "possibly higher or lower if the trend continued"
+5. otherwise unknown
+
+It's shown in the "Trend and direction" section with an arrow and the words, never by color alone.
+
+### D52. Scope questions only penalize when they could change which entity is counted
+- **Research's split:** research classifies each complexity. Health system, joint venture and affiliate questions stay red flags. Everything else becomes a yellow scope note with no score impact.
+- **Subsidiary questions depend on the anchor:**
+  - With a tier-1 consolidated filing as the anchor, they're a scope note too. A consolidated filing counts every subsidiary owned at its as-of date.
+  - Below tier 1, they stay a flag.
+- **Why:** in the first Salesforce rerun, the model flagged Informatica, which Salesforce acquired before the 10-K date, and cost it a point.
+
+### D53. Reruns under the new engine (live, $0.57)
+
+| Organization | Before | After |
+| --- | --- | --- |
+| Stripe | 8,500, 1/5, no label | 8,500, 1/5, **pre-adjustment** (source says the figure predates the layoffs); direction lower; tracker and LinkedIn disagreements moved from red flags to yellow scope notes |
+| Salesforce | 83,334, 5/5, **pre-adjustment** | 83,334, 5/5, no label; direction "likely somewhat lower" because of the February 2026 layoffs (−1,000) |
+| Donor Network West | 513, 2/5 (2023 PDF counted as a conflict) | 513, **3/5**; the PDF is dated from its URL and is stale; direction lower (a newer provider figure of about 438) |
+
+The first Salesforce rerun scored 4/5 because of the Informatica flag. D52 fixed that, and the second rerun is the one recorded. Fixtures and the cards in `outputs/` are updated.
+
+### Open issues (this round)
+- **Not deployed.** The feature branch is pushed; main is untouched until you review the screenshots.
+- **Official logo files.** D41 recreated the mark; swap in the originals if they differ.
+- **Rating and spend admin page.** Data is stored, but there's no page yet (FEEDBACK.md).
+- **Research is non-deterministic.** Salesforce's corroborating source and its event list varied between the two reruns. Scores were stable once D52 was in place.
+
+## Additions: decision-ready result, source labels, fact sheets (2026-10-12)
+
+### D54. Policy change: the Corporate Fact Sheet is a primary source (tier 2)
+- **What:** a company's official Corporate Fact Sheet (a "fact sheet" or "company facts" page or PDF) is tier 2. It ranks right behind the 10-K, 20-F, 40-F and annual financial reports, alongside non-financial annual and regulatory reports, and above every website, press release, LinkedIn and third-party source.
+- **No date at all:** with no as-of, publication or modified date, it drops to tier 3. The source carries a note saying why, and its tier rationale says "undated, so one tier lower".
+- **Enforcement:** the engine enforces this (`policy.yaml` → `fact_sheet`), not the model. Research reports `document_type: fact_sheet`, and the engine sets the tier, whatever tier research suggested.
+- **Tests:** a fact sheet beats a press release and the website; it ranks behind the 10-K; an undated fact sheet drops to tier 3.
+- **Also updated:** SPEC.md and the "How certification works" panel.
+
+### D55. Two-level source labels on every source
+- **What:** every source carries a `source_category` (9 plain-English groups) and a `source_type` (exactly what it was, e.g. "10-K", "IRS Form 990", "News: Payments Dive", "Data Provider: Revelio Labs"). They appear in the record (v1.2), the JSON, both CSV files and the card, shown as "Tier 1 · Financial Filing · 10-K".
+- **How:** the mapping is deterministic (`taxonomy.py`):
+  - SEC sources take their form from the EDGAR filing itself, and Form 990s from the ProPublica reader
+  - research reports a document type and publisher
+  - anything still unknown is inferred from the tier and URL
+- **Test:** fails if any combination of tier and document type, or any fixture source, lacks a category, type or explanation.
+- **Additions to the list you gave:**
+  - "SEC Annual Filing", for an sec.gov filing whose form wasn't recorded (older saved results)
+  - "Annual Comprehensive Financial Report (ACFR)", for governments
+  - "Non-Financial Annual Report" and "Company Document", for tier 2–3 documents that aren't fact sheets or press releases
+  - "Web Page: [site]", for unranked pages
+
+### D56. "What is this source?" glossary in an editable file
+`source_glossary.yaml` (repo root) holds a 2–3 sentence explanation per source type, plus a one-line description per category. Each explanation says what the source is, who publishes it, how it's regulated or produced, and why it ranks where it does. The card shows it under "What is this?", and the "How certification works" panel lists the whole glossary by category. Editing the file changes both, with no code change. Typed names such as "News: Reuters" use the generic "News" entry unless an exact entry is added.
+
+### D57. Decision-ready result, top-down
+- **Answer block:**
+  - the count, range, as-of date and confidence
+  - the key source label
+  - a **Bottom line** mapped to confidence: 4–5 "Ready to use. Strong, current primary source."; 3 "Usable. Note the range and the as-of date."; 0–2 "Directional only. Verify before updating records."; no figure "No certified figure."
+  - **Copy for CRM:** a seven-line plain-text block with the count, as-of date, confidence, source label and URL, a one-line rationale, and the policy version
+- **"Why you can trust this" strip:** key source and tier, as-of date, independent confirmations, adjustments to the count, and items needing attention (red findings). Each one jumps to its detail.
+- **Trend and forecast:** directly below, with labelled axes, reported points solid, estimates hollow, the forecast as a shaded band and the indicated current range as a dashed box. It also shows the direction label with its reason, and the **next expected update**: from the key source's as-of date plus the typical filing lag (10-K +60 days, 20-F +120, Form 990 about +10 months, and so on), or a note that the source has no fixed schedule.
+- **Below that:** findings, then the key source, sources, adjustments, and events with the LinkedIn check.
+
+### D58. Findings grouped by what they mean for the reader
+- **Groups:**
+  - **Affects the answer:** changed the number or the confidence
+  - **Worth knowing:** no effect on the answer
+  - **Background:** technical detail, collapsed by default
+- **Each finding:** a plain headline, an impact chip ("Lowered confidence by 1", "Adjusted count −1,100", "No effect on the answer", "Sets starting confidence: 2 of 5"), and a one-sentence **So what**.
+- **Validation rejects a finding:**
+  - with no impact or so-what
+  - whose headline uses internal flag names
+  - that changed confidence but isn't in "Affects the answer"
+- **Jargon rewritten:** "Complexity:", "Flag:", "tracker", "near-date" and "mirror".
+- **Stripe and UC Davis review:**
+  - **Problem:** events showed no date, so a 2022 layoff read like a current one being ignored.
+  - **Fix:** events are now titled "Earlier change (date)", "Change after the as-of date (date)" or "Change with no known date", each with its own so-what.
+  - **Fix:** the direction reason reads "because of a change after the as-of date: …".
+  - **Fix:** the trust strip counts only adjustments that changed the count; UC Davis showed "3" for three notes.
+  - **Note:** a red finding at the score floor sits in "Worth knowing" with "No further effect (confidence already at its minimum)", because strictly it didn't change the answer. Its red status and so-what still tell the reader to check it.
+
+### D59. Start over, discard, Back
+- **Search another company:** the primary button, at the top and bottom of the result. It resets the input, candidates, progress and result, and returns to an empty search box with focus, with no reload.
+- **Saving:** every completed result is saved to Recent lookups automatically. **Discard** removes it.
+- **Confirm step:** has "Not the right one? Search again", which keeps the query selected.
+- **Back button:** each step is a history entry. Back returns to the previous step or result. Leaving a lookup that's in progress cancels it (AbortController). A cancelled lookup isn't charged twice: the server finishes and caches it, so retrying is free.
+
+### D60. "Powered by Claude" as text, not a logo
+- **What:** "Powered by Claude · Custom-built MCP service" is a text badge in the footer and the About panel.
+- **Why no logo:** a search found no published Anthropic guideline that permits third parties to use the Claude or Anthropic logo, so the default applies. The About panel explains the MCP server and how to add it in Claude: a custom connector, a URL ending in `/mcp`, and sign-in with an access code. The URL is filled in from `PUBLIC_BASE_URL`.
+
+### D61. Drifting sample cards removed from the home page
+On review the faint cards looked static (they drifted about 15 px over 26-34 seconds at a fixed faint opacity), so they read as clutter rather than motion. The home page is now the logo, tagline, search, example chips and recent lookups.
+
+### D62. Visual round: softer card, label/value facts, a findings log, and some fun
+- **Answer:**
+  - the count ticks up once, and a rubber-stamp seal (Certified, Supported, Estimated, Unverified) lands beside it
+  - the stamp is green, amber or red, matching the bottom line; sparkles show for 4-5
+  - a facts table follows, with labels on the left and values on the right: Employees, Range, As of, Confidence, Key source, Found in, Direction, Known change, Newer data, Next update
+- **Findings:** a one-line log per item, with a status symbol (check, !, x, plus screen-reader text), the headline and its so-what inline, and a short impact chip on the right ("-1 confidence", "base 4/5", "no effect"). Click a line for the full rationale and evidence.
+- **Softer look:** larger radii, lighter borders and soft shadows, section headers with line icons and a chevron, and a loop-gradient confidence meter that fills in. Sections fade in once.
+- **Expedition:** a hyperloop track whose pod, styled on the mark, travels the stages. The result carries the expedition's sign-off ("Surfacing with a certified answer · Deep Sea Dive"). A loop-gradient line sits under the header.
+- **Motion:** every animation stops under prefers-reduced-motion. Demo screenshots render the settled state; phone screenshots use a real 390 px viewport via Playwright and the installed Edge.
+
+### D63. Mission line
+"Giving you transparency & trust to take real action" sits under the tagline on the home page and opens the About panel. It uses the accent color rather than a green-blue gradient, because loop green on white fails contrast (about 2:1).

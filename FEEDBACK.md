@@ -23,3 +23,20 @@ Stripe was certified at 8,500 with confidence 2; it should have been about 0–1
 - [x] **Recency penalty:** it applies whenever the anchor's age exceeds the policy window, including estimated dates. The recency finding's score impact matches the deduction.
 - [x] **Known adjustments:** a known change after the as-of date (e.g. announced layoffs) labels the figure "pre-adjustment" in the headline.
 - [x] **Newer data:** newer tertiary series (e.g. quarterly Revelio) that diverge from an old figure are shown as an "Indicated current range" alongside the certified figure, without overriding policy.
+
+## Backlog from the hosted-experience build (2026-10-11)
+
+- [ ] **IPEDS reader.** Read university headcounts directly from IPEDS, like the SEC and Form 990 readers, instead of relying on research to find the figure. UC Davis is the golden example.
+- [ ] **Admin page for ratings and spend.** Ratings, comments, queries and daily spend are stored in SQLite, but are reachable only through `/admin/status` (spend) or the database file. Add a page behind an admin code that lists recent ratings with their lookups, and spend by day and by person.
+- [x] **Growth vs. shrinking shown visually** (from the Card list): partly done. "Trend and direction" shows an arrow and words (higher, lower, in line).
+
+## Additions 1 and 2 (2026-10-12)
+
+- [x] Start over, save and discard, Search again, browser Back (D59)
+- [x] Decision-ready result: bottom line, Copy for CRM, trust strip, trend and forecast chart, next expected update (D57)
+- [x] Findings grouped by impact, with a so-what; jargon rewritten; Stripe and UC Davis reviewed (D58)
+- [x] "Powered by Claude · Custom-built MCP service" as text; About explains MCP and how to use it in Claude (D60)
+- [x] Corporate Fact Sheet is tier 2 (undated: tier 3) (D54)
+- [x] Two-level source labels and an editable glossary (D55, D56)
+- [ ] **Refine the glossary wording** in `source_glossary.yaml` (first drafts written)
+- [ ] **UC Davis fixture predates the IPEDS rule:** the saved card still certifies LinkedIn's "more than 21,000" (1/5), not IPEDS 15,029. A rerun, or the IPEDS reader, would fix it.

@@ -86,6 +86,7 @@ class ProPublica:
             passage = re.sub(r"\s+", " ", text[start: end if 0 < end - m.end() < 400 else m.end() + 160]).strip()
             out.append(Source(
                 url=f"{BASE}/organizations/{ein}/{oid}/full", tier=2, value=count, qualifier="exact",
+                document_type="form_990", publisher="ProPublica Nonprofit Explorer",
                 excerpt=re.sub(r"\s+", " ", text[_line_start(text, m): m.end()]).strip(),
                 as_of_date=date(year, 12, 31),
                 published_date=date.fromisoformat(signed.group(1)) if signed else None,

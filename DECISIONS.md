@@ -675,3 +675,25 @@ The record's entity carries `address` and `address_source`, shown as **HQ addres
 - **Facts table labels:** bold small capitals.
 - **A layering bug the click-through caught:** an open menu sat beneath the next section, whose entrance animation
   forms its own stacking layer. The answer block and the footer are now raised above their neighbours.
+
+### D90. Compare with your CRM (optional, "bumper car")
+- **Where:** a collapsed section after Findings. It's never upfront and never needed for downloads, and it works the same in
+  Claude's in-chat card. The person enters their CRM's employee count; "95k" and "95,000" both work.
+- **The lane:** the certified figure sits in a lane whose bumpers narrow as confidence rises: ±5% at 5/5, ±8% at 4/5,
+  ±15% at 3/5, ±25% at 2/5, ±40% at 1/5. The lane is never narrower than the certified range, and it widens toward the
+  likely direction since the as-of date (by half the tolerance).
+- **Inside the lane:** "Keep your number."
+- **Outside the lane:** a move into the lane, pushing harder the higher the confidence.
+
+  | Confidence | Label | Suggested number |
+  | --- | --- | --- |
+  | 4–5 | "Update recommended" | the certified figure |
+  | 3 | "Consider updating" | halfway between the nearest bumper and the certified figure |
+  | 1–2 | "Optional: review" | the nearest bumper |
+
+- **Direction:** a move that agrees with the likely direction is one step stronger. A move against it goes only to the
+  bumper, and drops a step below 5/5.
+- **Display:** a lane graphic shows the band, the certified figure, the CRM number and the suggestion, with "Copy
+  suggested number".
+- **Privacy:** nothing is sent to the server; the check runs in the page.
+- **Tests:** ten scenarios, run against the real card code in a browser.

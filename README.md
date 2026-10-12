@@ -127,9 +127,12 @@ From top to bottom:
    - **Background:** technical detail, collapsed
 
    Every finding has a plain-English **"so what"** telling you whether to act.
-7. **Key source, sources, adjustments, events:** the full evidence: every source found, used or excluded and why, with
+7. **Compare with your CRM (optional):** enter your CRM's number and get a recommendation. Inside the lane around the
+   certified figure (narrow at high confidence, wide at low), keep it. Outside it, move it in: to the certified
+   figure at 4–5/5, halfway at 3/5, just to the edge at 1–2/5, and more firmly when the likely direction agrees.
+8. **Key source, sources, adjustments, events:** the full evidence: every source found, used or excluded and why, with
    the detailed passage and location.
-8. **Download** (top and bottom of the card, and in Claude): Copy for CRM, a **4-slide PowerPoint** (light or dark, in the brand), a **Word document** with the full supporting detail, a summary CSV, a sources CSV, and JSON (the full certification record).
+9. **Download** (top and bottom of the card, and in Claude): Copy for CRM, a **4-slide PowerPoint** (light or dark, in the brand), a **Word document** with the full supporting detail, a summary CSV, a sources CSV, and JSON (the full certification record).
 
 ---
 

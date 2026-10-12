@@ -224,6 +224,26 @@ CARD_CSS = r"""
 .cert .dl-group { margin: 6px 10px 2px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .cert .footer-actions { margin-top: 12px; }
 .cert .footer-actions .dl-items { top: auto; bottom: calc(100% + 6px); }
+.cert .crm-form label { display: block; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.cert .crm-row { display: flex; gap: 8px; max-width: 420px; }
+.cert .crm-row input { flex: 1; min-width: 0; font: inherit; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); }
+.cert .crm-out { margin-top: 12px; }
+.cert .crm-verdict { margin: 0 0 6px; padding: 10px 12px; border-radius: 10px; font-size: 14px; }
+.cert .crm-verdict.keep { background: var(--green-bg); color: var(--green); }
+.cert .crm-verdict.strong { background: var(--red-bg); color: var(--red); }
+.cert .crm-verdict.moderate { background: var(--yellow-bg); color: var(--yellow); }
+.cert .crm-verdict.light { background: var(--soft); color: var(--text); }
+.cert .lane { position: relative; height: 14px; margin: 34px 0 34px; border-radius: 999px; background: var(--soft); border: 1px solid var(--line); }
+.cert .lane-band { position: absolute; top: -1px; bottom: -1px; border-radius: 999px; background: linear-gradient(90deg, rgba(63, 207, 142, .35), rgba(89, 154, 245, .35));
+  border: 1.5px solid var(--loop-green); }
+.cert .lane-mark { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; border: 3px solid var(--card); }
+.cert .lane-mark b { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 11.5px; font-weight: 700; }
+.cert .cert-mark { background: var(--loop-green); box-shadow: 0 0 0 2px var(--loop-green); }
+.cert .cert-mark b { bottom: 18px; color: var(--green); }
+.cert .crm-mark { background: var(--muted); }
+.cert .crm-mark b { top: 18px; color: var(--muted); }
+.cert .target-mark { background: var(--loop-blue); }
+.cert .target-mark b { bottom: 18px; color: var(--accent); }
 .cert .hint { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; padding: 2px 10px 2px 8px; border-radius: 999px;
   font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-soft); white-space: nowrap; }
 .cert .hint i { width: 8px; height: 8px; border-radius: 50%; background: var(--loop-green); animation: cert-ping 1.6s ease-out infinite; }
@@ -343,7 +363,8 @@ CARD_JS = r"""
     adjust: '<path d="M5 4v16M12 4v16M19 4v16"/><circle cx="5" cy="9" r="2"/><circle cx="12" cy="15" r="2"/><circle cx="19" cy="7" r="2"/>',
     events: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
     trend: '<path d="M3 20h18"/><path d="M4 16l5-6 4 3 7-8"/><path d="M16 5h4v4"/>',
-    trust: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>'
+    trust: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
+    compare: '<path d="M4 8h14l-3.5-3.5"/><path d="M20 16H6l3.5 3.5"/>'
   };
   function icon(name, cls) {
     var span = el("span", { cls: "ico" + (cls ? " " + cls : ""), "aria-hidden": "true" });
@@ -833,6 +854,89 @@ CARD_JS = r"""
     details.addEventListener("toggle", function () { if (details.open) { markSeen(key); h.remove(); } });
   }
 
+  // ---------- Compare with your CRM (optional): bumper-car recommendation ----------
+  // The certified figure sits in a lane whose bumpers narrow as confidence rises. A CRM number inside the lane is
+  // fine; outside it, we suggest moving it in, pushing harder (toward the certified figure itself) the higher the
+  // confidence, and harder still when the move agrees with the likely direction since the as-of date.
+  var CRM_TOLERANCE = { 5: 0.05, 4: 0.08, 3: 0.15, 2: 0.25, 1: 0.40 };
+  var CRM_STRENGTH = { strong: "Update recommended", moderate: "Consider updating", light: "Optional: review" };
+  function parseCount(text) {
+    var m = String(text || "").trim().toLowerCase().replace(/[,\s]/g, "").match(/^(\d+(?:\.\d+)?)(k|m)?$/);
+    if (!m) return null;
+    var v = parseFloat(m[1]) * (m[2] === "k" ? 1e3 : m[2] === "m" ? 1e6 : 1);
+    return v > 0 ? Math.round(v) : null;
+  }
+  function crmAdvice(r, v) {
+    var h = r.headline, c = h.count, score = r.confidence.score, t = CRM_TOLERANCE[score];
+    if (c == null || !t) return { kind: "none", text: "There's no certified figure to compare against." };
+    var lo = Math.min(h.range ? h.range[0] : c, c * (1 - t)), hi = Math.max(h.range ? h.range[1] : c, c * (1 + t));
+    if (h.direction === "lower") lo -= c * t / 2;  // the true figure has likely moved down: widen the lower bumper
+    if (h.direction === "higher") hi += c * t / 2;
+    lo = Math.round(lo); hi = Math.round(hi);
+    var band = { lo: lo, hi: hi, certified: c };
+    if (v >= lo && v <= hi) {
+      return { kind: "keep", band: band, label: "Keep your number",
+        text: "Your CRM's " + num(v) + " is inside the certified range for a " + score + "/5 certification (" + num(lo) + "–" + num(hi) +
+          "). No change needed" + (Math.abs(v - c) / c > 0.02 ? "; for the most exact figure, use " + num(c) + "." : ".") };
+    }
+    var above = v > hi, edge = above ? hi : lo, off = above ? (v - hi) / hi : (lo - v) / lo;
+    var agrees = (above && h.direction === "lower") || (!above && h.direction === "higher");
+    var against = (above && h.direction === "higher") || (!above && h.direction === "lower");
+    var target = score >= 4 ? c : score === 3 ? Math.round((edge + c) / 2) : edge;
+    var strength = score >= 4 ? "strong" : score === 3 ? "moderate" : "light";
+    if (agrees) strength = strength === "light" ? "moderate" : "strong";
+    if (against) {
+      target = edge;  // the true figure may be beyond ours in your direction: move only into the lane
+      if (strength === "strong" && score < 5) strength = "moderate";
+    }
+    var why = agrees ? " The likely direction since the as-of date (" + h.direction + ") points the same way, so we'd make this change."
+      : against ? " The figure has likely moved " + (h.direction === "higher" ? "up" : "down") + " since its as-of date, so we suggest moving only to the edge of the range."
+      : "";
+    return { kind: strength, band: band, target: target, label: CRM_STRENGTH[strength],
+      text: "Your CRM's " + num(v) + " is " + Math.round(off * 100) + "% " + (above ? "above" : "below") + " the certified range for a " + score +
+        "/5 certification (" + num(lo) + "–" + num(hi) + "). Suggested update: " + num(target) + "." + why };
+  }
+  function lane(adv, v) {
+    var b = adv.band, pts = [b.lo, b.hi, b.certified, v].concat(adv.target ? [adv.target] : []);
+    var min = Math.min.apply(null, pts), max = Math.max.apply(null, pts), pad = (max - min) * 0.12 || max * 0.05;
+    min -= pad; max += pad;
+    var at = function (x) { return ((x - min) / (max - min) * 100).toFixed(2) + "%"; };
+    var track = el("div", { cls: "lane", role: "img", "aria-label": "Certified range " + num(b.lo) + " to " + num(b.hi) +
+      ", certified " + num(b.certified) + ", your CRM " + num(v) + (adv.target ? ", suggested " + num(adv.target) : "") });
+    track.appendChild(el("span", { cls: "lane-band", style: "left:" + at(b.lo) + ";width:calc(" + at(b.hi) + " - " + at(b.lo) + ")" }));
+    var mark = function (x, cls, label) { track.appendChild(el("span", { cls: "lane-mark " + cls, style: "left:" + at(x) }, [el("b", { text: label })])); };
+    mark(b.certified, "cert-mark", "Certified " + num(b.certified));
+    mark(v, "crm-mark", "Your CRM " + num(v));
+    if (adv.target && adv.target !== b.certified) mark(adv.target, "target-mark", "Suggested " + num(adv.target));
+    return track;
+  }
+  function crmCheck(r) {
+    var k = r.__k, input = el("input", { type: "text", inputmode: "numeric", autocomplete: "off", id: k + "-crm-input",
+      placeholder: "e.g. 95,000 or 95k", "aria-describedby": k + "-crm-help" });
+    var go = el("button", { type: "submit", text: "Check" }), out = el("div", { cls: "crm-out", "aria-live": "polite" });
+    var form = el("form", { cls: "crm-form" }, [el("label", { "for": k + "-crm-input", text: "Your CRM employee count" }),
+      el("div", { cls: "crm-row" }, [input, go])]);
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      out.textContent = "";
+      var v = parseCount(input.value);
+      if (v == null) { out.appendChild(el("p", { cls: "small muted", text: "Enter a number, for example 95,000 or 95k." })); return; }
+      var adv = crmAdvice(r, v);
+      if (adv.kind === "none") { out.appendChild(el("p", { cls: "small muted", text: adv.text })); return; }
+      out.appendChild(el("p", { cls: "crm-verdict " + adv.kind }, [el("strong", { text: adv.label }), " · " + adv.text]));
+      out.appendChild(lane(adv, v));
+      if (adv.target) {
+        var cp = el("button", { type: "button", cls: "secondary", text: "Copy suggested number" });
+        cp.addEventListener("click", function () { copyText(String(adv.target), cp, "Copy suggested number"); });
+        out.appendChild(el("div", { cls: "row", style: "margin-top:8px" }, [cp]));
+      }
+    });
+    return section("Compare with your CRM", "optional · check whether your CRM's number needs an update", [
+      el("p", { id: k + "-crm-help", cls: "small muted", style: "margin:0 0 8px",
+        text: "We keep a lane around the certified figure: narrow when confidence is high, wider when it's low. Inside it, keep your number; outside it, we suggest how far to move it." }),
+      form, out], false, k + "-crm", "compare");
+  }
+
   function sources(r) {
     var items = r.sources.items, k = r.__k;
     if (!items.length) return section("Sources", "none", [none(r.sources.none_reason)], false, k + "-sources", "sources");
@@ -946,7 +1050,7 @@ CARD_JS = r"""
     records.forEach(function (r, i) {
       r.__k = "r" + i;
       root.appendChild(el("article", { cls: "card", "aria-label": "Certification for " + r.entity.name }, [
-        header(r, opts), answer(r, opts), trendBlock(r), trust(r), findings(r), primary(r), sources(r), adjustments(r), events(r),
+        header(r, opts), answer(r, opts), trendBlock(r), trust(r), findings(r), crmCheck(r), primary(r), sources(r), adjustments(r), events(r),
         footer(r, records, opts)]));
     });
     if (location.hash === "#expand-all") Array.prototype.forEach.call(root.querySelectorAll("details"), function (d) { d.open = true; });
@@ -954,7 +1058,7 @@ CARD_JS = r"""
     return records;
   }
 
-  window.GTMCard = { render: render, toRecords: toRecords };
+  window.GTMCard = { render: render, toRecords: toRecords, crmAdvice: crmAdvice, parseCount: parseCount };
 })();
 """
 

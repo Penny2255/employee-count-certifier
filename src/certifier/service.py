@@ -48,7 +48,7 @@ class LookupResult(BaseModel):
     models: dict[str, str] = {}
 
 
-def edgar_snippets(edgar: Edgar, cik: int, limit: int = 3) -> list[Snippet]:
+def edgar_snippets(edgar: Edgar, cik: int, limit: int = 5) -> list[Snippet]:
     """Employee snippets from recent annual filings, keeping only those with a headcount figure."""
     company = edgar.company(cik)
     snippets = [s for f in edgar.annual_filings(company, limit=limit) for s in edgar.snippets(f)]
@@ -124,6 +124,15 @@ def _lookup(entity: Entity, cik: int | None, lookup_date: date | None, policy: P
         sources += heuristic.best_per_filing(snippets, policy)
         notes.append("Claude extraction returned nothing; fell back to rule-based extraction of SEC filings.")
     sources = stamp_filing_forms(sources, snippets)
+    # Every annual filing EDGAR returned is represented: if research dropped one, read it by rule.
+    present = {x.url.split("#")[0] for x in sources if x.tier == 1}
+    missing = [sn for sn in snippets if sn.filing.url.split("#")[0] not in present]
+    if missing and found.sources:
+        added = heuristic.best_per_filing(missing, policy)
+        if added:
+            sources += locate_sources(added, edgar)
+            notes.append(f"{len(added)} SEC filing figure(s) not reported by research were read by rule: "
+                         + ", ".join(f"{a.value:,} as of {a.as_of_date}" for a in added) + ".")
     cert = certify(entity, sources, linkedin=found.linkedin, lookup_date=lookup_date,
                    events=found.events, review_flags=found.complexities, scope_notes=found.scope_notes,
                    subsidiary_questions=found.subsidiary_questions,

@@ -24,7 +24,7 @@
       },
       {
         "points": 1,
-        "reason": "corroborated by reveliolabs.com 'Salesforce (CRM) had 87,829 employees as of March 2026'"
+        "reason": "corroborated by reveliolabs.com 'Salesforce (CRM) had 87,829 employees as of March 2026, up 9'"
       },
       {
         "points": 0,
@@ -38,11 +38,12 @@
     "pre_adjustment": false,
     "direction": {
       "direction": "lower",
-      "reason": "Likely somewhat lower than reported because of a change after the as-of date: Salesforce laid off about 1,000 employees in February 2026, with cuts across marketing… (2026-02-15, -1,000)."
+      "reason": "Likely somewhat lower than reported because of a change after the as-of date: Salesforce laid off about 1,000 employees in strategic cuts across marketing and data… (2026-02-01, -1,000)."
     },
     "scope_notes": [
-      "Informatica is described on Wikipedia as acquired by Salesforce (about 5,200 employees in 2024). No completion date was found and it is unconfirmed whether its staff are included in Salesforce's headcount. Salesforce's consolidated count would include a wholly owned subsidiary by policy."
+      "Unclear whether Informatica employees are included in the FY2026 (Jan 31, 2026) 10-K count or only in later periods."
     ],
+    "explained_flags": [],
     "indicated_range": null,
     "sources": [
       {
@@ -72,13 +73,14 @@
         "components": null,
         "separately_reported": null,
         "restates": false,
+        "document_type": "10-K",
+        "publisher": null,
         "corroboration_only": false,
         "role": "selected",
         "role_reason": "Highest-ranked eligible source: tier 1, as of 2026-01-31.",
         "notes": [
-          "10-K for fiscal year ended 2026-01-31, filed 2026-03-02. Predates the February 2026 layoff of about 1,000 reported by Yahoo Finance only in the sense that the layoff was announced around the period end; the figure is as stated."
-        ],
-        "document_type": "10-K"
+          "FY2026 10-K, latest filing."
+        ]
       },
       {
         "url": "https://www.sec.gov/Archives/edgar/data/1108524/000110852425000006/crm-20250131.htm",
@@ -107,14 +109,15 @@
         "components": null,
         "separately_reported": null,
         "restates": false,
+        "document_type": "10-K",
+        "publisher": null,
         "corroboration_only": false,
         "role": "supporting",
         "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
         "notes": [
-          "Prior-year 10-K; feeds the trend only.",
+          "Prior-year figure, trend only.",
           "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
-        ],
-        "document_type": "10-K"
+        ]
       },
       {
         "url": "https://www.sec.gov/Archives/edgar/data/1108524/000110852424000005/crm-20240131.htm",
@@ -143,36 +146,37 @@
         "components": null,
         "separately_reported": null,
         "restates": false,
+        "document_type": "10-K",
+        "publisher": null,
         "corroboration_only": false,
         "role": "supporting",
         "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
         "notes": [
-          "Prior-year 10-K; feeds the trend only.",
+          "Prior-year figure, trend only.",
           "Older than 24 months.",
           "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
-        ],
-        "document_type": "10-K"
+        ]
       },
       {
-        "url": "https://www.reveliolabs.com/companies/salesforce/employees",
-        "tier": 7,
-        "value": 87829,
+        "url": "https://www.sec.gov/Archives/edgar/data/1108524/000110852423000011/crm-20230131.htm",
+        "tier": 1,
+        "value": 79390,
         "qualifier": "exact",
-        "excerpt": "Salesforce (CRM) had 87,829 employees as of March 2026",
+        "excerpt": "As of January 31, 2023, we had 79,390 employees, of which approximately 52 percent were located in the United States and 48 percent were located internationally",
         "location": {
-          "section": "Headline and annual employee count",
-          "page": null,
-          "page_basis": null,
-          "context": "Salesforce (CRM) had 87,829 employees as of March 2026. The page also gives 83,893 for 2025, 77,019 for 2024 and 77,044 for 2023.",
-          "deep_link": "https://www.reveliolabs.com/companies/salesforce/employees#:~:text=Salesforce%20%28CRM%29%20had%2087%2C829%20employees%20as%20of%20March%202026",
-          "note": "Web page: no page numbers."
+          "section": "Item 1. Business › Human Capital Management",
+          "page": "10",
+          "page_basis": "printed",
+          "context": "…globe, as evidenced by the following awards: Fortune World's Most Admired Companies (2022 and for the eighth year in a row), Fortune 100 Best Companies to Work For (2022 and for the 13th year in a row), Human Rights Campaign Best Places to Work for LGBTQ Equality (2022) and Glassdoor Employees' Choice Best Place to Work in Canada, France, Germany, the United Kingdom and the United States (2022). As of January 31, 2023, we had 79,390 employees, of which approximately 52 percent were located in the United States and 48 percent were located internationally and approximately 36 percent identified as women, 63 percent identified as men and less than 0.2 percent identified as non-binary. This number includes those individuals impacted by our restructuring plan announced on January 4, 2023, which includes a reduction of our current workforce by approximately 10 percent…",
+          "deep_link": "https://www.sec.gov/Archives/edgar/data/1108524/000110852423000011/crm-20230131.htm#:~:text=As%20of%20January%2031%2C%202023%2C,were%20located%20internationally",
+          "note": "Printed page 10 (page 11 of 102 in the HTML filing)."
         },
-        "as_of_date": "2026-03-15",
-        "as_of_estimated": true,
-        "as_of_basis": "page says 'as of March 2026'",
+        "as_of_date": "2023-01-31",
+        "as_of_estimated": false,
+        "as_of_basis": null,
         "as_of_from_url": false,
         "predates_change": false,
-        "published_date": "2026-08-01",
+        "published_date": "2023-03-08",
         "modified_date": null,
         "scope": "global",
         "basis": "headcount",
@@ -180,12 +184,90 @@
         "components": null,
         "separately_reported": null,
         "restates": false,
+        "document_type": "10-K",
+        "publisher": null,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
+        "notes": [
+          "Prior-year figure, trend only.",
+          "Older than 24 months.",
+          "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
+        ]
+      },
+      {
+        "url": "https://www.sec.gov/Archives/edgar/data/1108524/000110852422000013/crm-20220131.htm",
+        "tier": 1,
+        "value": 73541,
+        "qualifier": "exact",
+        "excerpt": "As of January 31, 2022, we had 73,541 employees, of which approximately 55 percent were located in the United States and 45 percent were located internationally",
+        "location": {
+          "section": "Item 1. Business › Human Capital Management",
+          "page": "9",
+          "page_basis": "printed",
+          "context": "Our focus on our workplace environment and a strong company culture has led to recognition across the globe, as evidenced by the following awards: Fortune World’s Most Admired Companies (2022 and for the eighth year in a row), Fortune 100 Best Companies to Work (2021 and for the 13th year in a row), Human Rights Campaign Best Places to Work For LGBTQ Equality (2022), and Glassdoor Employees’ Choice Best Place to Work in Canada, France, Germany, the United Kingdom, and the United States (2022). As of January 31, 2022, we had 73,541 employees, of which approximately 55 percent were located in the United States and 45 percent were located internationally and approximately 36 percent identified as women, 64 percent identified as men and less than 1 percent identified as non-binary. None of our employees in the United States are represented by a labor union.",
+          "deep_link": "https://www.sec.gov/Archives/edgar/data/1108524/000110852422000013/crm-20220131.htm#:~:text=As%20of%20January%2031%2C%202022%2C,were%20located%20internationally",
+          "note": "Printed page 9 (page 10 of 105 in the HTML filing)."
+        },
+        "as_of_date": "2022-01-31",
+        "as_of_estimated": false,
+        "as_of_basis": null,
+        "as_of_from_url": false,
+        "predates_change": false,
+        "published_date": "2022-03-11",
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "document_type": "10-K",
+        "publisher": null,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
+        "notes": [
+          "Prior-year figure, trend only.",
+          "Older than 24 months.",
+          "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
+        ]
+      },
+      {
+        "url": "https://www.reveliolabs.com/companies/salesforce/employees",
+        "tier": 7,
+        "value": 87829,
+        "qualifier": "approximately",
+        "excerpt": "Salesforce (CRM) had 87,829 employees as of March 2026, up 9,809 (-0.6%) from the prior year.",
+        "location": {
+          "section": "Page summary",
+          "page": null,
+          "page_basis": null,
+          "context": "Salesforce, Inc. (CRM) has approximately 87,829 total employees worldwide as of March 2026, according to Revelio Labs workforce intelligence data. Salesforce's total headcount has grown 15.0% from 76,341 employees in 2023 to 87,829 in 2026.",
+          "deep_link": "https://www.reveliolabs.com/companies/salesforce/employees#:~:text=Salesforce%20%28CRM%29%20had%2087%2C829%20employees,the%20prior%20year.",
+          "note": "Web page: no page numbers."
+        },
+        "as_of_date": "2026-03-15",
+        "as_of_estimated": true,
+        "as_of_basis": "page states 'as of March 2026'",
+        "as_of_from_url": false,
+        "predates_change": false,
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "document_type": "data_provider",
+        "publisher": null,
         "corroboration_only": false,
         "role": "corroborates",
         "role_reason": "Independent source near the same date, within 5% of the certified value (threshold 15%).",
         "notes": [
-          "Modeled workforce data, not a company count. Year-over-year wording is internally inconsistent and earlier years do not match the SEC series.",
-          "As-of date estimated from page says 'as of March 2026'."
+          "Modeled estimate, not a company figure. Year-over-year numbers on the page contradict each other (+9,809 vs -0.6%). Page published about August 2026.",
+          "As-of date estimated from page states 'as of March 2026'."
         ]
       },
       {
@@ -195,10 +277,10 @@
         "qualifier": "exact",
         "excerpt": "Salesforce had 83,334 employees as of January 31, 2026.",
         "location": {
-          "section": "Employees History table",
+          "section": "Employees header and history table",
           "page": null,
           "page_basis": null,
-          "context": "Salesforce had 83,334 employees as of January 31, 2026. The page also lists 76,453 (Jan 2025), 72,682 (Jan 2024), 79,390 (Jan 2023), 73,541 (Jan 2022) and 56,606 (Jan 2021).",
+          "context": "Salesforce had 83,334 employees as of January 31, 2026. The number of employees increased by 6,881 or 9.00% compared to the previous year.",
           "deep_link": "https://stockanalysis.com/stocks/crm/employees/#:~:text=Salesforce%20had%2083%2C334%20employees%20as%20of%20January%2031%2C%202026.",
           "note": "Web page: no page numbers."
         },
@@ -215,11 +297,13 @@
         "components": null,
         "separately_reported": null,
         "restates": true,
+        "document_type": "data_provider",
+        "publisher": null,
         "corroboration_only": false,
         "role": "supporting",
         "role_reason": "Not counted as corroboration: restates another source's figure.",
         "notes": [
-          "Repeats the 10-K figure; not independent.",
+          "Restates the FY2026 10-K.",
           "Not counted as corroboration: restates another source's figure."
         ]
       },
@@ -228,13 +312,13 @@
         "tier": 9,
         "value": 83334,
         "qualifier": "exact",
-        "excerpt": "the company had 83,334 employees as of January 31, 2026",
+        "excerpt": "According to Salesforce's latest Annual Report, the company had 83,334 employees as of January 31, 2026.",
         "location": {
           "section": "How many employees does Salesforce have in 2026?",
           "page": null,
           "page_basis": null,
-          "context": "The article attributes the figure to Salesforce's latest Annual Report.",
-          "deep_link": "https://finance.yahoo.com/markets/stocks/articles/many-employees-does-salesforce-2026-010629767.html#:~:text=the%20company%20had%2083%2C334%20employees%20as%20of%20January%2031%2C%202026",
+          "context": "According to Salesforce's latest Annual Report, the company had 83,334 employees as of January 31, 2026. This number includes everyone from the software engineers and data scientists who build Salesforce's cloud and AI platforms to its account executives, customer support teams, and corporate roles, such as those in finance and HR.",
+          "deep_link": "https://finance.yahoo.com/markets/stocks/articles/many-employees-does-salesforce-2026-010629767.html#:~:text=According%20to%20Salesforce%27s%20latest%20Annual,January%2031%2C%202026.",
           "note": "Web page: no page numbers."
         },
         "as_of_date": "2026-01-31",
@@ -250,46 +334,13 @@
         "components": null,
         "separately_reported": null,
         "restates": true,
+        "document_type": "news",
+        "publisher": null,
         "corroboration_only": false,
         "role": "supporting",
         "role_reason": "Not counted as corroboration: restates another source's figure.",
         "notes": [
-          "Restates the 10-K; published about March 2026 (approximate).",
-          "Not counted as corroboration: restates another source's figure."
-        ]
-      },
-      {
-        "url": "https://en.wikipedia.org/wiki/Salesforce",
-        "tier": 9,
-        "value": 83334,
-        "qualifier": "exact",
-        "excerpt": "Number of employees: 83,334 (2026)",
-        "location": {
-          "section": "Infobox",
-          "page": null,
-          "page_basis": null,
-          "context": "Number of employees: 83,334 (2026). The infobox sits alongside 2026 revenue of US$41.525 billion.",
-          "deep_link": "https://en.wikipedia.org/wiki/Salesforce#:~:text=Number%20of%20employees%3A%2083%2C334%20%282026%29",
-          "note": "Web page: no page numbers."
-        },
-        "as_of_date": "2026-01-31",
-        "as_of_estimated": false,
-        "as_of_basis": null,
-        "as_of_from_url": false,
-        "predates_change": false,
-        "published_date": null,
-        "modified_date": null,
-        "scope": "global",
-        "basis": "headcount",
-        "contractors_included": null,
-        "components": null,
-        "separately_reported": null,
-        "restates": true,
-        "corroboration_only": false,
-        "role": "supporting",
-        "role_reason": "Not counted as corroboration: restates another source's figure.",
-        "notes": [
-          "Derived from the filing; not independent.",
+          "Secondary restatement of the annual report.",
           "Not counted as corroboration: restates another source's figure."
         ]
       }
@@ -310,17 +361,38 @@
     "flags": [],
     "events": [
       {
-        "description": "Salesforce laid off about 1,000 employees in February 2026, with cuts across marketing and data analytics, per Yahoo Finance.",
+        "description": "Salesforce laid off about 1,000 employees in strategic cuts across marketing and data analytics; a spokesperson said the positions 'did not disappear'. Exact effective date unknown.",
         "url": "https://finance.yahoo.com/markets/stocks/articles/many-employees-does-salesforce-2026-010629767.html",
-        "close_date": "2026-02-15",
+        "close_date": "2026-02-01",
         "penalized": false,
         "after_as_of": true,
         "headcount_change": -1000,
-        "reason": "Took effect 2026-02-15, after the 2026-01-31 as-of date (stated change -1,000). The tier 1 figure stands as reported; this is noted for awareness and in the directional guidance."
+        "reason": "Took effect 2026-02-01, after the 2026-01-31 as-of date (stated change -1,000). The tier 1 figure stands as reported; this is noted for awareness and in the directional guidance."
+      },
+      {
+        "description": "Informatica acquired by Salesforce; Informatica had about 5,200 employees in 2024 per Wikipedia. Completion date and post-merger headcount change not found; unclear whether Informatica staff are in the Jan 31, 2026 10-K count.",
+        "url": "https://en.wikipedia.org/wiki/Informatica",
+        "close_date": null,
+        "penalized": false,
+        "after_as_of": false,
+        "headcount_change": null,
+        "reason": "The close date or the as-of date is unknown, so it cannot be shown to postdate the figure; noted, not penalized."
       }
     ],
-    "rationale": "Highest-ranked available source is tier 1 (10-K, 20-F, 40-F or annual financial report), as of 2026-01-31, reporting 83,334. 1 independent corroborating source(s) within 15%. Confidence 5 (Certified, corroborated).",
+    "rationale": "Highest-ranked available source is tier 1 (10-K, 20-F, 40-F or annual financial report), as of 2026-01-31, reporting 83,334. Event noted, not penalized (close date or as-of date unknown): Informatica acquired by Salesforce; Informatica had about 5,200 employees in 2024 per Wikipedia. Completion date and post-merger headcount change not found; unclear whether Informatica staff are in the Jan 31, 2026 10-K count. (https://en.wikipedia.org/wiki/Informatica). 1 independent corroborating source(s) within 15%. Confidence 5 (Certified, corroborated).",
     "trend": [
+      {
+        "as_of_date": "2022-01-31",
+        "value": 73541,
+        "tier": 1,
+        "url": "https://www.sec.gov/Archives/edgar/data/1108524/000110852422000013/crm-20220131.htm"
+      },
+      {
+        "as_of_date": "2023-01-31",
+        "value": 79390,
+        "tier": 1,
+        "url": "https://www.sec.gov/Archives/edgar/data/1108524/000110852423000011/crm-20230131.htm"
+      },
       {
         "as_of_date": "2024-01-31",
         "value": 72682,
@@ -343,21 +415,21 @@
     "forecast": null,
     "policy_version": "0.2"
   },
-  "cost_usd": 0.1136,
+  "cost_usd": 0.1236,
   "web_searches": 2,
   "web_fetches": 1,
   "method": "edgar+research",
   "notes": [
     "SEC CIK 1108524 resolved from the name.",
-    "Latest 10-K figure of 83,334 (as of 2026-01-31) is the primary figure. No integrated report, website stat or press release headcount was found. LinkedIn member count (87,523; a second snippet showed 89,783) runs about 5% above the filing. Blog posts from Cyntexa and Notta had stale or erroneous figures and were excluded. Aggregator and Wikipedia sources restate the 10-K."
+    "No fact sheet, integrated report, or own-website headcount found; the About page fetch was blocked. LinkedIn member count (87,523) is above the 10-K figure, normal for white-collar. LinkedIn snapshots also showed 89,783 and 74,667, undated. Nathalie Scardino's claim of nearly 20,000 employees in new roles is a workforce-mix signal, not a headcount, and is excluded from sources. The Revelio figure is a modeled estimate. Other aggregators and blogs repeat 83,334 and some print erroneous figures."
   ],
   "queries": [
     "web_fetch: https://www.salesforce.com/company/about-us/",
     "web_search: Salesforce number of employees 2026",
-    "web_search: Salesforce LinkedIn company page employees"
+    "web_search: Salesforce LinkedIn employees on LinkedIn"
   ],
-  "run_at": "2026-10-12T00:20:35.672385Z",
-  "duration_s": 45.2,
+  "run_at": "2026-10-12T03:08:07.476307Z",
+  "duration_s": 48.9,
   "models": {
     "research": "claude-sonnet-5-5",
     "extraction": "claude-sonnet-5-5"

@@ -21,6 +21,7 @@ from ..config import sec_user_agent
 ANNUAL_FORMS = ("10-K", "20-F", "40-F")
 TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
 SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik:010d}.json"
+SUBMISSIONS_FILE_URL = "https://data.sec.gov/submissions/{name}"
 ARCHIVE_URL = "https://www.sec.gov/Archives/edgar/data/{cik}/{accession}/{document}"
 
 Fetch = Callable[[str], str]
@@ -99,20 +100,27 @@ class Edgar:
         sub = json.loads(self._get(SUBMISSIONS_URL.format(cik=cik)))
         return Company(cik=cik, name=sub["name"], ticker=(sub.get("tickers") or [None])[0])
 
-    def annual_filings(self, company: Company, limit: int = 3) -> list[Filing]:
-        """Most recent annual filings, newest first (amendments excluded)."""
-        recent = json.loads(self._get(SUBMISSIONS_URL.format(cik=company.cik)))["filings"]["recent"]
-        out = []
-        for i, form in enumerate(recent["form"]):
-            if form not in ANNUAL_FORMS:
-                continue
-            accession = recent["accessionNumber"][i].replace("-", "")
-            url = ARCHIVE_URL.format(cik=company.cik, accession=accession, document=recent["primaryDocument"][i])
-            period = recent["reportDate"][i]
-            out.append(Filing(company, form, date.fromisoformat(recent["filingDate"][i]),
-                              date.fromisoformat(period) if period else None, url))
-            if len(out) == limit:
-                break
+    def annual_filings(self, company: Company, limit: int = 5) -> list[Filing]:
+        """Most recent annual filings, newest first (amendments excluded). Frequent filers' older 10-Ks drop
+        out of the "recent" list (about the last 1,000 filings), so the older pages are read when needed."""
+        sub = json.loads(self._get(SUBMISSIONS_URL.format(cik=company.cik)))
+        pages = [sub["filings"]["recent"]]
+        older = [f["name"] for f in sub["filings"].get("files", [])]
+        out: list[Filing] = []
+        while pages:
+            page = pages.pop(0)
+            for i, form in enumerate(page["form"]):
+                if form not in ANNUAL_FORMS:
+                    continue
+                accession = page["accessionNumber"][i].replace("-", "")
+                url = ARCHIVE_URL.format(cik=company.cik, accession=accession, document=page["primaryDocument"][i])
+                period = page["reportDate"][i]
+                out.append(Filing(company, form, date.fromisoformat(page["filingDate"][i]),
+                                  date.fromisoformat(period) if period else None, url))
+                if len(out) == limit:
+                    return out
+            if not pages and older:
+                pages.append(json.loads(self._get(SUBMISSIONS_FILE_URL.format(name=older.pop(0)))))
         return out
 
     def filing_text(self, filing: Filing) -> str:

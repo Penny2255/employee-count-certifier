@@ -24,7 +24,7 @@
       },
       {
         "points": 1,
-        "reason": "corroborated by reveliolabs.com 'NextEra Energy, Inc. (NEE) has approximately 17,623 total em'"
+        "reason": "corroborated by reveliolabs.com 'NextEra Energy (NEE) had 17,623 employees as of March 2026, '"
       },
       {
         "points": 0,
@@ -40,7 +40,10 @@
       "direction": "higher",
       "reason": "Possibly higher now if the recent trend continued (16,800 to 17,400, +4%); no later change is known."
     },
-    "scope_notes": [],
+    "scope_notes": [
+      "The sustainability appendix's 16,691 has an unverified column year (probably 2024) and was not fetched; the FY2025 10-K gives 17,400 for 2025. The 2025 aggregators show 17,300, differing from the 10-K."
+    ],
+    "explained_flags": [],
     "indicated_range": null,
     "sources": [
       {
@@ -76,7 +79,7 @@
         "role": "selected",
         "role_reason": "Highest-ranked eligible source: tier 1, as of 2025-12-31.",
         "notes": [
-          "FPL (9,400) and NEER (7,900) segment figures are in the same filing and are partial scope; they are not added."
+          "Consolidated NEE total including FPL and NEER."
         ]
       },
       {
@@ -84,13 +87,13 @@
         "tier": 1,
         "value": 9400,
         "qualifier": "approximately",
-        "excerpt": "FPL had approximately 9,400 employees as of December 31, 2025, with approximately 30% of these employees represented by the International Brotherhood of Electrical Workers (IBEW).",
+        "excerpt": "FPL had approximately 9,400 employees as of December 31, 2025",
         "location": {
           "section": null,
           "page": "11",
           "page_basis": "printed",
           "context": "FPL HUMAN CAPITAL . FPL had approximately 9,400 employees as of December 31, 2025, with approximately 30% of these employees represented by the International Brotherhood of Electrical Workers (IBEW). The collective bargaining agreements have approximate ly three -year terms and expire between April 2027 and January 2028.",
-          "deep_link": "https://www.sec.gov/Archives/edgar/data/753308/000075330826000015/nee-20251231.htm#:~:text=FPL%20had%20approximately%209%2C400%20employees,Electrical%20Workers%20%28IBEW%29.",
+          "deep_link": "https://www.sec.gov/Archives/edgar/data/753308/000075330826000015/nee-20251231.htm#:~:text=FPL%20had%20approximately%209%2C400%20employees%20as%20of%20December%2031%2C%202025",
           "note": "Printed page 11 (page 11 of 131 in the HTML filing). No section heading was identified before the quote."
         },
         "as_of_date": "2025-12-31",
@@ -112,7 +115,7 @@
         "role": "supporting",
         "role_reason": "Covers only part of the organization (a region, segment or subsidiary); context only.",
         "notes": [
-          "FPL subsidiary only.",
+          "FPL segment only; supporting evidence, not the parent total.",
           "Partial or regional scope; supporting evidence only."
         ]
       },
@@ -223,84 +226,85 @@
         "role": "supporting",
         "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
         "notes": [
-          "Trend only.",
+          "Prior-year figure; trend only.",
           "Older than 24 months.",
           "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
         ]
       },
       {
-        "url": "https://www.sec.gov/Archives/edgar/data/0000753308/000110465926082301/tm2614888-13_s4.htm",
-        "tier": 3,
-        "value": 17400,
+        "url": "https://www.sec.gov/Archives/edgar/data/753308/000075330823000019/nee-20221231.htm",
+        "tier": 1,
+        "value": 15300,
         "qualifier": "approximately",
-        "excerpt": "as of December 31, 2025, NextEra Energy had approximately 80 gigawatts of net generation and storage capacity, and approximately 17,400 employees.",
+        "excerpt": "NEE and its subsidiaries, with employees totaling approximately 15,300 as of December 31, 2022",
         "location": {
           "section": null,
-          "page": "15",
+          "page": "4",
           "page_basis": "printed",
-          "context": "NextEra Energy is the largest electric power and energy infrastructure company in North America. For the year ended December 31, 2025, NextEra Energy had consolidated revenues of approximately $27.4 billion, and as of December 31, 2025, NextEra Energy had approximately 80 gigawatts of net generation and storage capacity, and approximately 17,400 employees. Headquartered in Juno Beach, Florida, NextEra Energy’s principal businesses are Florida Power & Light Company, which serves more than 6 million customer accounts in Florida and is the largest electric utility in Florida and the United States, and NextEra Energy Resources, LLC, which, together with its affiliated entities, is one of the largest energy infrastructure developers in the United States.",
-          "deep_link": "https://www.sec.gov/Archives/edgar/data/0000753308/000110465926082301/tm2614888-13_s4.htm#:~:text=as%20of%20December%2031%2C%202025%2C,approximately%2017%2C400%20employees.",
-          "note": "Printed page 15 (page 34 of 370 in the HTML filing). No section heading was identified before the quote."
+          "context": "FPL and NEER share a common platform with the objective of lowering costs and creating efficiencies for their businesses. NEE and its subsidiaries, with employees totaling approximately 15,300 as of December 31, 2022, continue to develop and implement enterprise-wide initiatives focused on improving productivity, process effectiveness and quality. On August 16, 2022, the Inflation Reduction Act (IRA) was signed into law which, among other things, extends the period for wind and solar tax credits and expands the tax credits to support a broader range of renewable technologies.",
+          "deep_link": "https://www.sec.gov/Archives/edgar/data/753308/000075330823000019/nee-20221231.htm#:~:text=NEE%20and%20its%20subsidiaries%2C%20with,December%2031%2C%202022",
+          "note": "Printed page 4 (page 4 of 126 in the HTML filing). No section heading was identified before the quote."
         },
-        "as_of_date": "2025-12-31",
+        "as_of_date": "2022-12-31",
         "as_of_estimated": false,
         "as_of_basis": null,
         "as_of_from_url": false,
         "predates_change": false,
-        "published_date": null,
+        "published_date": "2023-02-17",
         "modified_date": null,
         "scope": "global",
         "basis": "headcount",
         "contractors_included": null,
         "components": null,
         "separately_reported": null,
-        "restates": true,
-        "document_type": "company_document",
+        "restates": false,
+        "document_type": "10-K",
         "publisher": null,
         "corroboration_only": false,
         "role": "supporting",
-        "role_reason": "Not counted as corroboration: restates another source's figure.",
+        "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
         "notes": [
-          "Form S-4 registration statement (2026); restates the 10-K figure, not independent.",
-          "Not counted as corroboration: restates another source's figure."
+          "Prior-year figure; trend only.",
+          "Older than 24 months.",
+          "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
         ]
       },
       {
-        "url": "https://www.investor.nexteraenergy.com/~/media/Files/N/NEE-IR/2026%20Proxy.pdf",
-        "tier": 3,
-        "value": 17400,
+        "url": "https://www.sec.gov/Archives/edgar/data/753308/000075330822000014/nee-20211231.htm",
+        "tier": 1,
+        "value": 15000,
         "qualifier": "approximately",
-        "excerpt": "~17,400 employees",
+        "excerpt": "NEE and its subsidiaries, with employees totaling approximately 15,000 as of December 31, 2021",
         "location": {
-          "section": "Business and Governance Highlights",
+          "section": null,
           "page": "4",
-          "page_basis": "pdf",
-          "context": "The business highlights show \"~80 GW* in operation,\" \"13.5 GW,\" \"~17,400 employees\" and \"~$213 B in total assets.\"",
-          "deep_link": null,
-          "note": "Located by the research step."
+          "page_basis": "printed",
+          "context": "FPL and NEER share a common platform with the objective of lowering costs and creating efficiencies for their businesses. NEE and its subsidiaries, with employees totaling approximately 15,000 as of December 31, 2021, continue to develop and implement enterprise-wide initiatives focused on improving productivity, process effectiveness and quality. As of January 1, 2022, NEE's segments for financial reporting purposes are FPL and NEER.",
+          "deep_link": "https://www.sec.gov/Archives/edgar/data/753308/000075330822000014/nee-20211231.htm#:~:text=NEE%20and%20its%20subsidiaries%2C%20with,December%2031%2C%202021",
+          "note": "Printed page 4 (page 4 of 124 in the HTML filing). No section heading was identified before the quote."
         },
-        "as_of_date": "2025-12-31",
-        "as_of_estimated": true,
-        "as_of_basis": "2026 proxy business highlights; same period as FY2025 10-K (inferred, not stated)",
+        "as_of_date": "2021-12-31",
+        "as_of_estimated": false,
+        "as_of_basis": null,
         "as_of_from_url": false,
         "predates_change": false,
-        "published_date": null,
+        "published_date": "2022-02-18",
         "modified_date": null,
         "scope": "global",
         "basis": "headcount",
         "contractors_included": null,
         "components": null,
         "separately_reported": null,
-        "restates": true,
-        "document_type": "company_document",
+        "restates": false,
+        "document_type": "10-K",
         "publisher": null,
         "corroboration_only": false,
         "role": "supporting",
-        "role_reason": "Not counted as corroboration: restates another source's figure.",
+        "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
         "notes": [
-          "Proxy filed before the May 21, 2026 annual meeting; same data as the 10-K.",
-          "As-of date estimated from 2026 proxy business highlights; same period as FY2025 10-K (inferred, not stated).",
-          "Not counted as corroboration: restates another source's figure."
+          "Prior-year figure; trend only.",
+          "Older than 24 months.",
+          "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
         ]
       },
       {
@@ -308,21 +312,21 @@
         "tier": 2,
         "value": 16691,
         "qualifier": "exact",
-        "excerpt": "Total number of employees | 12,400 | 15,300 | 16,800 | 16,691",
+        "excerpt": "Total number of employees | | 12,400 | 15,300 | 16,800 | 16,691",
         "location": {
-          "section": "Appendix A, SASB metrics and workforce table",
+          "section": "Appendix A, SASB metrics table",
           "page": null,
           "page_basis": null,
-          "context": "The row is \"Total number of employees | | 12,400 | 15,300 | 16,800 | 16,691\". The same table gives women at 25% of the total workforce and minorities at 41%.",
+          "context": "Total number of employees | | 12,400 | 15,300 | 16,800 | 16,691 / Percentage of women in total workforce | Not reported | | 25% | 25% | 25% / Percentage of minorities in total workforce | Not reported | | 41% | 41% | 41%",
           "deep_link": "https://www.investor.nexteraenergy.com/~/media/Files/N/NEE-IR/Sustainability/2025/Data%20Appendix.pdf#:~:text=Total%20number%20of%20employees%20%7C,16%2C800%20%7C%2016%2C691",
           "note": "PDF page number not identified."
         },
         "as_of_date": "2024-12-31",
         "as_of_estimated": true,
-        "as_of_basis": "last column of the 2025 Data Appendix workforce table; column year not visible, probably 2024",
+        "as_of_basis": "Last column of a table whose earlier columns match 12,400, 15,300, 16,800; report published 2025 refers to the FY2024 10-K. Column headers not verified.",
         "as_of_from_url": false,
         "predates_change": false,
-        "published_date": null,
+        "published_date": "2025-01-01",
         "modified_date": null,
         "scope": "global",
         "basis": "headcount",
@@ -336,31 +340,31 @@
         "role": "supporting",
         "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
         "notes": [
-          "Column years unverified; older than the 2025-12-31 figure. Trend only.",
-          "As-of date estimated from last column of the 2025 Data Appendix workforce table; column year not visible, probably 2024.",
+          "Year of the last column is not shown; probably year-end 2024. Published date is approximate (2025 per URL path).",
+          "As-of date estimated from Last column of a table whose earlier columns match 12,400, 15,300, 16,800; report published 2025 refers to the FY2024 10-K. Column headers not verified..",
           "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
         ]
       },
       {
-        "url": "https://www.nexteraenergyresources.com/content/dam/neer/us/en/pdf/NextEra-Energy-Sustainability-Report-2024.pdf",
-        "tier": 2,
+        "url": "https://www.investor.nexteraenergy.com/~/media/Files/N/NEE-IR/investor-materials/shareholder-resources/2025/2025%20NEE%20Proxy.pdf",
+        "tier": 3,
         "value": 16800,
         "qualifier": "approximately",
-        "excerpt": "~16,800 employees",
+        "excerpt": "~16,800 ... employees",
         "location": {
-          "section": "Highlights / Employees, customers and communities",
+          "section": "Proxy highlights",
           "page": null,
           "page_basis": null,
-          "context": "The report's highlights show \"~16,800 employees\" and \"49 states\" with \"~67,000 megawatts (MW) of net generating\" capacity.",
+          "context": "NEXTERA ENERGY 2025 PROXY STATEMENT ~72 GW* ~12 GW ~16,800 ~$190 B in operation wind, solar and storage employees in total assets. ... More than 16,000 employees with diverse skill sets across various operations in 49 states",
           "deep_link": null,
           "note": "PDF page number not identified."
         },
-        "as_of_date": "2023-12-31",
+        "as_of_date": "2024-12-31",
         "as_of_estimated": true,
-        "as_of_basis": "report refers to 2023 workforce demographics; published 2024",
+        "as_of_basis": "2025 proxy statement; same period as FY2024 10-K",
         "as_of_from_url": false,
         "predates_change": false,
-        "published_date": "2024-01-01",
+        "published_date": "2025-01-01",
         "modified_date": null,
         "scope": "global",
         "basis": "headcount",
@@ -368,15 +372,14 @@
         "components": null,
         "separately_reported": null,
         "restates": false,
-        "document_type": "non_financial_report",
+        "document_type": "company_document",
         "publisher": null,
         "corroboration_only": false,
         "role": "supporting",
         "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
         "notes": [
-          "Older; trend only. Published date is year only (2024), exact date unknown.",
-          "As-of date estimated from report refers to 2023 workforce demographics; published 2024.",
-          "Older than 24 months.",
+          "Same period as the FY2024 10-K; not independent. Published date approximate.",
+          "As-of date estimated from 2025 proxy statement; same period as FY2024 10-K.",
           "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
         ]
       },
@@ -413,7 +416,7 @@
         "role": "supporting",
         "role_reason": "Not counted as corroboration: undated, so not near the certified figure's as-of date.",
         "notes": [
-          "Undated lower bound; consistent with ~17,400.",
+          "Undated rounded floor.",
           "Undated source.",
           "Not counted as corroboration: undated, so not near the certified figure's as-of date."
         ]
@@ -423,21 +426,21 @@
         "tier": 7,
         "value": 17623,
         "qualifier": "approximately",
-        "excerpt": "NextEra Energy, Inc. (NEE) has approximately 17,623 total employees worldwide as of March 2026, according to Revelio Labs workforce intelligence data.",
+        "excerpt": "NextEra Energy (NEE) had 17,623 employees as of March 2026, up 433 (+0.5%) from the prior year.",
         "location": {
-          "section": "Overview / Annual Employee Count",
+          "section": "Overview",
           "page": null,
           "page_basis": null,
-          "context": "NextEra Energy (NEE) had 17,623 employees as of March 2026, up 433 (+0.5%) from the prior year. History: 17,480 (2025), 17,078 (2024), 16,934 (2023).",
-          "deep_link": "https://www.reveliolabs.com/companies/nextera-energy/employees#:~:text=NextEra%20Energy%2C%20Inc.%20%28NEE%29%20has,workforce%20intelligence%20data.",
+          "context": "NextEra Energy, Inc. (NEE) has approximately 17,623 total employees worldwide as of March 2026, according to Revelio Labs workforce intelligence data. NextEra Energy's total headcount has grown 4.0% from 16,947 employees in 2023 to 17,623 in 2026.",
+          "deep_link": "https://www.reveliolabs.com/companies/nextera-energy/employees#:~:text=NextEra%20Energy%20%28NEE%29%20had%2017%2C623,the%20prior%20year.",
           "note": "Web page: no page numbers."
         },
-        "as_of_date": "2026-03-01",
+        "as_of_date": "2026-03-31",
         "as_of_estimated": false,
         "as_of_basis": null,
         "as_of_from_url": false,
         "predates_change": false,
-        "published_date": null,
+        "published_date": "2026-08-01",
         "modified_date": null,
         "scope": "global",
         "basis": "headcount",
@@ -451,7 +454,7 @@
         "role": "corroborates",
         "role_reason": "Independent source near the same date, within 1% of the certified value (threshold 15%).",
         "notes": [
-          "Modelled from online profiles; published August 2026 (day unknown)."
+          "Modeled from workforce profiles, not company-reported. Page is internally inconsistent (2023: 16,947 vs 16,934)."
         ]
       },
       {
@@ -461,7 +464,7 @@
         "qualifier": "exact",
         "excerpt": "NextEra Energy had 17,300 employees as of December 31, 2025.",
         "location": {
-          "section": "Header",
+          "section": "Employees",
           "page": null,
           "page_basis": null,
           "context": "NextEra Energy had 17,300 employees as of December 31, 2025. The number of employees increased by 500 or 2.98% compared to the previous year.",
@@ -487,27 +490,27 @@
         "role": "supporting",
         "role_reason": "Not counted as corroboration: restates another source's figure.",
         "notes": [
-          "Slightly conflicts with the 10-K's 17,400; Bullfincher also shows 17,300.",
+          "Differs from the 10-K's 17,400.",
           "Not counted as corroboration: restates another source's figure."
         ]
       },
       {
-        "url": "https://finance.yahoo.com/quote/NEE/profile/",
+        "url": "https://bullfincher.io/companies/nextera-energy/number-of-employees",
         "tier": 9,
-        "value": 17400,
+        "value": 17300,
         "qualifier": "exact",
-        "excerpt": "Full Time Employees: 17,400",
+        "excerpt": "In fiscal year 2025, the total number of employees at NextEra Energy was 17,300.",
         "location": {
-          "section": "Company profile",
+          "section": "Overview",
           "page": null,
           "page_basis": null,
-          "context": "Sector: Utilities. Industry: Utilities - Regulated Electric. Full Time Employees: 17,400.",
-          "deep_link": "https://finance.yahoo.com/quote/NEE/profile/#:~:text=Full%20Time%20Employees%3A%2017%2C400",
+          "context": "The employee count increased by 600 from 16,700 (in 2024) to 17,300 (in 2025). It represents a 3.59% year-over-year growth in employee count.",
+          "deep_link": "https://bullfincher.io/companies/nextera-energy/number-of-employees#:~:text=In%20fiscal%20year%202025%2C%20the,Energy%20was%2017%2C300.",
           "note": "Web page: no page numbers."
         },
         "as_of_date": "2025-12-31",
         "as_of_estimated": true,
-        "as_of_basis": "likely derived from FY2025 10-K",
+        "as_of_basis": "Stated as fiscal year 2025",
         "as_of_from_url": false,
         "predates_change": false,
         "published_date": null,
@@ -524,8 +527,46 @@
         "role": "supporting",
         "role_reason": "Not counted as corroboration: restates another source's figure.",
         "notes": [
-          "Likely derived from the 10-K.",
-          "As-of date estimated from likely derived from FY2025 10-K.",
+          "Same figure as stockanalysis.com; differs from the 10-K.",
+          "As-of date estimated from Stated as fiscal year 2025.",
+          "Not counted as corroboration: restates another source's figure."
+        ]
+      },
+      {
+        "url": "https://finance.yahoo.com/quote/NEE/profile/",
+        "tier": 9,
+        "value": 17400,
+        "qualifier": "exact",
+        "excerpt": "Full Time Employees: 17,400",
+        "location": {
+          "section": "Company profile",
+          "page": null,
+          "page_basis": null,
+          "context": "Sector: Utilities. Industry: Utilities - Regulated Electric. Full Time Employees: 17,400",
+          "deep_link": "https://finance.yahoo.com/quote/NEE/profile/#:~:text=Full%20Time%20Employees%3A%2017%2C400",
+          "note": "Web page: no page numbers."
+        },
+        "as_of_date": null,
+        "as_of_estimated": false,
+        "as_of_basis": null,
+        "as_of_from_url": false,
+        "predates_change": false,
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": true,
+        "document_type": "data_provider",
+        "publisher": null,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Not counted as corroboration: restates another source's figure.",
+        "notes": [
+          "Undated; labelled full-time employees; matches the FY2025 10-K figure.",
+          "Undated source.",
           "Not counted as corroboration: restates another source's figure."
         ]
       },
@@ -536,10 +577,10 @@
         "qualifier": "exact",
         "excerpt": "Employees 17,400",
         "location": {
-          "section": "Company profile",
+          "section": "Profile",
           "page": null,
           "page_basis": null,
-          "context": "The profile lists revenue of $27.9B, employees of 17,400 and a founding year of 1925.",
+          "context": "Revenue $27.9 B / Employees 17,400 / Founded 1925",
           "deep_link": null,
           "note": "Web page: no page numbers."
         },
@@ -562,7 +603,7 @@
         "role": "supporting",
         "role_reason": "Not counted as corroboration: restates another source's figure.",
         "notes": [
-          "Probably mirrors SEC data.",
+          "Undated; matches Yahoo Finance and the FY2025 10-K.",
           "Undated source.",
           "Not counted as corroboration: restates another source's figure."
         ]
@@ -586,6 +627,18 @@
     "rationale": "Highest-ranked available source is tier 1 (10-K, 20-F, 40-F or annual financial report), as of 2025-12-31, reporting 17,400. 2 partial-scope source(s) used as supporting evidence only. 1 independent corroborating source(s) within 15%. Confidence 5 (Certified, corroborated).",
     "trend": [
       {
+        "as_of_date": "2021-12-31",
+        "value": 15000,
+        "tier": 1,
+        "url": "https://www.sec.gov/Archives/edgar/data/753308/000075330822000014/nee-20211231.htm"
+      },
+      {
+        "as_of_date": "2022-12-31",
+        "value": 15300,
+        "tier": 1,
+        "url": "https://www.sec.gov/Archives/edgar/data/753308/000075330823000019/nee-20221231.htm"
+      },
+      {
         "as_of_date": "2023-12-31",
         "value": 16800,
         "tier": 1,
@@ -607,22 +660,21 @@
     "forecast": null,
     "policy_version": "0.2"
   },
-  "cost_usd": 0.2174,
-  "web_searches": 4,
+  "cost_usd": 0.1884,
+  "web_searches": 3,
   "web_fetches": 0,
   "method": "edgar+research",
   "notes": [
     "SEC CIK 753308 resolved from the name.",
-    "Latest 10-K (FY2025, filed 2026-02-13) gives approximately 17,400 employees; the S-4, proxy and data sites repeat it. Trend: 16,800 (2023), 16,800 (2024 10-K; the data appendix shows 16,691), 17,400 (2025). The pending Dominion Energy combination (announced 2026-05-18) has not closed and has no stated headcount change, so it is not an event. An unsourced 1,200-layoff claim was disregarded. LinkedIn members (10,806) are about 62% of reported headcount, consistent with a mixed workforce. FPL, NEER and other segment figures are partial scope and are not added."
+    "The newest primary figure is the FY2025 10-K's approximately 17,400 (as of 2025-12-31), consistent with Yahoo and Datanyze and near the 17,300 aggregator figure. The FPL (9,400) and NEER (7,900) figures are partial segments. Trend from 10-Ks: 15,000 (2021), 15,300 (2022), 16,800 (2023), 16,800 (2024), 17,400 (2025). LinkedIn member count (about 10,800) is well below company figures, which is normal for a mixed workforce. Subsidiary LinkedIn pages and Revelio subsidiary figures are partial and excluded. ZoomInfo gives only a '10K+' range. Owler's 15,300 is stale. No fact sheet or full annual report with a more specific figure was found. No confirmed headcount events."
   ],
   "queries": [
     "web_search: NextEra Energy number of employees 2026",
     "web_search: NextEra Energy LinkedIn employees",
-    "web_search: NextEra Energy acquisition announced 2026 employees workforce layoffs",
-    "web_search: NextEra Energy 2025 sustainability report employees total workforce"
+    "web_search: NextEra Energy sustainability report 2025 total employees workforce data"
   ],
-  "run_at": "2026-10-12T02:15:19.581624Z",
-  "duration_s": 64.0,
+  "run_at": "2026-10-12T03:04:29.866768Z",
+  "duration_s": 69.5,
   "models": {
     "research": "claude-sonnet-5-5",
     "extraction": "claude-sonnet-5-5"

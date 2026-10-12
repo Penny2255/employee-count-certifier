@@ -38,9 +38,10 @@
     "pre_adjustment": false,
     "direction": {
       "direction": "higher",
-      "reason": "Likely somewhat higher than reported because of a change after the as-of date: Adobe completed the acquisition of Semrush Holdings, Inc., which became a wholly owned… (2026-04-28)."
+      "reason": "Likely somewhat higher than reported because of a change after the as-of date: Adobe completed its acquisition of Semrush Holdings (valued at about $1.9 billion,… (2026-04-28)."
     },
     "scope_notes": [],
+    "explained_flags": [],
     "indicated_range": null,
     "sources": [
       {
@@ -76,7 +77,7 @@
         "role": "selected",
         "role_reason": "Highest-ranked eligible source: tier 1, as of 2025-11-28.",
         "notes": [
-          "FY2025 10-K. Predates the Semrush acquisition closed 2026-04-28, so it excludes Semrush staff."
+          "FY2025 10-K. Predates the Semrush acquisition closed April 2026."
         ]
       },
       {
@@ -112,7 +113,7 @@
         "role": "supporting",
         "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
         "notes": [
-          "Prior-year figure, for trend only.",
+          "Prior-year trend point.",
           "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
         ]
       },
@@ -149,7 +150,83 @@
         "role": "supporting",
         "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
         "notes": [
-          "Two-years-prior figure, for trend only.",
+          "Trend point.",
+          "Older than 24 months.",
+          "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
+        ]
+      },
+      {
+        "url": "https://www.sec.gov/Archives/edgar/data/796343/000079634323000007/adbe-20221202.htm",
+        "tier": 1,
+        "value": 29239,
+        "qualifier": "exact",
+        "excerpt": "As of December 2, 2022, we employed 29,239 people, of which 51% were in the United States and 49% were in our international locations.",
+        "location": {
+          "section": "Item 1. Business",
+          "page": "16",
+          "page_basis": "printed",
+          "context": "We are continually investing in our global workforce to further drive diversity and inclusion, provide fair and market-competitive pay and benefits to support our employees’ wellbeing, and foster their growth and development. As of December 2, 2022, we employed 29,239 people, of which 51% were in the United States and 49% were in our international locations. During fiscal 2022, our total attrition rate was 11.7%.",
+          "deep_link": "https://www.sec.gov/Archives/edgar/data/796343/000079634323000007/adbe-20221202.htm#:~:text=As%20of%20December%202%2C%202022%2C,our%20international%20locations.",
+          "note": "Printed page 16 (page 16 of 99 in the HTML filing)."
+        },
+        "as_of_date": "2022-12-02",
+        "as_of_estimated": false,
+        "as_of_basis": null,
+        "as_of_from_url": false,
+        "predates_change": false,
+        "published_date": "2023-01-17",
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "document_type": "10-K",
+        "publisher": null,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
+        "notes": [
+          "Trend point.",
+          "Older than 24 months.",
+          "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
+        ]
+      },
+      {
+        "url": "https://www.sec.gov/Archives/edgar/data/796343/000079634322000032/adbe-20211203.htm",
+        "tier": 1,
+        "value": 25988,
+        "qualifier": "exact",
+        "excerpt": "As of December 3, 2021, we employed 25,988 people, of which approximately 52% were in the United States and 48% were in our international locations.",
+        "location": {
+          "section": "Item 1. Business",
+          "page": "16",
+          "page_basis": "printed",
+          "context": "We are continually investing in our global workforce to further drive diversity and inclusion, provide fair and market-competitive pay and benefits to support our employees’ wellbeing, and foster their growth and development. As of December 3, 2021, we employed 25,988 people, of which approximately 52% were in the United States and 48% were in our international locations. During fiscal 2021, our total attrition rate was 12%.",
+          "deep_link": "https://www.sec.gov/Archives/edgar/data/796343/000079634322000032/adbe-20211203.htm#:~:text=As%20of%20December%203%2C%202021%2C,our%20international%20locations.",
+          "note": "Printed page 16 (page 16 of 102 in the HTML filing)."
+        },
+        "as_of_date": "2021-12-03",
+        "as_of_estimated": false,
+        "as_of_basis": null,
+        "as_of_from_url": false,
+        "predates_change": false,
+        "published_date": "2022-01-21",
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": false,
+        "document_type": "10-K",
+        "publisher": null,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date.",
+        "notes": [
+          "Trend point.",
           "Older than 24 months.",
           "Not counted as corroboration: dated more than 9 months from the certified figure's as-of date."
         ]
@@ -164,13 +241,13 @@
           "section": "Adobe FAQs / Overview",
           "page": null,
           "page_basis": null,
-          "context": "Adobe has 31,360 total employees. What industry is Adobe in? Adobe's primary industry is Business/Productivity Software.",
+          "context": "What is the size of Adobe? Adobe has 31,360 total employees. What industry is Adobe in? Adobe's primary industry is Business/Productivity Software.",
           "deep_link": "https://pitchbook.com/profiles/company/41955-58#:~:text=Adobe%20has%2031%2C360%20total%20employees.",
           "note": "Web page: no page numbers."
         },
         "as_of_date": "2025-11-28",
         "as_of_estimated": true,
-        "as_of_basis": "matches the FY2025 10-K figure as of November 28, 2025; page current as of 2026-10-09",
+        "as_of_basis": "matches the FY2025 10-K figure",
         "as_of_from_url": false,
         "predates_change": false,
         "published_date": null,
@@ -187,8 +264,8 @@
         "role": "supporting",
         "role_reason": "Not counted as corroboration: restates another source's figure.",
         "notes": [
-          "Likely repeats the FY2025 10-K figure; not independent.",
-          "As-of date estimated from matches the FY2025 10-K figure as of November 28, 2025; page current as of 2026-10-09.",
+          "Likely derived from the 10-K; not independent.",
+          "As-of date estimated from matches the FY2025 10-K figure.",
           "Not counted as corroboration: restates another source's figure."
         ]
       },
@@ -199,7 +276,7 @@
         "qualifier": "approximately",
         "excerpt": "Adobe (ADBE) had 33,044 employees as of March 2026, up 3,196 (+2.2%) from the prior year.",
         "location": {
-          "section": "How many employees work at Adobe?",
+          "section": "Overview",
           "page": null,
           "page_basis": null,
           "context": "Adobe, Inc. (ADBE) has approximately 33,044 total employees worldwide as of March 2026, according to Revelio Labs workforce intelligence data. Adobe's total headcount has grown 29.3% from 25,565 employees in 2023 to 33,044 in 2026.",
@@ -225,7 +302,82 @@
         "role": "corroborates",
         "role_reason": "Independent source near the same date, within 5% of the certified value (threshold 15%).",
         "notes": [
-          "Modeled workforce data, not a company count. As-of date is month only (March 2026), set to the 1st."
+          "Modeled estimate on a different basis from the 10-K; predates the Semrush close. Revelio's 2.2% growth is not LinkedIn's."
+        ]
+      },
+      {
+        "url": "https://en.wikipedia.org/wiki/Adobe_Inc.",
+        "tier": 9,
+        "value": 31360,
+        "qualifier": "exact",
+        "excerpt": "Number of employees: 31,360 (November 2025)",
+        "location": {
+          "section": "Infobox",
+          "page": null,
+          "page_basis": null,
+          "context": "Total equity: US$11.62 billion (2025) - Number of employees: 31,360 (November 2025) - Website: adobe.com",
+          "deep_link": "https://en.wikipedia.org/wiki/Adobe_Inc.#:~:text=Number%20of%20employees%3A%2031%2C360%20%28November%202025%29",
+          "note": "Web page: no page numbers."
+        },
+        "as_of_date": "2025-11-28",
+        "as_of_estimated": true,
+        "as_of_basis": "infobox says November 2025",
+        "as_of_from_url": false,
+        "predates_change": false,
+        "published_date": null,
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": true,
+        "document_type": "other",
+        "publisher": null,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Not counted as corroboration: restates another source's figure.",
+        "notes": [
+          "Restates the FY2025 10-K.",
+          "As-of date estimated from infobox says November 2025.",
+          "Not counted as corroboration: restates another source's figure."
+        ]
+      },
+      {
+        "url": "https://market.us/statistics/information-and-communication/adobe/",
+        "tier": 9,
+        "value": 30709,
+        "qualifier": "exact",
+        "excerpt": "As of November 29, 2024, Adobe employed 30,709 people across its global operations.",
+        "location": {
+          "section": "Adobe Employee Analysis Statistics",
+          "page": null,
+          "page_basis": null,
+          "context": "Number of Employees 30,709 (As of November 29, 2024). As of November 29, 2024, Adobe employed 30,709 people across its global operations. Around 50% of the workforce was based in the United States, while the remaining 50% was positioned in international offices.",
+          "deep_link": "https://market.us/statistics/information-and-communication/adobe/#:~:text=As%20of%20November%2029%2C%202024%2C,its%20global%20operations.",
+          "note": "Web page: no page numbers."
+        },
+        "as_of_date": "2024-11-29",
+        "as_of_estimated": false,
+        "as_of_basis": null,
+        "as_of_from_url": false,
+        "predates_change": false,
+        "published_date": "2026-04-13",
+        "modified_date": null,
+        "scope": "global",
+        "basis": "headcount",
+        "contractors_included": null,
+        "components": null,
+        "separately_reported": null,
+        "restates": true,
+        "document_type": "data_provider",
+        "publisher": null,
+        "corroboration_only": false,
+        "role": "supporting",
+        "role_reason": "Not counted as corroboration: restates another source's figure.",
+        "notes": [
+          "Restates the FY2024 10-K; trend point only.",
+          "Not counted as corroboration: restates another source's figure."
         ]
       }
     ],
@@ -247,7 +399,7 @@
     ],
     "events": [
       {
-        "description": "Adobe completed the acquisition of Semrush Holdings, Inc., which became a wholly owned subsidiary. Semrush headcount is about 1,600 (Wikipedia, 2024, indicative only).",
+        "description": "Adobe completed its acquisition of Semrush Holdings (valued at about $1.9 billion, announced November 2025). Semrush headcount was about 1,600 in 2024 per Wikipedia; not stated in the closing articles, and it is unclear whether it is included in later headcount figures.",
         "url": "https://www.investing.com/news/company-news/adobe-completes-acquisition-of-semrush-brand-visibility-platform-93CH-4641534",
         "close_date": "2026-04-28",
         "penalized": false,
@@ -258,6 +410,18 @@
     ],
     "rationale": "Highest-ranked available source is tier 1 (10-K, 20-F, 40-F or annual financial report), as of 2025-11-28, reporting 31,360. 1 independent corroborating source(s) within 15%. LinkedIn: Flag: LinkedIn shows 42,546 members, 36% above the certified 31,360; more than the 15% tolerance for a white-collar workforce. Confidence 4 (Certified).",
     "trend": [
+      {
+        "as_of_date": "2021-12-03",
+        "value": 25988,
+        "tier": 1,
+        "url": "https://www.sec.gov/Archives/edgar/data/796343/000079634322000032/adbe-20211203.htm"
+      },
+      {
+        "as_of_date": "2022-12-02",
+        "value": 29239,
+        "tier": 1,
+        "url": "https://www.sec.gov/Archives/edgar/data/796343/000079634323000007/adbe-20221202.htm"
+      },
       {
         "as_of_date": "2023-12-01",
         "value": 29945,
@@ -280,22 +444,23 @@
     "forecast": null,
     "policy_version": "0.2"
   },
-  "cost_usd": 0.1501,
-  "web_searches": 3,
+  "cost_usd": 0.1925,
+  "web_searches": 4,
   "web_fetches": 1,
   "method": "edgar+research",
   "notes": [
     "SEC CIK 796343 resolved from the name.",
-    "No tier 2 fact sheet, integrated report or website headcount found. The latest 10-K (FY2025, 31,360) predates the Semrush close and so excludes Semrush's roughly 1,600 staff. Revelio's modeled 33,044 (March 2026) is consistent with growth. The LeadIQ figure of ~43K is almost certainly the LinkedIn profile count and is excluded as not a headcount. LinkedIn member count of 42,546 is from a search snippet dated roughly late June 2026. The 10-K trend is 29,945 (2023), 30,709 (2024), 31,360 (2025)."
+    "Latest 10-K figure (31,360 as of 2025-11-28) is about 10.5 months old at the 2026-10-11 lookup. No fact sheet, integrated annual report or company-written LinkedIn/website headcount was found. The Semrush acquisition closed 2026-04-28 after the 10-K date and may add roughly 1,600 staff. Revelio's 33,044 (March 2026) is a modeled estimate on a different basis. LinkedIn member count (~42.5k) is far above filing figures; this gap is normal. A Blind-reported 500-person layoff in April 2026 is unconfirmed and excluded. Third-party pages (PitchBook, Wikipedia, market.us) restate the 10-K. FourWeekMBA and LeadIQ are not used: the former is stale trend data, the latter mirrors LinkedIn."
   ],
   "queries": [
     "web_fetch: https://www.adobe.com/about-adobe.html",
     "web_search: Adobe number of employees 2026",
     "web_search: Adobe LinkedIn company page employees",
-    "web_search: Adobe Semrush acquisition completed employees"
+    "web_search: Adobe completes Semrush acquisition",
+    "web_search: Adobe layoffs 2026 employees"
   ],
-  "run_at": "2026-10-12T02:15:19.560133Z",
-  "duration_s": 35.5,
+  "run_at": "2026-10-12T03:04:30.002555Z",
+  "duration_s": 52.8,
   "models": {
     "research": "claude-sonnet-5-5",
     "extraction": "claude-sonnet-5-5"

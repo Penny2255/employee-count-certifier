@@ -572,3 +572,39 @@ full-organization count is likely higher; use the campus figure only if that's t
 | Breakdown | 4 − 1 health system − 1 LinkedIn conflict − 1 recency | **4 − 1 health system** |
 | LinkedIn description 21,000 and 17,847 members | penalized | linked to the health-system finding, no extra penalty |
 | Bottom line | Directional only | Usable. Note the range and the as-of date. |
+
+## Version 1 polish (2026-10-12)
+
+### D79. Microsoft used the FY2025 10-K: three fixes
+A fresh run certified FY2026 correctly (223,000, as of 2026-06-30). The gap came from three ways a newer 10-K could lose:
+
+1. **Breakdown read as a narrower scope.** The rule-based reader marked "we employed approximately 223,000 people…,
+   121,000 in the U.S. and 102,000 internationally" as partial, because of the breakdown after the total. The research
+   model can read it the same way. Scope is now judged only on the words describing the figure itself (up to the next
+   comma). The "in the U.S." pattern also never matched before, because of a word-boundary bug; that's fixed too.
+2. **Series guard.** A filer's annual SEC figures are one whole-company series. A year marked partial but within 15% of
+   the same filer's whole-company figure for another year is restored to whole-company, with a note. Real partial figures
+   (U.S.-only, R&D) are far smaller.
+3. **Missing filings.** Every annual filing EDGAR returns is represented. If research drops one, it's read by rule, and a
+   note says so.
+
+The rule-based reader also now excludes recruiting-campaign figures, such as Microsoft's "help skill and recruit 250,000
+people…", which it took as a headcount for FY2022 and FY2023.
+
+### D80. Five-year trend
+- **EDGAR:** five annual filings are read, not three. Frequent filers' older 10-Ks drop out of EDGAR's "recent" list
+  (about the last 1,000 filings, which Salesforce's Form 4s fill), so the older submission pages are read when needed.
+- **Form 990:** five years, not three.
+- **Live results:** Salesforce, Adobe, Workday, NextEra, Donor Network West and Microsoft now have five reported points
+  plus a forecast. IPEDS profiles carry only the latest fall release.
+
+### D81. Chart and header
+- **Chart:**
+  - a smooth monotone curve (no overshoot) with a soft area fill
+  - a value label on every point
+  - the certified point ringed in green
+  - a dashed forecast with a shaded range
+  - "Certified figure" and the forecast range named in the legend rather than crowding the chart
+- **Header facts:** three new rows: **Source link** (with "open at the quote"), **Line in source** (section · page), and
+  a short **Excerpt** centred on the figure. The full passage stays in Key Source below.
+- **Phones:** smaller type and tighter spacing throughout, so less wraps.

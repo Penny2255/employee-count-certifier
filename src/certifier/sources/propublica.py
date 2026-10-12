@@ -68,7 +68,7 @@ class ProPublica:
         matches = [n for n in self.search(name) if norm(n.name) == norm(name)]
         return matches[0] if len(matches) == 1 else None
 
-    def line5_sources(self, ein: int, limit: int = 3) -> list[Source]:
+    def line5_sources(self, ein: int, limit: int = 5) -> list[Source]:
         """Form 990 line 5 from the most recent filings, newest first."""
         page = self._get(f"{BASE}/organizations/{ein}")
         object_ids = sorted(set(re.findall(rf"/organizations/{ein}/(\d{{18}})/full", page)), reverse=True)

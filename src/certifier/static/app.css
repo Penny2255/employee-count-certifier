@@ -281,3 +281,31 @@ code { font-size: 13px; padding: 1px 5px; border-radius: 4px; background: var(--
 .admin-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .admin-table th, .admin-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
 @media (max-width: 640px) { .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Phones: smaller general sizing so less wraps */
+@media (max-width: 560px) {
+  body { font-size: 14px; }
+  .page { padding-left: 12px; padding-right: 12px; }
+  .topbar { padding: 8px 12px; }
+  .brand-text strong { font-size: 14px; }
+  .topnav .link { font-size: 13px; }
+  .hero { padding-top: 24px; }
+  .hero-logo { width: 96px; height: auto; }
+  .hero h1 { font-size: 27px; }
+  .tagline { font-size: 15px; margin-bottom: 18px; }
+  .mission { font-size: 13px; margin: -12px 0 18px; }
+  .metric { font-size: 12px; padding: 4px 8px; }
+  .search input { font-size: 16px; padding: 10px 10px; }  /* 16px keeps iOS from zooming */
+  .search .primary { padding: 10px 14px; font-size: 15px; }
+  .chip-btn { font-size: 13px; padding: 4px 10px; }
+  .view-title { font-size: 21px; }
+  .result-head { gap: 8px; }
+  .result-head .primary, .actions button { font-size: 13px; padding: 8px 12px; }
+  .certified-on { font-size: 13px; }
+  .theme-done { font-size: 12px; }
+  .stage { padding: 6px 8px; font-size: 14px; }
+  .scene { height: 90px; }
+  .sample-card { padding: 8px 10px; }
+  .recent-list button { padding: 8px 10px; font-size: 13px; }
+  .site-footer { font-size: 12px; }
+}

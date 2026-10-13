@@ -196,7 +196,9 @@ one document gives several figures, report its organization-wide total (a "Total
 row, "N people who work for X") as global and mark smaller programme, gender, age, country or
 management figures partial or leave them out. Snippets joined with " · " are table cells or stat
 tiles read in order; a label applies to the figure right after it, and in a multi-year table the
-first figure is the latest year. On the organization's own careers, about, company or fact-sheet pages and
+first figure is the latest year. Tier 6 is only for a named senior executive quoted stating the
+headcount (in quotation marks, or "X said the company has N people"); a figure the reporter states in their own
+words, even in an article about an executive, is tier 9 news. On the organization's own careers, about, company or fact-sheet pages and
 in its LinkedIn description, "team members", "teammates", "associates", "colleagues", "people" and similar
 words mean employees: record such a figure as a whole-organization headcount (global scope), keeping its
 qualifier ("10,000+ team members" -> 10000, more_than). A LinkedIn member count ("N

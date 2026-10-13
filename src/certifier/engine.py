@@ -73,6 +73,10 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
         adjustments.extend(log)
 
     _restore_annual_series(sources, policy)
+    for s in sources:  # a reporter's own figure is unranked news, whatever tier it arrived with
+        if s.tier == 6 and _REPORTER_ONLY.search(" ".join(s.notes) + " " + (s.role_reason or "")):
+            s.tier = 9
+            s.notes.append("Moved to tier 9: the figure is the reporter's, not a quoted executive's.")
     selection = rules.select_source(sources, lookup_date, policy)
     selected, derivation, growth = selection.selected, None, None
     notes = list(selection.notes)
@@ -168,6 +172,10 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
     linkedin_floor_used = False
     supported_floor = None
     weak_anchor = selected is None or selected.tier >= 4  # data providers, website, LinkedIn description, news
+    white_collar = (linkedin.workforce_profile or policy.linkedin.default_profile) == "white_collar"
+    if not signal and white_collar and linkedin.member_count and value is not None and (selected is None or selected.tier >= 6):
+        signal = (f"it is a white-collar organization whose {linkedin.member_count:,} LinkedIn members come from the "
+                  "company's own people, a stronger anchor than news or data-provider figures")
     if signal and value is not None and not current_primary and weak_anchor:
         members, lp = linkedin.member_count, policy.linkedin
         # Very strong, sustained growth leans further forward: a higher floor, an estimate near the member count,
@@ -348,9 +356,14 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
         sources=_explain_unassigned(sources, value), linkedin_check=li, adjustments=adjustments, flags=flags,
         events=event_outcomes,
         rationale=_rationale(selected, derivation, value, len(corroborators), notes, flags, score, policy),
-        trend=rules.trend_points(selected, sources, effective) if selected is not None and growth is None else [],
+        trend=(rules.trend_points(selected, sources, effective)  # the anchor's own series, unless LinkedIn replaced it
+               if selected is not None and growth is None and not linkedin_floor_used else []),
         policy_version=policy.policy_version,
     )
+
+
+_REPORTER_ONLY = re.compile(r"not (?:a )?direct(?:ly)? (?:executive )?quote|not stated by an executive|"
+                            r"journalist'?s (?:own )?figure|reporter'?s (?:own )?(?:statement|figure)|not attributed", re.I)
 
 
 def _pct(x: float) -> str:

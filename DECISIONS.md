@@ -941,3 +941,17 @@ The record's entity carries `address` and `address_source`, shown as **HQ addres
 - The card ("Our range"), Our take, the CRM compare (one band, no separate acceptable range), the CSV, the deck and the
   Word document all show this same range; it's recomputed when the record is built, so samples and cached results
   match new lookups. A test checks they agree.
+
+### D118. News is the weakest anchor; LinkedIn outranks it for white-collar organizations
+- **What happened (Anthropic, live):** three Fortune lines, each a reporter's own "2,500 employees" (the extraction's
+  notes said so), were ranked tier 6, anchored the answer at "more than 2,500", corroborated each other for +1, and
+  LinkedIn's 5,680 members cost a point.
+- **Tier 6 means a named executive quoted stating the figure.** Extraction is told so, and a tier 6 source whose notes
+  say it's the reporter's figure is moved to tier 9.
+- **One publisher never corroborates itself** (fortune.com and dc.fortune.com).
+- **LinkedIn as the anchor:** at a white-collar organization whose best source is news or a data provider (tier 6 or
+  below), 75% of LinkedIn members is a floor even without a growth signal, because members are the company's own people.
+  The estimate moves to the middle of floor and members, LinkedIn is then an input (no penalty), and the trend starts
+  from the certified figure (the superseded series is dropped) with historical estimates behind it.
+- **Charts:** one trend point per year (the latest), and the forecast range is never zero (at least ±4%).
+- Result for the same evidence: about 4,970 (4,260-5,700), 2/5, from 2,300 in late 2025 toward about 10,900 by 2029.

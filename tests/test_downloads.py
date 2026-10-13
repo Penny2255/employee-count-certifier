@@ -41,6 +41,8 @@ def test_deck_has_five_branded_slides_with_company_site_and_credit_links_in_both
                  for p in sh.text_frame.paragraphs for r in p.runs if r.hyperlink.address]
         links += [sh.click_action.hyperlink.address for s in prs.slides for sh in s.shapes
                   if sh.click_action.hyperlink.address]  # clickable buttons and the LinkedIn card
+        links += [r.hyperlink.address for s in prs.slides for sh in s.shapes if sh.has_table for row in sh.table.rows
+                  for c in row.cells for p in c.text_frame.paragraphs for r in p.runs if r.hyperlink.address]  # table cells
         assert links.count(LINKEDIN) >= 5 and links.count(site) >= 5 and any("sec.gov" in u for u in links)
         assert any(sh.has_chart for sh in prs.slides[1].shapes)  # a native, editable chart
         card = [sh for sh in prs.slides[4].shapes if sh.shape_type == 13 and sh.click_action.hyperlink.address == LINKEDIN]

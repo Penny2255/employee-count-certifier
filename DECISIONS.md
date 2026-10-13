@@ -955,3 +955,13 @@ The record's entity carries `address` and `address_source`, shown as **HQ addres
   from the certified figure (the superseded series is dropped) with historical estimates behind it.
 - **Charts:** one trend point per year (the latest), and the forecast range is never zero (at least ±4%).
 - Result for the same evidence: about 4,970 (4,260-5,700), 2/5, from 2,300 in late 2025 toward about 10,900 by 2029.
+
+### D119. Collapsed by default; a richer deck
+- Every section on the card starts collapsed (Findings and Key Source used to open); the drill bar opens them.
+- On the web page, the card's bottom Download menu sits beside "Search another company", saving a row; saved cards and
+  Claude keep it in the card footer.
+- Deck slide 1 carries the card's detail: the hero, bottom line, "Our take" (with the sources worth a look) and an
+  "At a glance" panel (our range, as of, confidence, key source with link, line in source and excerpt, or the data
+  providers' spread when no single source sets it; LinkedIn members and growth; direction; next update; HQ).
+- Deck slide 3 is the same trust journey as the card (colour-coded cards with signed impact and a running score,
+  arrows, and where we landed), then how the score adds up line by line, then the findings that affect the answer.

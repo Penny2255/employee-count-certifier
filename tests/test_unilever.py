@@ -169,3 +169,23 @@ def test_an_older_company_statement_becomes_a_historical_estimate_and_leans_the_
     forecast = [t for t in items if t.estimated]
     yearly = (forecast[-1].value / 10_000) ** (1 / 4) - 1
     assert 0.01 < yearly <= 0.03 and "historical estimate" in forecast[0].rationale  # a gentle, capped lean
+
+
+def test_a_young_growing_company_never_gets_a_shrinking_history_from_weak_sources():
+    """Ridgeline: the website says 400; single data providers put earlier years higher (450, 520). Research says it
+    was founded in 2017 and is growing, so the history rises into 400 instead of falling from 520."""
+    from certifier.record import build_record, growth_theme
+    site = src(4, 400, as_of=date(2026, 9, 1), url="https://www.ridgelineapps.com/about")
+    old = [src(9, 520, as_of=date(2024, 6, 1), url="https://growjo.com/ridgeline"),
+           src(9, 450, as_of=date(2025, 3, 1), url="https://leadiq.com/ridgeline")]
+    cert = certify(Entity(name="Ridgeline"), [site] + old, lookup_date=date(2026, 10, 13))
+    notes = ["Founded in 2017; growing quickly as it adds asset-management clients."]
+    assert growth_theme(cert, notes, date(2026, 10, 13))[0] == "growing"
+    items = build_record(cert, lookup_date=date(2026, 10, 13), notes=notes).trend.items
+    history = [t for t in items if t.historical]
+    assert history and all(t.value < cert.certified_count for t in history)
+    forecast = [t for t in items if t.estimated]
+    assert forecast[-1].value > cert.certified_count  # it keeps growing
+    # Without the founding note there's no theme, so the provider history stands as before.
+    plain = build_record(cert, lookup_date=date(2026, 10, 13)).trend.items
+    assert any(t.historical and t.value > cert.certified_count for t in plain)

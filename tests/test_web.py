@@ -126,7 +126,7 @@ def test_access_code_cli_round_trip():
 
 def test_page_and_single_css_and_js(client):
     page = client.get("/")
-    assert page.status_code == 200 and "GTM Data Certifier" in page.text and "Certified answers · giving you transparency" in page.text
+    assert page.status_code == 200 and "GTM Data Certifier" in page.text and "Certified answers<span class=\"wide-only\"> · giving you transparency" in page.text
     assert "Matthew Beltrano" in page.text and "linkedin.com/in/matthewbeltrano" in page.text
     assert "Certified under policy v0.2 from public sources. Verify before contractual use." in page.text
     css = client.get("/static/app.css").text
@@ -367,7 +367,7 @@ def test_page_has_start_over_powered_by_mcp_help_and_glossary(client):
     assert "Not the right one? Search again" in page
     assert "Giving you transparency &amp; trust to take real action" in page
     assert "Employee count" in page and "Certify<span class=\"btn-more\"> employees</span>" in page
-    assert page.count('aria-disabled="true" data-soon=') == 4
+    assert page.count('aria-disabled="true" data-soon=') == 5  # four, plus the phone-only '+4 more'
     assert "Powered by Claude · Custom-built MCP service" in page and "Model Context Protocol (MCP)" in page
     assert "http://localhost/mcp" in page and "Add custom connector" in page
     assert "Corporate Fact Sheet" in page and "The annual report U.S. public companies must file with the SEC" in page

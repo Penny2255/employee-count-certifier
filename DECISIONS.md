@@ -971,3 +971,18 @@ The record's entity carries `address` and `address_source`, shown as **HQ addres
   Our take wrap far less and the header fits on one line, without a separate mobile layout.
 - Text boxes keep an effective 16px font, so iOS doesn't zoom the page when the search box is tapped (which had made
   it look wider than the screen); decorative sparkles can't widen the page.
+
+### D121. Phones, tighter; history follows the organization's shape
+- **Phones:** the tagline is just "Certified answers", the four "soon" metrics become one "+4 more · soon" chip, the
+  allowance line is "10 searches left today", the footer is three short lines (credit; Privacy · About · Terms; the
+  notice), section summaries sit on their own small line that never wraps, and the drill bar loses its label so the
+  buttons fit on one row. Inside Findings, each group (affects the answer, worth knowing, background) is its own
+  collapsed sub-section.
+- **Growth theme first (the Ridgeline case):** the organization's shape is set from the strongest evidence: LinkedIn
+  growth, the company's own older figures, research saying it is growing or shrinking, or a founding year within ten
+  years. A weak data-provider figure that contradicts that shape (above today's figure for a growing organization) is
+  used as history only when two or more providers agree on it. A young, growing organization with nothing else gets one
+  assumed point a year back (30% growth), labelled as an assumption. Extraction now states the founding year and the
+  growth direction in its notes.
+- Ridgeline-like case: 400 from the website with providers at 450-520 earlier; the history now rises from about 308 to
+  400 and the forecast toward about 610, instead of falling from 520.

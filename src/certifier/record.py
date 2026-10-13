@@ -881,7 +881,7 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
                                           f"The certified figure, shown at the certification date ({when.isoformat()}) "
                                           "because its source is undated."))]
     if 0 < len(trend_rows) < 3 and cert.certified_count:
-        trend_rows = _history(cert, trend_rows) + trend_rows
+        trend_rows = _history(cert, trend_rows, notes or [], lookup_date) + trend_rows
     reported_only = [t for t in trend_rows if not t.historical]
     trend_rows += (_forecast(trend_rows) if len(reported_only) >= 3 and len(reported_only) == len(trend_rows)
                    else _short_forecast(trend_rows, cert.linkedin_check))
@@ -952,6 +952,7 @@ LINKEDIN_WEIGHT = 0.5      # LinkedIn over-represents office staff: half of its 
 
 HISTORY_MAX_YEARS = 10     # how far back a historical estimate may reach
 HISTORY_MAX_POINTS = 3     # at most this many historical estimates
+YOUNG_GROWTH = 0.30        # a young, growing organization with no history: assumed growth over the past year
 HISTORICAL_WEIGHT = 0.35   # an older statement is weaker evidence: about a third of its growth carries forward
 HISTORICAL_MAX_RATE = 0.03 # ...and never more than ±3% a year: older statements often count differently
 
@@ -1075,17 +1076,72 @@ def _short_quote(text: str, limit: int = 50) -> str:
     return text if len(text) <= limit else text[: limit - 1].rsplit(" ", 1)[0] + "…"
 
 
-def _history(cert: Certification, rows: list[TrendRow]) -> list[TrendRow]:
+_DIRECTION_WORDS = re.compile(r"(growing|expanding|scaling|hiring rapidly|shrinking|downsizing|contracting|laid off|layoffs)",
+                              re.I)
+_FOUNDED = re.compile(r"\b(?:founded|established|launched|started|incorporated)(?: in)? ((?:19|20)\d\d)\b", re.I)
+
+
+def growth_theme(cert: Certification, notes: list[str], lookup_date: date) -> tuple[str | None, str]:
+    """The high-level shape of the organization, from the strongest evidence first: LinkedIn headcount growth; the
+    company's own older statements; a recent founding year (research notes). ("growing" | "shrinking" | None, why)."""
+    li = cert.linkedin_check
+    growth = li.growth_1y if li.growth_1y is not None else (li.growth_2y / 2 if li.growth_2y is not None else None)
+    if growth is not None and abs(growth) >= 0.05:
+        return ("growing" if growth > 0 else "shrinking"), f"LinkedIn shows {growth:+.0%} a year"
+    value, as_of = cert.certified_count, cert.as_of_date or lookup_date
+    company = [s for s in cert.sources if s.tier <= 6 and s.scope == "global" and s.as_of_date and s.as_of_date.year < as_of.year
+               and s.value]
+    if value and company:
+        first = min(company, key=lambda s: s.as_of_date)
+        if first.value < value * 0.95:
+            return "growing", f"the company's own figures rise from {first.value:,} in {first.as_of_date.year}"
+        if first.value > value * 1.05:
+            return "shrinking", f"the company's own figures fall from {first.value:,} in {first.as_of_date.year}"
+    research = " ".join(notes)
+    m = _DIRECTION_WORDS.search(research)
+    if m:
+        shrink = m.group(1).lower() in ("shrinking", "downsizing", "contracting", "laid off", "layoffs")
+        return ("shrinking" if shrink else "growing"), f"research describes it as {m.group(1).lower()}"
+    text = research + " " + " ".join(n for s in cert.sources for n in s.notes)
+    years = [int(y) for y in _FOUNDED.findall(text) if 1900 < int(y) <= lookup_date.year]
+    if years and lookup_date.year - max(years) <= 10:
+        return "growing", f"founded in {max(years)}, so still building its team"
+    return None, ""
+
+
+def _history(cert: Certification, rows: list[TrendRow], notes: list[str] | None = None,
+             lookup_date: date | None = None) -> list[TrendRow]:
     """Historical estimates for a short history, from every route, strongest first, one point per year (up to
     three): older company-voice statements (tiers 1-6); a back-cast from LinkedIn's headcount growth; older
-    data-provider figures (tiers 7-9). Each is labelled with where it came from; none is certified."""
+    data-provider figures (tiers 7-9). The organization's growth theme comes first: a weak data-provider figure that
+    contradicts it (above today's figure for a growing organization, below for a shrinking one) is used only when two
+    or more providers agree on it. A young, growing organization with nothing else gets one assumed point a year back.
+    Each is labelled with where it came from; none is certified."""
+    lookup_date = lookup_date or rows[-1].as_of_date
+    theme, why = growth_theme(cert, notes or [], lookup_date)
+    value = cert.certified_count
+    providers = _historical_points(cert, rows, 9, min_tier=7)
+    if theme and value:
+        def agrees(t: TrendRow) -> bool:
+            return t.value < value if theme == "growing" else t.value > value
+
+        def corroborated(t: TrendRow) -> bool:
+            peers = [s for s in cert.sources if s.tier >= 7 and s.as_of_date and s.as_of_date.year == t.as_of_date.year
+                     and s.value and abs(s.value - t.value) / t.value <= 0.15]
+            return len({rules._publisher(s.url) for s in peers}) >= 2
+        providers = [t for t in providers if agrees(t) or corroborated(t)]
     picked: dict[int, TrendRow] = {}
-    for route in (_historical_points(cert, rows, 6), _linkedin_backcast(cert, rows),
-                  _historical_points(cert, rows, 9, min_tier=7)):
+    for route in (_historical_points(cert, rows, 6), _linkedin_backcast(cert, rows), providers):
         for t in route:
             picked.setdefault(t.as_of_date.year, t)
         if len(picked) >= HISTORY_MAX_POINTS:
             break
+    if not picked and theme == "growing" and value and not why.startswith("LinkedIn"):
+        when = rows[0].as_of_date - timedelta(days=365)
+        picked[when.year] = TrendRow(
+            as_of_date=when, value=round(value / (1 + YOUNG_GROWTH)), tier=None, url=None, estimated=False, historical=True,
+            rationale=f"Historical estimate: assumed {YOUNG_GROWTH:.0%} growth over the past year for a young, growing "
+                      f"organization ({why}); not a reported figure.")
     return [picked[y] for y in sorted(picked)][-HISTORY_MAX_POINTS:]
 
 

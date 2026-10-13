@@ -1196,7 +1196,7 @@ def _forecast(points: list[TrendRow]) -> list[TrendRow]:
     last = ys[-1]
     rate = max(-FORECAST_MAX_RATE, min(FORECAST_MAX_RATE, slope * 365.25 / last))
     changes = [(b - a) / a for a, b in zip(ys, ys[1:]) if a]
-    spread = min(statistics.pstdev(changes), FORECAST_MAX_RATE) if len(changes) > 1 else 0
+    spread = max(0.04, min(statistics.pstdev(changes), FORECAST_MAX_RATE) if len(changes) > 1 else 0)
     capped = rate != slope * 365.25 / last
     out = []
     for k in range(1, FORECAST_YEARS + 1):

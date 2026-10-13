@@ -137,7 +137,7 @@ def test_fast_growing_white_collar_linkedin_is_a_floor_for_weak_estimates(entity
     assert moderate.certified_count == 5_040 and moderate.range[0] == 4_317
     assert any("85% of its 5,756 LinkedIn members are taken" in a.reason for a in cert.adjustments)
     flat = certify(entity, providers, linkedin=li.model_copy(update={"growth_1y": 0.02, "growth_2y": 0.03}), lookup_date=date(2026, 10, 13))
-    assert flat.certified_count < 4_317  # no growth signal, no floor
+    assert flat.certified_count == 5_040  # white-collar: the 75% floor applies against data providers even without growth
 
 
 def test_the_floor_never_overrides_a_company_document_or_filing(entity):
@@ -185,3 +185,38 @@ def test_the_certified_range_is_reported_the_same_everywhere():
             text = " ".join(sh.text_frame.text for sh in prs.slides[0].shapes if sh.has_text_frame)
             cells = " ".join(c.text for sh in prs.slides[0].shapes if sh.has_table for r in sh.table.rows for c in r.cells)
             assert f"{lo:,}–{hi:,}" in text + cells, f.stem
+
+
+def _anthropic_oct_2026():
+    """The live Anthropic result of 2026-10-13: three Fortune lines (reporter's figures), data providers, 5,680 members."""
+    from certifier.models import LinkedInEvidence, Source
+
+    def s(tier, value, when, url, notes=(), q="approximately", restates=False):
+        return Source(url=url, tier=tier, value=value, qualifier=q, excerpt=f"{value:,} employees", as_of_date=when,
+                      scope="global", basis="headcount", notes=list(notes), restates=restates)
+    reporter = ["Reporter's statement, not a direct executive quote."]
+    sources = [s(6, 2_500, date(2026, 6, 1), "https://fortune.com/a", reporter, "exact"),
+               s(6, 2_500, date(2026, 2, 26), "https://dc.fortune.com/b", ["Journalist's figure, not stated by an executive."], "exact"),
+               s(6, 2_500, date(2026, 8, 25), "https://fortune.com/c", ["A floor figure, probably recycled from earlier reporting."], "more_than"),
+               s(7, 6_146, date(2026, 9, 26), "https://tracxn.com/anthropic"),
+               s(7, 3_950, date(2026, 3, 31), "https://reveliolabs.com/anthropic"),
+               s(9, 6_110, date(2026, 10, 5), "https://tipranks.com/anthropic"),
+               s(9, 2_300, date(2025, 12, 15), "https://getlatka.com/anthropic", restates=True)]
+    return sources, LinkedInEvidence(member_count=5_680, workforce_profile="white_collar")
+
+
+def test_a_reporters_figure_never_anchors_over_linkedin(entity):
+    sources, li = _anthropic_oct_2026()
+    cert = certify(entity, sources, linkedin=li, lookup_date=date(2026, 10, 13))
+    assert cert.certified_count >= 4_260  # at least 75% of 5,680 members, not the stale 2,500
+    assert not any(f.startswith("LinkedIn") for f in cert.flags)  # LinkedIn is the anchor, not a penalty
+    assert all(s.tier == 9 for s in cert.sources if "fortune.com" in s.url and "reporter" in " ".join(s.notes).lower()
+               or "Journalist" in " ".join(s.notes))
+
+
+def test_one_publisher_never_corroborates_itself(entity):
+    from certifier.models import Source
+    a = Source(url="https://fortune.com/a", tier=6, value=2_500, qualifier="exact", excerpt="x", as_of_date=date(2026, 8, 1), scope="global", basis="headcount")
+    b = a.model_copy(update={"url": "https://dc.fortune.com/b", "as_of_date": date(2026, 6, 1), "value": 2_520})
+    cert = certify(entity, [a, b], lookup_date=date(2026, 10, 13))
+    assert not any(s.role == "corroborates" for s in cert.sources)

@@ -526,6 +526,12 @@ def same_document(a: Source, b: Source) -> bool:
     return a.url.split("#")[0] == b.url.split("#")[0]
 
 
+def _publisher(url: str) -> str:
+    host = (urlsplit(url).hostname or "").lower().removeprefix("www.")
+    parts = host.split(".")
+    return ".".join(parts[-3:]) if len(parts) > 2 and parts[-2] in ("co", "com", "org", "ac") else ".".join(parts[-2:])
+
+
 class Dependence(NamedTuple):
     kind: str  # "dependent" (same evidence), "undated", or "far" (a different point in time)
     reason: str
@@ -537,6 +543,8 @@ def independence(candidate: Source, selected: Source, candidate_value: int, sele
     the same as-of date. An undated selected source (e.g. a website tile) is presumed current."""
     if same_document(candidate, selected):
         return Dependence("dependent", "same document")
+    if candidate.tier >= 6 and selected.tier >= 6 and _publisher(candidate.url) == _publisher(selected.url):
+        return Dependence("dependent", "same publisher as the key source")
     if candidate.restates:
         return Dependence("dependent", "restates another source's figure")
     if candidate_value == selected_value and candidate.as_of_date in (None, selected.as_of_date):
@@ -574,7 +582,10 @@ def trend_points(selected: Source, sources: list[Source], effective: dict[int, i
     for d, group in candidates.items():
         by_date[d] = selected if selected in group else _cluster_pick(group)
     by_date[selected.as_of_date] = selected
-    points = [TrendPoint(as_of_date=d, value=effective[id(s)], tier=s.tier, url=s.url) for d, s in sorted(by_date.items())]
+    by_year: dict[int, tuple[date, Source]] = {}
+    for d, s in sorted(by_date.items()):  # one point per year: the latest
+        by_year[d.year] = (d, s)
+    points = [TrendPoint(as_of_date=d, value=effective[id(s)], tier=s.tier, url=s.url) for d, s in by_year.values()]
     return points[-limit:]
 
 

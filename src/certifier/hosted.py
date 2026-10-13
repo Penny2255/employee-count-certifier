@@ -156,7 +156,7 @@ class Controls:
 
 # Bump when a change alters which figure is certified or how it's scored: cached results made by older
 # code are then ignored (they stay in the database but are never served) and the next search recertifies.
-ENGINE_VERSION = "2026.10.13d"
+ENGINE_VERSION = "2026.10.13e"
 
 
 def cache_key(entity: Entity, cik: int | None, parent_cik: int | None) -> str:

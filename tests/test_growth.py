@@ -122,3 +122,24 @@ def test_single_or_disagreeing_data_providers_are_not_a_signal(entity):
 def test_needs_member_gap(entity):
     close = GROWING.model_copy(update={"member_count": 1_650})
     assert run(entity, src(4, 1_500, as_of=None), close).certified_count == 1_500
+
+
+def test_fast_growing_white_collar_linkedin_is_a_floor_for_weak_estimates(entity):
+    """Anthropic-like: data providers only, LinkedIn 5,756 members growing 121% a year. At least 75% of members are
+    taken to be current employees, and the estimate moves to the middle of 4,317-5,756."""
+    from certifier.models import LinkedInEvidence
+    providers = [src(9, v, as_of=date(2026, 9, 1), url=f"https://provider{i}.com/x") for i, v in enumerate((2_300, 3_000, 3_500, 4_100))]
+    li = LinkedInEvidence(member_count=5_756, workforce_profile="white_collar", growth_1y=1.21, growth_2y=3.70)
+    cert = certify(entity, providers, linkedin=li, lookup_date=date(2026, 10, 13))
+    assert cert.certified_count == 5_040 and cert.range[0] == 4_317
+    assert any("LinkedIn growth floor" in a.reason or "75%" in a.reason for a in cert.adjustments)
+    flat = certify(entity, providers, linkedin=li.model_copy(update={"growth_1y": 0.02, "growth_2y": 0.03}), lookup_date=date(2026, 10, 13))
+    assert flat.certified_count < 5_040  # no growth signal, no floor
+
+
+def test_the_floor_never_overrides_a_company_document_or_filing(entity):
+    from certifier.models import LinkedInEvidence
+    li = LinkedInEvidence(member_count=5_756, workforce_profile="white_collar", growth_1y=1.21)
+    for tier in (1, 2, 3):
+        cert = certify(entity, [src(tier, 3_000, as_of=date(2026, 6, 1))], linkedin=li, lookup_date=date(2026, 10, 13))
+        assert cert.certified_count == 3_000, tier

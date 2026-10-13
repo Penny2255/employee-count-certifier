@@ -140,6 +140,30 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
     else:
         value = qualifier = count_type = value_range = policy_tier = as_of = None
 
+    # A fast-growing white-collar organization: LinkedIn members are mostly real (if a little inflated), so a weak
+    # estimate below 75% of members moves to the middle of that floor and the member count. Only for an estimate
+    # from data providers or a tier 4-6 anchor: a filing or company-published document (tiers 1-3) stands.
+    signal = rules.growth_signal(linkedin, policy)
+    current_primary = (selected is not None and policy.tier_class(selected.tier) == "primary" and as_of is not None
+                       and (rules.within_months(as_of, lookup_date, policy.recency.certified_max_age_months)
+                            or rules.latest_release_current(selected, lookup_date, policy)))
+    linkedin_floor_used = False
+    weak_anchor = selected is None or selected.tier >= 4  # data providers, website, LinkedIn description, news
+    if signal and value is not None and not current_primary and weak_anchor:
+        members = linkedin.member_count
+        floor = round(members * policy.linkedin.growth_floor_share)
+        if value < floor:
+            moved = rules.round_significant((floor + members) / 2, 3)
+            adjustments.append(Adjustment(
+                source_url="(LinkedIn growth floor)", source_figure=value, change=moved - value, result=moved,
+                reason=f"{signal}, so at least {policy.linkedin.growth_floor_share:.0%} of its {members:,} LinkedIn "
+                       f"members are taken to be current employees (a floor of {floor:,}); moved to the middle of "
+                       f"{floor:,}-{members:,}."))
+            notes.append(f"LinkedIn growth floor: {value:,} moved to {moved:,} ({signal}).")
+            value, qualifier, count_type = moved, "approximately", "estimated"
+            value_range = (floor, max(members, value_range[1] if value_range else members))
+            linkedin_floor_used = True
+
     # Events lower confidence only when they closed after the as-of date (the figure can't include them).
     event_outcomes: list[EventOutcome] = []
     primary_anchor = selected is not None and policy.tier_class(selected.tier) == "primary"
@@ -246,7 +270,7 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
                                  "to corroborate; context only.")
 
     li = rules.linkedin_check(value, linkedin, policy)
-    linkedin_was_input = ((growth is not None and growth.used_linkedin)
+    linkedin_was_input = ((growth is not None and growth.used_linkedin) or linkedin_floor_used
                           or (derivation is not None and linkedin.member_count is not None))
     if li.status == "flag":
         current_filing = (selected is not None and policy.tier_class(selected.tier) == "primary"

@@ -73,6 +73,8 @@ class XLinkedIn(BaseModel):
     growth_6m: float | None = Field(description="Fraction, e.g. 0.08 for 8%; only if publicly visible")
     growth_1y: float | None
     growth_2y: float | None
+    open_roles: int | None = Field(description="Open job postings the organization lists (careers page or LinkedIn "
+                                               "jobs); null if not seen")
 
 
 class XEvent(BaseModel):
@@ -293,7 +295,7 @@ def research_entity(entity: Entity, snippets: list[Snippet], lookup_date: date, 
             else None,
             workforce_profile=extraction.workforce_profile,
             growth_6m=extraction.linkedin.growth_6m, growth_1y=extraction.linkedin.growth_1y,
-            growth_2y=extraction.linkedin.growth_2y),
+            growth_2y=extraction.linkedin.growth_2y, open_roles=extraction.linkedin.open_roles),
         events=events, complexities=[c.description for c in extraction.complexities
                                             if c.kind in ENTITY_CHANGING - {"subsidiary"}],
         subsidiary_questions=[c.description for c in extraction.complexities if c.kind == "subsidiary"],

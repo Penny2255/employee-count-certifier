@@ -259,6 +259,22 @@ def linkedin_check(value: int | None, evidence: LinkedInEvidence | None, policy:
     return LinkedInCheck(**base, implied_range=pass_range, status=status, note=note, gap=round(gap, 3))
 
 
+def growth_signal(evidence: LinkedInEvidence | None, policy: Policy) -> str | None:
+    """Why a white-collar organization is clearly growing (LinkedIn growth or open roles), or None."""
+    if evidence is None or not evidence.member_count:
+        return None
+    if (evidence.workforce_profile or policy.linkedin.default_profile) != "white_collar":
+        return None
+    lp = policy.linkedin
+    if evidence.growth_1y is not None and evidence.growth_1y >= lp.growth_signal_1y:
+        return f"LinkedIn shows {evidence.growth_1y:+.0%} headcount growth over a year"
+    if evidence.growth_2y is not None and evidence.growth_2y >= lp.growth_signal_2y:
+        return f"LinkedIn shows {evidence.growth_2y:+.0%} headcount growth over two years"
+    if evidence.open_roles and evidence.open_roles >= lp.growth_signal_open_roles * evidence.member_count:
+        return f"{evidence.open_roles:,} open roles, {evidence.open_roles / evidence.member_count:.0%} of LinkedIn members"
+    return None
+
+
 # --- Growth adjustment -------------------------------------------------------
 
 

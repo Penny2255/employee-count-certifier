@@ -80,6 +80,11 @@ class LinkedInPolicy(BaseModel):
     profiles: dict[str, LinkedInProfile]
     member_overage_tolerance: dict[str, float] = {}
     penalty_gap: float = 1.0
+    growth_floor_share: float = 0.75
+    growth_signal_1y: float = 0.25
+    growth_signal_2y: float = 0.50
+    growth_signal_open_roles: float = 0.05
+    growth_forecast_cap: float = 0.30
 
 
 class GrowthAdjustment(BaseModel):

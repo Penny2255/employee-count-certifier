@@ -100,6 +100,7 @@ class LinkedInEvidence(BaseModel):
     growth_6m: float | None = None
     growth_1y: float | None = None
     growth_2y: float | None = None
+    open_roles: int | None = None  # open job postings (careers page or LinkedIn): a hiring signal
 
 
 class LinkedInCheck(BaseModel):

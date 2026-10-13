@@ -874,6 +874,8 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
                                           "because its source is undated."))]
     if 0 < len(trend_rows) < 3 and cert.certified_count:
         trend_rows = _historical_points(cert, trend_rows) + trend_rows
+    if 0 < len(trend_rows) < 3 and cert.certified_count and not any(t.historical for t in trend_rows):
+        trend_rows = _linkedin_backcast(cert, trend_rows) + trend_rows
     reported_only = [t for t in trend_rows if not t.historical]
     trend_rows += (_forecast(trend_rows) if len(reported_only) >= 3 and len(reported_only) == len(trend_rows)
                    else _short_forecast(trend_rows, cert.linkedin_check))
@@ -934,6 +936,8 @@ FORECAST_YEARS = 4
 
 FORECAST_MAX_RATE = 0.15  # the yearly change a forecast may carry forward, either way
 SHORT_SPREAD = 0.08        # a best-guess forecast's yearly range (±8%, widening) when history is short
+SHORT_FORECAST_YEARS = 3   # a short history gets a shorter forecast (3 years; 4 with 3+ reported years)
+GROWTH_FORECAST_CAP = 0.30 # with clear LinkedIn growth (25%+ a year), the forecast may carry up to 30% a year
 LINKEDIN_WEIGHT = 0.5      # LinkedIn over-represents office staff: half of its growth carries into the forecast
 
 
@@ -964,6 +968,26 @@ def _historical_points(cert: Certification, rows: list[TrendRow]) -> list[TrendR
             for s in picks]
 
 
+def _linkedin_backcast(cert: Certification, rows: list[TrendRow]) -> list[TrendRow]:
+    """With LinkedIn headcount growth (1-year, and 2-year when known), estimate where the certified figure stood one
+    and two years earlier: the growth on LinkedIn is real hiring even when the member total is a little inflated.
+    Marked as historical estimates, never certified."""
+    li = cert.linkedin_check
+    if li is None or (li.growth_1y is None and li.growth_2y is None):
+        return []
+    last = rows[0]
+    out = []
+    for years, growth in ((2, li.growth_2y), (1, li.growth_1y)):
+        if growth is None or growth <= -0.9:
+            continue
+        when = last.as_of_date - timedelta(days=round(365.25 * years))
+        value = round(last.value / (1 + growth))
+        out.append(TrendRow(as_of_date=when, value=value, tier=None, url=None, estimated=False, historical=True,
+                            rationale=f"Historical estimate: the certified figure less LinkedIn's {growth:+.0%} "
+                                      f"{years}-year headcount growth; not a reported figure."))
+    return out
+
+
 def _short_forecast(points: list[TrendRow], li) -> list[TrendRow]:
     """A best-guess forecast when there are fewer than 3 reported points: level, or following LinkedIn's headcount
     growth (half of it, capped) when research found it, or the change since the first point (half of it between
@@ -975,9 +999,10 @@ def _short_forecast(points: list[TrendRow], li) -> list[TrendRow]:
     growth = li.growth_1y if li is not None and li.growth_1y is not None else (
         li.growth_2y / 2 if li is not None and li.growth_2y is not None else None)
     if growth is not None:
-        rate = max(-FORECAST_MAX_RATE, min(FORECAST_MAX_RATE, growth * LINKEDIN_WEIGHT))
-        basis = (f"half of LinkedIn's {growth:+.0%} yearly headcount growth ({rate:+.1%} a year), since LinkedIn "
-                 "over-represents office staff")
+        cap = GROWTH_FORECAST_CAP if growth >= 0.25 else FORECAST_MAX_RATE  # clear growth may carry further
+        rate = max(-FORECAST_MAX_RATE, min(cap, growth * LINKEDIN_WEIGHT))
+        basis = (f"half of LinkedIn's {growth:+.0%} yearly headcount growth ({rate:+.1%} a year"
+                 + (", capped" if rate == cap else "") + ")")
     elif len(points) >= 2 and points[0].value:
         first = points[0]
         years = max(0.5, (last.as_of_date - first.as_of_date).days / 365.25)
@@ -992,13 +1017,13 @@ def _short_forecast(points: list[TrendRow], li) -> list[TrendRow]:
     else:
         rate, basis = 0.0, "level, since there is no earlier figure or growth signal"
     out = []
-    for k in range(1, FORECAST_YEARS + 1):
+    for k in range(1, SHORT_FORECAST_YEARS + 1):
         when = last.as_of_date + timedelta(days=round(365.25 * k))
         value = round(last.value * (1 + rate) ** k)
         width = round(value * SHORT_SPREAD * math.sqrt(k))
         out.append(TrendRow(as_of_date=when, value=value, tier=None, url=None, estimated=True,
                             low=max(0, value - width), high=value + width,
-                            rationale=f"Best-guess estimate, year {k} of {FORECAST_YEARS}: {basis}, with a range of "
+                            rationale=f"Best-guess estimate, year {k} of {SHORT_FORECAST_YEARS}: {basis}, with a range of "
                                       f"±{SHORT_SPREAD:.0%} that widens each year; not a reported figure."))
     return out
 

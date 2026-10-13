@@ -180,3 +180,19 @@ def test_no_source_record_is_complete(entity):
     assert r.headline.count is None and r.headline.none_reason
     assert r.primary_source.none_reason and r.sources.none_reason
     assert CertificationRecord.model_validate(r.model_dump()) == r
+
+
+def test_our_take_is_short_plain_and_points_to_sources():
+    import json
+    from pathlib import Path
+
+    from certifier.record import record_from_lookup
+    from certifier.service import LookupResult
+    for f in sorted((Path(__file__).resolve().parents[1] / "samples").glob("*.json")):
+        rec = record_from_lookup(LookupResult.model_validate_json(f.read_text(encoding="utf-8")))
+        story = rec.headline.story
+        assert story and len(story.split()) <= 90, (f.stem, len(story.split()))
+        assert f"{rec.headline.count:,}" in story and f"Confidence {rec.confidence.score}/5" in story
+        ids = {s.id for s in rec.sources.items}
+        assert rec.headline.story_sources and set(rec.headline.story_sources) <= ids
+        assert json.loads(rec.model_dump_json())["headline"]["story"] == story

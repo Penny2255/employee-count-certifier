@@ -278,6 +278,8 @@ def deck(record: dict, theme: str = "light", logo: bytes | None = None, site_url
     frame(bl, [(0, [({"ready": "✓  ", "usable": "!  ", "directional": "✕  "}[band], 14, True, tone, False, None),
                     ("Bottom line: ", 14, True, tone, False, None), (h.get("bottom_line") or "", 14, False, tone, False, None)])],
           anchor=MSO_ANCHOR.MIDDLE)
+    if h.get("story"):  # "Our take" in the speaker notes, for whoever presents the slides
+        s.notes_slide.notes_text_frame.text = "Our take: " + h["story"]
     ks_top = 5.1
     if h.get("peer_note"):
         rare = h.get("peer_level") == "rare"
@@ -819,6 +821,11 @@ def document(record: dict) -> bytes:
     run = para.add_run(f"Confidence {c['score']}/5 · {c['level']} — Bottom line: {h.get('bottom_line') or ''}")
     run.bold, run.font.color.rgb = True, {"ready": DRGB(0x17, 0x79, 0x4A), "usable": DRGB(0x84, 0x55, 0x00),
                                           "directional": DRGB(0xB4, 0x23, 0x18)}[_band(c["score"])]
+    if h.get("story"):
+        take = doc.add_paragraph()
+        label = take.add_run("Our take: ")
+        label.bold = True
+        take.add_run(h["story"])
 
     _kv_table(doc, _facts(r) + ([("Source link", (p.get("location") or {}).get("deep_link") or p["url"])]
                                 if p.get("source_id") else []), muted)

@@ -888,3 +888,14 @@ The record's entity carries `address` and `address_source`, shown as **HQ addres
   it to (and the minimum).
 - Shown on the card under the bottom line, in the Word document, in the deck's speaker notes (slide 1), in the summary
   CSV ("our_take"), and Claude is asked to lead with it.
+
+### D113. "Why you can trust this" reads as a journey; drilling is obvious
+- The five trust cards read left to right as the score's path: where it started (the key source's base), what recency,
+  independent confirmations, adjustments and red flags each did, and a final card for where it landed. Each card is
+  coloured by its effect (strong green ✓, neutral blue, weak amber !, harmful red ✕), shows the change (+1, −1, no
+  change) and a small running-score bar, with arrows between them.
+- "How the score adds up" and "Method and models" are collapsed sections like the rest. A drill bar above them offers
+  Expand one level (every section), Expand all (everything inside too) and Collapse all; the download menu is left
+  alone.
+- Every section header shows a "View details ▾" pill (on phones "Open ▾") that turns into "Hide ▴", and the whole
+  header highlights on hover, so it's clear the sections open.

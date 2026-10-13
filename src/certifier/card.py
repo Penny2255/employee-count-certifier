@@ -89,8 +89,13 @@ CARD_CSS = r"""
 .cert summary:focus-visible, .cert a:focus-visible, .cert button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
 .cert .section > summary { padding: 0; align-items: center; }
 .cert details.section > summary::before, .cert details.log-row > summary::before { content: none; }
-.cert .section > summary::after { content: "\203A"; margin-left: auto; color: var(--muted); font-size: 20px; line-height: 1; transition: transform .2s; }
-.cert .section[open] > summary::after { transform: rotate(90deg); }
+.cert .section > summary { cursor: pointer; border-radius: 10px; margin: -6px -8px; padding: 6px 8px; transition: background .15s; }
+.cert .section > summary:hover { background: var(--soft); }
+.cert .section > summary::after { content: "View details \25BE"; margin-left: auto; flex: none; font-size: 12px; font-weight: 700; color: var(--accent);
+  padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); white-space: nowrap; }
+.cert .section > summary:hover::after { border-color: var(--loop-blue); }
+.cert .section[open] > summary::after { content: "Hide \25B4"; color: var(--muted); }
+.cert .section[open] > summary { margin-bottom: 2px; }
 .cert .ico { display: inline-grid; place-items: center; width: 30px; height: 30px; flex: none; border-radius: 9px; background: var(--accent-soft); color: var(--accent); }
 .cert .ico svg { width: 18px; height: 18px; }
 .cert .block-title { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
@@ -134,6 +139,46 @@ CARD_CSS = r"""
 .cert .answer-actions .breakdown > summary { padding: 4px 0; color: var(--accent); font-size: 14px; }
 .cert .answer-actions .breakdown[open] { flex-basis: 100%; }
 .cert .trust-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.cert .trust-strip.journey { grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(0, .9fr); gap: 14px; }
+.cert .journey .trust-item { position: relative; display: grid; align-content: start; gap: 3px; padding: 9px 10px 10px; border-width: 1px;
+  border-top-width: 4px; cursor: pointer; }
+.cert .journey .trust-item:not(:first-child)::before { content: "\203A"; position: absolute; left: -12px; top: 50%; transform: translateY(-50%);
+  color: var(--muted); font-size: 16px; font-weight: 700; }
+.cert .journey .t-top { display: flex; gap: 6px; align-items: center; }
+.cert .journey .t-sym { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; font-size: 11px; font-weight: 800;
+  color: #fff; flex: none; }
+.cert .journey strong { font-size: 14px; line-height: 1.3; overflow-wrap: anywhere; }
+.cert .journey .t-effect { font-size: 12px; font-weight: 600; }
+.cert .t-run { position: relative; display: block; height: 6px; margin-top: 4px; border-radius: 999px; background: var(--line); }
+.cert .t-run i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: linear-gradient(90deg, var(--loop-green), var(--loop-blue)); }
+.cert .t-run b { position: absolute; right: 0; top: 8px; font-size: 10.5px; color: var(--muted); }
+.cert .journey .trust-item { padding-bottom: 20px; }
+.cert .journey .strong { border-top-color: var(--loop-green); background: var(--green-bg); }
+.cert .journey .strong .t-sym { background: var(--green); }
+.cert .journey .strong .t-effect { color: var(--green); }
+.cert .journey .neutral { border-top-color: var(--loop-blue); }
+.cert .journey .neutral .t-sym { background: var(--loop-blue); }
+.cert .journey .neutral .t-effect { color: var(--muted); }
+.cert .journey .weak { border-top-color: #F2C35B; background: var(--yellow-bg); }
+.cert .journey .weak .t-sym { background: #D99A1E; }
+.cert .journey .weak .t-effect { color: var(--yellow); }
+.cert .journey .harmful { border-top-color: var(--red); background: var(--red-bg); }
+.cert .journey .harmful .t-sym { background: var(--red); }
+.cert .journey .harmful .t-effect { color: var(--red); }
+.cert .trust-land { display: grid; align-content: center; justify-items: center; gap: 2px; text-align: center; border-radius: 14px; padding: 10px;
+  border: 2px solid var(--line); position: relative; }
+.cert .trust-land::before { content: "="; position: absolute; left: -12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-weight: 800; }
+.cert .trust-land strong { font-size: 26px; line-height: 1.1; }
+.cert .trust-land .t-label { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.cert .trust-land .t-effect { font-size: 12px; font-weight: 600; }
+.cert .trust-land.ready { border-color: var(--loop-green); background: var(--green-bg); color: var(--green); }
+.cert .trust-land.usable { border-color: #F2C35B; background: var(--yellow-bg); color: var(--yellow); }
+.cert .trust-land.directional { border-color: var(--red); background: var(--red-bg); color: var(--red); }
+.cert .drill-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 12px 24px 4px; border-top: 1px solid var(--line); }
+.cert .drill-lbl { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+.cert .drill-btn { font: inherit; font-size: 12.5px; font-weight: 600; padding: 4px 11px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--card); color: var(--accent); cursor: pointer; }
+.cert .drill-btn:hover { border-color: var(--loop-blue); background: var(--soft); }
 .cert .trust-item { display: grid; gap: 2px; text-align: left; background: var(--soft); color: var(--text); border: 1px solid var(--line);
   border-radius: 10px; padding: 8px 10px; font-size: 14px; }
 .cert .trust-item:hover { border-color: var(--loop-blue); }
@@ -364,8 +409,12 @@ CARD_CSS = r"""
   .cert .log-row > summary { grid-template-columns: 22px 1fr; }
   .cert .log-row .impact { grid-column: 2; justify-self: start; }
   .cert .block { padding: 16px; }
+  .cert .drill-bar { padding: 10px 16px 2px; }
 }
-@media (max-width: 760px) { .cert .trust-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .cert .trust-strip, .cert .trust-strip.journey { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cert .journey .trust-item:not(:first-child)::before, .cert .trust-land::before { content: none; }
+  .cert .section > summary::after { content: "Open \25BE"; }
+  .cert .section[open] > summary::after { content: "Hide \25B4"; } }
 @media (max-width: 560px) {
   .cert .count { font-size: 34px; }
   .cert .src-sum { grid-template-columns: 34px 56px 1fr 80px; }
@@ -375,6 +424,8 @@ CARD_CSS = r"""
 @media (max-width: 560px) {
   .cert { --gap: 12px; font-size: 14px; }
   .cert .block { padding: 14px 14px; }
+  .cert .drill-bar { padding: 10px 14px 2px; }
+  .cert .trust .block-title .muted { display: none; }
   .cert h1 { font-size: 19px; }
   .cert h2 { font-size: 14px; }
   .cert .ico { width: 26px; height: 26px; } .cert .ico svg { width: 16px; height: 16px; }
@@ -432,6 +483,8 @@ CARD_JS = r"""
   function status(s) { var t = STATUS[s] || ["?", s]; return el("span", { cls: "status " + s, title: t[1] }, [t[0] + " " + t[1]]); }
   // Line icons (24px grid, stroked with currentColor). Static strings only.
   var ICONS = {
+    score: '<path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/>',
+    method: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>',
     key: '<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M10 13l2 2 3-4"/>',
     findings: '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="18" r="1.2"/>',
     sources: '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',
@@ -776,35 +829,78 @@ CARD_JS = r"""
   }
 
   // "Why you can trust this": five facts, each opening its detail.
+  // "Why you can trust this" as a journey, left to right: where the score started (the key source), what recency,
+  // independent confirmations, adjustments and red flags each did to it, and where it landed. Each card is coloured
+  // by its effect: strong (green ✓), neutral (blue), weak (amber !) or harmful (red ✕).
+  function scoreSteps(c) {
+    var base = c.breakdown.length ? c.breakdown[0].points : c.score, recency = 0, corr = 0, flags = 0;
+    c.breakdown.slice(1).forEach(function (l) {
+      var t = (l.rationale || "").toLowerCase();
+      if (t.indexOf("recency") === 0) recency += l.points;
+      else if (t.indexOf("corroborat") === 0) corr += l.points;
+      else flags += l.points;
+    });
+    return { base: base, recency: recency, corr: corr, flags: flags };
+  }
   function trust(r) {
-    var k = r.__k, p = r.primary_source, h = r.headline;
+    var k = r.__k, p = r.primary_source, h = r.headline, c = r.confidence, st = scoreSteps(c);
     var corr = r.sources.items.filter(function (s) { return s.role === "corroborates"; });
     var corrFinding = r.findings.items.filter(function (f) { return f.category === "corroboration"; })[0];
     var adj = r.adjustments.items.filter(function (a) { return a.change; }).length;
     var attention = r.findings.items.filter(function (f) { return f.status === "red"; }).length;
-    function item(label, value, target, tone, sym) {
-      var b = el("button", { type: "button", cls: "trust-item" + (tone ? " " + tone : "") }, [el("span", { cls: "t-sym", "aria-hidden": "true", text: sym }),
-        el("span", { cls: "t-label", text: label }), el("strong", { text: value })]);
+    var clamp = function (v) { return Math.max(0, Math.min(5, v)); };
+    var s1 = clamp(st.base), s2 = clamp(s1 + st.recency), s3 = clamp(s2 + st.corr), s5 = c.score;
+    var TONE_SYM = { strong: "✓", neutral: "◆", weak: "!", harmful: "✕" };
+    function card(label, value, effect, tone, running, target) {
+      var b = el("button", { type: "button", cls: "trust-item " + tone, title: "Open the detail" }, [
+        el("span", { cls: "t-top" }, [el("span", { cls: "t-sym", "aria-hidden": "true", text: TONE_SYM[tone] }), el("span", { cls: "t-label", text: label })]),
+        el("strong", { text: value }),
+        el("span", { cls: "t-effect", text: effect }),
+        el("span", { cls: "t-run", "aria-label": "Score so far " + running + " of 5" }, [el("i", { style: "width:" + running * 20 + "%" }), el("b", { text: running + "/5" })])]);
       b.addEventListener("click", function () { jump(target); });
       return b;
     }
-    var c = r.confidence, table = el("table", { cls: "lines" });
+    var baseTone = st.base >= 4 ? "strong" : st.base === 3 ? "neutral" : st.base === 2 ? "weak" : "harmful";
+    var keyValue = p && p.source_id ? "Tier " + p.tier + " · " + (p.source_type || p.tier_name) : "No single source";
+    var asOf = h.as_of_date ? h.as_of_date + (h.as_of_estimated ? " (est.)" : "") : "undated";
+    var landed = el("div", { cls: "trust-land " + band(c.score), role: "img", "aria-label": "Landed at " + c.score + " of 5, " + c.level }, [
+      el("span", { cls: "t-label", text: "Where we landed" }), el("strong", { text: c.score + "/5" }), el("span", { cls: "t-effect", text: c.level })]);
+    return el("div", { cls: "block trust", role: "group", "aria-label": "Why you can trust this" }, [
+      el("div", { cls: "block-title" }, [icon("trust"), el("h2", { text: "Why you can trust this" }),
+        el("span", { cls: "muted small", text: "· read left to right: where the score started, what moved it, where it landed" })]),
+      el("div", { cls: "trust-strip journey" }, [
+        card("Key source", keyValue, "starts at " + st.base + "/5", baseTone, s1, k + "-key"),
+        card("As of", asOf, st.recency < 0 ? "−" + (-st.recency) + " · older than the window" : h.as_of_date ? "current · no change" : "undated · no change",
+          st.recency < 0 ? "weak" : h.as_of_date && !h.as_of_estimated ? "strong" : "neutral", s2, k + "-key"),
+        card("Independent confirmations", String(corr.length), st.corr > 0 ? "+" + st.corr + " · confirmed" : "no change · single-sourced",
+          st.corr > 0 ? "strong" : "neutral", s3, corrFinding ? k + "-" + corrFinding.id : k + "-sources"),
+        card("Adjustments to the count", String(adj), adj ? "the figure moved · no score change" : "none needed",
+          adj ? "neutral" : "strong", s3, k + "-adjustments"),
+        card("Needs attention", String(attention), st.flags < 0 ? "−" + (-st.flags) + " · see findings"
+          : attention ? "no further effect · already at the minimum" : "nothing red",
+          st.flags < 0 ? "harmful" : attention ? "weak" : "strong", s5, k + "-findings"),
+        landed])]);
+  }
+
+  function scoreSection(r) {
+    var k = r.__k, c = r.confidence, table = el("table", { cls: "lines" });
     c.breakdown.forEach(function (line) {
       table.appendChild(el("tr", null, [el("td", { cls: "pts", text: (line.points > 0 && line !== c.breakdown[0] ? "+" : "") + line.points }),
         el("td", null, [line.rationale + " ", chip(line.finding_id, k + "-")])]));
     });
     table.appendChild(el("tr", { cls: "total" }, [el("td", { cls: "pts", text: String(c.score) }), el("td", { text: "= " + c.arithmetic })]));
-    var breakdown = el("details", { cls: "breakdown" }, [el("summary", null, [el("span", { text: "How the score adds up" }),
-      el("span", { cls: "muted small", text: " · " + c.score + "/5 = " + c.arithmetic })]), table]);
-    return el("div", { cls: "block trust", role: "group", "aria-label": "Why you can trust this" }, [
-      el("div", { cls: "block-title" }, [icon("trust"), el("h2", { text: "Why you can trust this" })]),
-      el("div", { cls: "trust-strip" }, [
-        item("Key source", p && p.source_id ? "Tier " + p.tier + " · " + (p.source_type || p.tier_name) : "none", k + "-key", "", "◆"),
-        item("As of", h.as_of_date ? h.as_of_date + (h.as_of_estimated ? " (est.)" : "") : "undated", k + "-key", "", "◷"),
-        item("Independent confirmations", String(corr.length), corrFinding ? k + "-" + corrFinding.id : k + "-sources", corr.length ? "good" : "", "⇄"),
-        item("Adjustments to the count", String(adj), k + "-adjustments", "", "±"),
-        item("Needs attention", String(attention), k + "-findings", attention ? "bad" : "good", attention ? "⚑" : "✓")]),
-      breakdown]);
+    return section("How the score adds up", c.score + "/5 = " + c.arithmetic, [table], false, k + "-score", "score");
+  }
+
+  // Drill controls: open the sections one level, or everything; close everything. The download menu is left alone.
+  function drillBar(root) {
+    var all = function () { return Array.prototype.filter.call(root.querySelectorAll("details"), function (d) { return !d.closest(".dl-menu"); }); };
+    function btn(text, fn) { var b = el("button", { type: "button", cls: "drill-btn", text: text }); b.addEventListener("click", fn); return b; }
+    return el("div", { cls: "drill-bar", role: "toolbar", "aria-label": "Expand or collapse the details" }, [
+      el("span", { cls: "drill-lbl", text: "Drill into the evidence" }),
+      btn("Expand one level", function () { root.querySelectorAll("details.section").forEach(function (d) { d.open = true; }); }),
+      btn("Expand all", function () { all().forEach(function (d) { d.open = true; }); }),
+      btn("Collapse all", function () { all().forEach(function (d) { d.open = false; }); })]);
   }
 
   // Trend and forecast. The chart spans at least three years back and three ahead (wider when the data reaches
@@ -1294,9 +1390,12 @@ CARD_JS = r"""
   function footer(r, all, opts) {
     var m = r.methodology;
     var models = Object.keys(m.models || {}).map(function (k) { return k + ": " + m.models[k]; }).join(", ");
-    var parts = [kv([["Method", m.method], ["Models", models || "none (rule-based)"], ["Policy version", m.policy_version + " · record " + m.record_version],
+    var method = section("Method and models", m.method + " · $" + Number(m.cost_usd).toFixed(2) + (m.duration_s != null ? " · " + m.duration_s + " s" : ""), [
+      kv([["Method", m.method], ["Models", models || "none (rule-based)"], ["Policy version", m.policy_version + " · record " + m.record_version],
           ["Cost", "$" + Number(m.cost_usd).toFixed(2) + " · " + m.web_searches + " searches, " + m.web_fetches + " fetches"],
-          ["Run", (m.run_at ? m.run_at.replace("T", " ").slice(0, 19) + " UTC" : m.lookup_date) + (m.duration_s != null ? " · " + m.duration_s + " s" : "")]])];
+          ["Run", (m.run_at ? m.run_at.replace("T", " ").slice(0, 19) + " UTC" : m.lookup_date) + (m.duration_s != null ? " · " + m.duration_s + " s" : "")]])],
+      false, r.__k + "-method", "method");
+    var parts = [method.firstChild];
     parts.push(el("div", { cls: "row footer-actions" }, [downloadMenu(r, opts)]));
     parts.push(el("p", { cls: "owner-notice", text: OWNER_LINE }));
     return el("footer", { cls: "block" }, parts);
@@ -1340,9 +1439,12 @@ CARD_JS = r"""
     if (!records.length) { root.appendChild(el("p", { cls: "muted", text: "No certification record in this result." })); return records; }
     records.forEach(function (r, i) {
       r.__k = "r" + i;
-      root.appendChild(el("article", { cls: "card", "aria-label": "Certification for " + r.entity.name }, [
-        header(r, opts), answer(r, opts), trendBlock(r), trust(r), findings(r), primary(r), sources(r), adjustments(r), events(r),
-        footer(r, records, opts)]));
+      var score = scoreSection(r);
+      var art = el("article", { cls: "card", "aria-label": "Certification for " + r.entity.name }, [
+        header(r, opts), answer(r, opts), trendBlock(r), trust(r), score, findings(r), primary(r), sources(r), adjustments(r), events(r),
+        footer(r, records, opts)]);
+      art.insertBefore(drillBar(art), score);
+      root.appendChild(art);
     });
     if (location.hash === "#expand-all") Array.prototype.forEach.call(root.querySelectorAll("details"), function (d) { d.open = true; });
     if (opts.onRender) opts.onRender(records);

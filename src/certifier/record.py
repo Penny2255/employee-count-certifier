@@ -999,7 +999,7 @@ def our_take(r: "CertificationRecord") -> tuple[str | None, list[str]]:
     if floor and li.member_count:
         out.append(f"It doesn't publish a headcount and data providers say {lo_hi}, but LinkedIn shows "
                    f"{_n(li.member_count)} members" + (f" ({', '.join(hiring)})" if hiring else "") +
-                   ", so we count at least 75% of them as real employees.")
+                   f", so we count at least {_floor_share(floor.rationale)} of them as real employees.")
     elif not p.source_id and providers:
         out.append(f"It doesn't publish a headcount, so this blends {len(providers)} data provider figures ({lo_hi}), "
                    "which often draw on LinkedIn.")
@@ -1049,6 +1049,12 @@ def our_take(r: "CertificationRecord") -> tuple[str | None, list[str]]:
     if others:
         pointers.append(max(others, key=lambda s: (abs(s.value - h.count) / max(1, h.count), -s.tier)).id)
     return " ".join(out), pointers[:2]
+
+
+def _floor_share(rationale: str) -> str:
+    import re
+    m = re.search(r"at least (\d+%)", rationale)
+    return m.group(1) if m else "75%"
 
 
 def _short_quote(text: str, limit: int = 50) -> str:

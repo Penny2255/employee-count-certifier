@@ -906,3 +906,15 @@ The record's entity carries `address` and `address_source`, shown as **HQ addres
   when supplied, and research notes heavy hiring in its notes. The growth signal still works from LinkedIn growth.
 - An offline test now caps the schema at 43 fields (the size that compiles); raising it requires running the live
   schema test first.
+
+### D115. Lean forward on very strong growth; the chart names the level; calmer trust cards
+- **Very strong, sustained growth** (LinkedIn 1-year growth of 60% or more at a white-collar organization, with a weak
+  anchor): the floor rises to 85% of members, the estimate leans to 95% of members and the range tops out at 105%
+  (open roles are being filled and LinkedIn lags hiring at this pace). Anthropic-like case: about 5,470 (4,893-6,044)
+  instead of 5,040 (4,317-6,227). Moderate growth keeps the 75% floor and the midpoint.
+- **The certified point's caption says the level:** ✓ Certified (4-5), ◆ Supported (3), ! Estimated (2), ⚠ Unverified
+  (1), coloured to match, with the halo and guide line in the same colour. The deck's chart and its first stat card
+  use the same words.
+- **Trust cards:** every card has the same rows: icon and title, the fact ("1 independent source", "0 red flags"), a
+  signed impact chip (start 4, +1, −1, ±0) with a short note, and the meter at the bottom with the score written on it.
+  The arrows between cards are round badges.

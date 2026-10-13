@@ -322,7 +322,7 @@ def deck(record: dict, theme: str = "light", logo: bytes | None = None, site_url
                        (_short(h.get("direction_reason") or "", None, 190), 11.5, False, "text", False, None)])], anchor=MSO_ANCHOR.MIDDLE)
         top += 0.8
     if reported:
-        _trend_chart(s, reported, forecast, t, 0.55, top, 8.5, 6.2 - top)
+        _trend_chart(s, reported, forecast, t, 0.55, top, 8.5, 6.2 - top, c["score"])
         legend = [("●", "blue", "Reported"), ("◌", "muted", "Historical estimate" if any(p.get("historical") for p in reported) else None),
                   ("◯", "blue", "Forecast (estimate)" if forecast else None),
                   ("┅", "muted", "Forecast range" if forecast else None), ("✕", "muted", "No reported figure")]
@@ -350,7 +350,9 @@ def deck(record: dict, theme: str = "light", logo: bytes | None = None, site_url
         years = int(last["as_of_date"][:4]) - int(first["as_of_date"][:4])
         change = (last["value"] - first["value"]) / first["value"] if first["value"] and years else None
         since_estimate = bool(first.get("historical"))
-        stats = [("CERTIFIED", _num(last["value"]), ("as of " + last["as_of_date"]) if h.get("as_of_date")
+        level_word = ("CERTIFIED" if c["score"] >= 4 else "SUPPORTED" if c["score"] == 3 else "ESTIMATED" if c["score"] == 2
+                      else "UNVERIFIED")
+        stats = [(level_word, _num(last["value"]), ("as of " + last["as_of_date"]) if h.get("as_of_date")
                   else "undated source · shown at " + last["as_of_date"], "brand_green"),
                  (f"FORECAST {f['as_of_date'][:4]}" if f else "FORECAST", "≈" + _num(round_forecast(f["value"])) if f else "No forecast",
                   f"range {_num(round_forecast(f['low']))}–{_num(round_forecast(f['high']))}" if f else "needs 3 reported years", "blue"),
@@ -604,7 +606,7 @@ def _nice_step(span: float) -> float:
     return next(m * mag for m in (1, 2, 2.5, 5, 10) if m * mag >= raw)
 
 
-def _trend_chart(s, reported: list[dict], forecast: list[dict], t: dict, x, y, w, hh) -> None:
+def _trend_chart(s, reported: list[dict], forecast: list[dict], t: dict, x, y, w, hh, score: int = 5) -> None:
     """A native, editable line chart over a fixed nine years (five reported, four forecast). Years without a
     reported figure (and a missing forecast) are ✕ markers on a dotted line, as on the card."""
     rgb = lambda key: RGBColor.from_string(t[key])  # noqa: E731
@@ -715,14 +717,16 @@ def _trend_chart(s, reported: list[dict], forecast: list[dict], t: dict, x, y, w
                 dl = series.points[i].data_label
                 dl.position = XL_LABEL_POSITION.ABOVE if reported_series else XL_LABEL_POSITION.BELOW
                 tf = dl.text_frame
-                if reported_series and yr == ly:  # the certified figure, named
-                    tf.text = "✓ CERTIFIED"
+                if reported_series and yr == ly:  # the certified figure, named with its confidence level
+                    word, tone = (("✓ CERTIFIED", "green") if score >= 4 else ("◆ SUPPORTED", "yellow") if score == 3
+                                  else ("! ESTIMATED", "yellow") if score == 2 else ("⚠ UNVERIFIED", "red"))
+                    tf.text = word
                     head = tf.paragraphs[0].runs[0]
-                    head.font.size, head.font.bold, head.font.color.rgb = Pt(8.5), True, rgb("green")
+                    head.font.size, head.font.bold, head.font.color.rgb = Pt(8.5), True, rgb(tone)
                     para = tf.add_paragraph()
                     run = para.add_run()
                     run.text = _num(rep[yr])
-                    run.font.size, run.font.bold, run.font.color.rgb = Pt(13), True, rgb("green")
+                    run.font.size, run.font.bold, run.font.color.rgb = Pt(13), True, rgb(tone)
                     continue
                 tf.text = _num(rep[yr]) if reported_series else "≈" + _num(round_forecast(fc[yr]["value"]))
                 run = tf.paragraphs[0].runs[0]

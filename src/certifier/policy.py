@@ -85,6 +85,10 @@ class LinkedInPolicy(BaseModel):
     growth_signal_2y: float = 0.50
     growth_signal_open_roles: float = 0.05
     growth_forecast_cap: float = 0.30
+    growth_strong_1y: float = 0.60
+    growth_strong_floor_share: float = 0.85
+    growth_strong_point_share: float = 0.95
+    growth_strong_high_share: float = 1.05
 
 
 class GrowthAdjustment(BaseModel):

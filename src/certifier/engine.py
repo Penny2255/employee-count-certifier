@@ -150,18 +150,26 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
     linkedin_floor_used = False
     weak_anchor = selected is None or selected.tier >= 4  # data providers, website, LinkedIn description, news
     if signal and value is not None and not current_primary and weak_anchor:
-        members = linkedin.member_count
-        floor = round(members * policy.linkedin.growth_floor_share)
-        if value < floor:
-            moved = rules.round_significant((floor + members) / 2, 3)
+        members, lp = linkedin.member_count, policy.linkedin
+        # Very strong, sustained growth leans further forward: a higher floor, an estimate near the member count,
+        # and a tighter range (LinkedIn lags hiring at this pace, so the total is less inflated than usual).
+        strong = (linkedin.growth_1y is not None and linkedin.growth_1y >= lp.growth_strong_1y)
+        share = lp.growth_strong_floor_share if strong else lp.growth_floor_share
+        floor = round(members * share)
+        target = (rules.round_significant(members * lp.growth_strong_point_share, 3) if strong
+                  else rules.round_significant((floor + members) / 2, 3))
+        if value < target if strong else value < floor:
+            high = round(members * lp.growth_strong_high_share) if strong else max(members, value_range[1] if value_range else members)
             adjustments.append(Adjustment(
-                source_url="(LinkedIn growth floor)", source_figure=value, change=moved - value, result=moved,
-                reason=f"{signal}, so at least {policy.linkedin.growth_floor_share:.0%} of its {members:,} LinkedIn "
-                       f"members are taken to be current employees (a floor of {floor:,}); moved to the middle of "
-                       f"{floor:,}-{members:,}."))
-            notes.append(f"LinkedIn growth floor: {value:,} moved to {moved:,} ({signal}).")
-            value, qualifier, count_type = moved, "approximately", "estimated"
-            value_range = (floor, max(members, value_range[1] if value_range else members))
+                source_url="(LinkedIn growth floor)", source_figure=value, change=target - value, result=target,
+                reason=f"{signal}, so at least {share:.0%} of its {members:,} LinkedIn members are taken to be current "
+                       f"employees (a floor of {floor:,}); " + (
+                           f"growth this strong is real hiring, so the estimate leans to {lp.growth_strong_point_share:.0%} "
+                           f"of members ({floor:,}-{high:,})." if strong else
+                           f"moved to the middle of {floor:,}-{members:,}.")))
+            notes.append(f"LinkedIn growth floor: {value:,} moved to {target:,} ({signal}).")
+            value, qualifier, count_type = target, "approximately", "estimated"
+            value_range = (floor, high)
             linkedin_floor_used = True
 
     # Events lower confidence only when they closed after the as-of date (the figure can't include them).

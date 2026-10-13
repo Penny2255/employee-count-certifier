@@ -131,10 +131,13 @@ def test_fast_growing_white_collar_linkedin_is_a_floor_for_weak_estimates(entity
     providers = [src(9, v, as_of=date(2026, 9, 1), url=f"https://provider{i}.com/x") for i, v in enumerate((2_300, 3_000, 3_500, 4_100))]
     li = LinkedInEvidence(member_count=5_756, workforce_profile="white_collar", growth_1y=1.21, growth_2y=3.70)
     cert = certify(entity, providers, linkedin=li, lookup_date=date(2026, 10, 13))
-    assert cert.certified_count == 5_040 and cert.range[0] == 4_317
-    assert any("LinkedIn growth floor" in a.reason or "75%" in a.reason for a in cert.adjustments)
+    assert (cert.certified_count, cert.range) == (5_470, (4_893, 6_044))  # very strong growth leans forward
+    moderate = certify(entity, providers, linkedin=li.model_copy(update={"growth_1y": 0.30, "growth_2y": 0.70}),
+                       lookup_date=date(2026, 10, 13))
+    assert moderate.certified_count == 5_040 and moderate.range[0] == 4_317
+    assert any("85% of its 5,756 LinkedIn members are taken" in a.reason for a in cert.adjustments)
     flat = certify(entity, providers, linkedin=li.model_copy(update={"growth_1y": 0.02, "growth_2y": 0.03}), lookup_date=date(2026, 10, 13))
-    assert flat.certified_count < 5_040  # no growth signal, no floor
+    assert flat.certified_count < 4_317  # no growth signal, no floor
 
 
 def test_the_floor_never_overrides_a_company_document_or_filing(entity):

@@ -188,6 +188,11 @@ linkedin:
   growth_signal_2y: 0.50         # or 2-year growth of at least this
   growth_signal_open_roles: 0.05 # or open roles of at least this share of members
   growth_forecast_cap: 0.30      # with a growth signal, the forecast may carry up to this much a year
+  # Very strong, sustained growth (LinkedIn 1-year growth at least this): lean further forward.
+  growth_strong_1y: 0.60
+  growth_strong_floor_share: 0.85   # floor: this share of members
+  growth_strong_point_share: 0.95   # estimate: this share of members
+  growth_strong_high_share: 1.05    # range top: this share of members (open roles are being filled)
   profiles:
     white_collar: {members_per_employee: [0.90, 0.95]}
     mixed: {members_per_employee: [0.50, 0.90]}

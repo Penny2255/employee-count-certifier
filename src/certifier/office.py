@@ -110,7 +110,7 @@ def _trend(r: dict) -> tuple[list[dict], list[dict]]:
 TAGLINE = "Giving you transparency & trust to take real action"
 TONE = {"ready": "green", "usable": "yellow", "directional": "red"}
 NO_STYLE = "{2D5ABB26-0587-4C30-8999-92F81FD0307C}"  # PowerPoint's "No Style, No Grid" table style
-HISTORY_YEARS, FORECAST_YEARS = 5, 4
+HISTORY_YEARS, FORECAST_YEARS = 4, 3  # at least 3 years back and 3 ahead
 
 
 def deck(record: dict, theme: str = "light", logo: bytes | None = None, site_url: str | None = None) -> bytes:
@@ -610,7 +610,8 @@ def _trend_chart(s, reported: list[dict], forecast: list[dict], t: dict, x, y, w
     ly = int(last["as_of_date"][:4])
     # Five years back, or further when a historical estimate reaches further.
     n_hist = max(HISTORY_YEARS, ly - int(reported[0]["as_of_date"][:4]) + 1)
-    years = list(range(ly - n_hist + 1, ly + FORECAST_YEARS + 1))
+    fc_years = max(FORECAST_YEARS, len(forecast))
+    years = list(range(ly - n_hist + 1, ly + fc_years + 1))
     rep = {int(p["as_of_date"][:4]): p["value"] for p in reported if not p.get("historical") and int(p["as_of_date"][:4]) in years}
     hist = {int(p["as_of_date"][:4]): p["value"] for p in reported if p.get("historical") and int(p["as_of_date"][:4]) in years}
     anchors = {**hist, **rep}
@@ -636,7 +637,9 @@ def _trend_chart(s, reported: list[dict], forecast: list[dict], t: dict, x, y, w
     data.categories = [str(yr) for yr in years]
     series_spec = [("No reported figure", placeholder)]
     if hist:
-        series_spec.append(("Historical estimate", [hist.get(yr) for yr in years]))
+        # Historical estimates joined to the first reported figure by a dotted line.
+        first_rep = min(rep) if rep else None
+        series_spec.append(("Historical estimate", [hist.get(yr, rep.get(yr) if yr == first_rep else None) for yr in years]))
     if fc:
         lead = [None] * (n_hist - 1) + [last["value"]]
         series_spec += [("Forecast high", lead + [fc[yr]["high"] if yr in fc else None for yr in years[n_hist:]]),
@@ -680,12 +683,14 @@ def _trend_chart(s, reported: list[dict], forecast: list[dict], t: dict, x, y, w
             line.width, line.color.rgb, line.dash_style = Pt(1), rgb("blue"), MSO_LINE_DASH_STYLE.SQUARE_DOT
             marker.style = XL_MARKER_STYLE.NONE
         elif series.name == "Historical estimate":  # hollow, muted, "≈7,000 est."; never certified
-            line.fill.background()
+            line.width, line.color.rgb, line.dash_style = Pt(1.5), rgb("muted"), MSO_LINE_DASH_STYLE.ROUND_DOT
             marker.style, marker.size = XL_MARKER_STYLE.CIRCLE, 9
             marker.format.fill.solid()
             marker.format.fill.fore_color.rgb = rgb("card")
             marker.format.line.color.rgb, marker.format.line.width = rgb("muted"), Pt(2)
             for i, yr in enumerate(years):
+                if yr not in hist and yr in rep:
+                    series.points[i].marker.style = XL_MARKER_STYLE.NONE  # the reported point draws itself
                 if yr in hist:
                     dl = series.points[i].data_label
                     dl.position = XL_LABEL_POSITION.ABOVE

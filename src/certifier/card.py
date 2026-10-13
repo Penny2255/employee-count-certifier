@@ -782,10 +782,11 @@ CARD_JS = r"""
       breakdown]);
   }
 
-  // Trend and forecast. The chart always spans five reported years and four forecast years: a year with no
+  // Trend and forecast. The chart spans at least three years back and three ahead (wider when the data reaches
+  // further): a year with no
   // reported figure is an ✕ on a dotted line, so every chart reads the same. A CRM comparison adds the
   // recommended range (a soft band) and the CRM's number (an orange dashed line).
-  var HISTORY_YEARS = 5, FORECAST_YEARS = 4, CRM_COLOR = "#E8833A";
+  var HISTORY_YEARS = 4, FORECAST_YEARS = 3, CRM_COLOR = "#E8833A";  // 3 years back and 3 ahead at least
   // Forecast labels are rounded to a step that suits the size: 10s, 25s, 100s, and 1,000s only for the largest.
   function roundForecast(v) {
     var step = v < 2000 ? 10 : v < 20000 ? 25 : v < 500000 ? 100 : 1000;

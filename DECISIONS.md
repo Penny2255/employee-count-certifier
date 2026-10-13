@@ -854,3 +854,23 @@ The record's entity carries `address` and `address_source`, shown as **HQ addres
   suggest the nearest edge of the certified range, and at the least the acceptable range's edge. When the likely
   direction since the as-of date points toward your number, only the acceptable edge is suggested.
 - The chart shows both: the certified range as a firmer band inside the softer acceptable band.
+
+### D110. Fast-growing white-collar organizations: LinkedIn as a floor, growth in the history and forecast
+- **Signal:** a white-collar organization with LinkedIn headcount growth of 25%+ a year (or 50%+ over two years), or
+  open roles of at least 5% of its LinkedIn members. Research now records open roles (careers page or LinkedIn jobs).
+- **Floor:** such an organization is well represented on LinkedIn, so at least 75% of its members are taken to be
+  current employees. An estimate below that floor (from data providers, or a tier 4-6 anchor) moves to the middle of
+  the floor and the member count, logged as an adjustment. Filings and company-published documents (tiers 1-3) stand.
+  Anthropic-like case: data providers' ~3,800 becomes about 5,040 (4,317-5,756 floor to members).
+- **History:** with LinkedIn growth, the figure one and two years earlier is back-cast (the certified figure less the
+  1-year and 2-year growth) as historical estimates: the growth on LinkedIn is real hiring even when the total is a
+  little inflated.
+- **Forecast:** half of LinkedIn's yearly growth carries forward, capped at 30% a year when growth is clearly strong
+  (15% otherwise).
+- **Corroboration:** research is asked to look for company-tied statements (executives in reputable press, press
+  releases, funding or office news, the careers page); one such statement becomes the anchor and lifts a data-provider
+  estimate from 1/5 to 2/5.
+
+### D111. Shorter charts by default
+- The trend shows at least 3 years back and 3 ahead (7 years). It reaches further back only when reported figures or
+  historical estimates do, and a short history gets a 3-year forecast (4 years with 3+ reported years).

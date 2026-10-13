@@ -114,7 +114,7 @@ def test_deck_shows_placeholder_years_when_history_is_missing():
     prs = Presentation(io.BytesIO(office.deck(rec, "dark")))
     chart = next(sh.chart for sh in prs.slides[1].shapes if sh.has_chart)
     names = [s.name for s in chart.plots[0].series]
-    assert "No reported figure" in names and len(list(chart.plots[0].categories)) == 9
+    assert "No reported figure" in names and len(list(chart.plots[0].categories)) == 7  # 3 back, the certified year, 3 ahead
 
 
 def test_short_history_still_gets_a_best_guess_forecast():
@@ -123,7 +123,7 @@ def test_short_history_still_gets_a_best_guess_forecast():
     point = [TrendRow(as_of_date=date(2026, 10, 12), value=10_000, tier=4, url=None, estimated=False,
                       rationale="The certified figure, shown at the certification date.")]
     level = _short_forecast(point, None)
-    assert [f.value for f in level] == [10_000] * 4 and all(f.low < f.value < f.high for f in level)
+    assert [f.value for f in level] == [10_000] * 3 and all(f.low < f.value < f.high for f in level)
     widths = [f.high - f.low for f in level]
     assert widths == sorted(widths) and "level" in level[0].rationale
     li = LinkedInCheck(member_count=5_974, size_range=None, workforce_profile="blue_collar", implied_range=None,
@@ -140,7 +140,7 @@ def test_an_undated_certified_figure_is_still_charted():
     rec = build_record(cert, lookup_date=date(2026, 10, 12))
     items = rec.trend.items
     assert items[0].as_of_date == date(2026, 10, 12) and not items[0].estimated and "undated" in items[0].rationale
-    assert sum(t.estimated for t in items) == 4
+    assert sum(t.estimated for t in items) == 3  # a short history gets a 3-year forecast
 
 
 def test_private_companies_get_context_for_their_score():

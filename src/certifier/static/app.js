@@ -117,7 +117,13 @@
     var n = $("allowance");
     if (!d) { n.textContent = ""; return; }
     if (d.admin) n.textContent = "";
-    else if (d.searches_left > 0) n.textContent = "About " + d.searches_left + " search" + (d.searches_left === 1 ? "" : "es") + " left today · cached and sample results are free";
+    else if (d.searches_left > 0) {
+      n.textContent = "";
+      n.appendChild(document.createTextNode(d.searches_left + " search" + (d.searches_left === 1 ? "" : "es") + " left today"));
+      var more = document.createElement("span");
+      more.className = "wide-only"; more.textContent = " · cached and sample results are free";
+      n.appendChild(more);
+    }
     else n.textContent = (d.message || "You've reached today's beta limit. Back tomorrow.") + " Cached and sample results still work.";
   }
   function refreshAllowance() { api("/api/allowance").then(showAllowance, function () { showAllowance(null); }); }

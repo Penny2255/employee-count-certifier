@@ -335,3 +335,12 @@ code { font-size: 13px; padding: 1px 5px; border-radius: 4px; background: var(--
 .actions > .dl-slot, .actions > .dl-slot .footer-actions { display: inline-flex; align-items: center; align-self: center; }
 .dl-slot .dl-menu > summary.dl-button { line-height: 1.2; }
 .actions > .dl-slot .footer-actions { margin: 0 !important; }  /* the card stylesheet loads after this one */
+
+/* Phone-only trims: one short line each. */
+.narrow-only { display: none !important; }
+@media (max-width: 560px) {
+  .wide-only { display: none !important; }
+  .narrow-only { display: inline-flex !important; }
+  .metric.soon:not(.narrow-only) { display: none !important; }
+  .site-footer p { margin: 3px 0; }
+}

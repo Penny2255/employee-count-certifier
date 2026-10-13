@@ -436,6 +436,12 @@ CARD_CSS = r"""
   .cert { --gap: 12px; font-size: 14px; }
   .cert .block { padding: 14px 14px; }
   .cert .drill-bar { padding: 10px 14px 2px; }
+  .cert .drill-lbl { display: none; }
+  .cert .drill-btn { padding: 4px 9px; font-size: 12px; }
+  .cert .owner-notice { font-size: 10px; }
+  .cert .section > summary .sec-extra { order: 9; flex: 1 0 100%; font-size: 11.5px; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; padding-left: 38px; margin-top: -2px; }
+  .cert .section > summary .hint { order: 10; }
   .cert .trust .block-title .muted { display: none; }
   .cert h1 { font-size: 19px; }
   .cert h2 { font-size: 14px; }
@@ -512,7 +518,7 @@ CARD_JS = r"""
   }
   function section(title, summaryExtra, bodyNodes, open, id, iconName) {
     var d = el("details", { cls: "section", id: id }, [el("summary", null, [iconName ? icon(iconName) : null, el("h2", { text: title }),
-      summaryExtra ? el("span", { cls: "muted small", text: summaryExtra }) : null])]);
+      summaryExtra ? el("span", { cls: "muted small sec-extra", text: summaryExtra }) : null])]);
     if (open) d.open = true;
     bodyNodes.forEach(function (b) { d.appendChild(b); });
     return el("div", { cls: "block" }, [d]);
@@ -1240,14 +1246,11 @@ CARD_JS = r"""
     GROUPS.forEach(function (g) {
       var list = items.filter(function (f) { return (f.group || (f.score_impact ? "affects" : "worth_knowing")) === g[0]; });
       if (!list.length) return;
-      counts.push(list.length + " " + g[1].toLowerCase());
+      counts.push(list.length + " " + { affects: "affect", worth_knowing: "worth knowing", background: "background" }[g[0]]);
       var log = el("div", { cls: "log" }, list.map(function (f) { return findingNode(f, k); }));
-      if (g[0] === "background") {
-        nodes.push(el("details", { cls: "bg-group" }, [el("summary", null, [el("span", { cls: "log-head", text: g[2] + " " + g[1] + " · " + list.length }),
-          el("span", { cls: "muted small", text: "technical detail" })]), log]));
-      } else {
-        nodes.push(el("p", { cls: "log-head", text: g[2] + " " + g[1] + " · " + list.length }), log);
-      }
+      var hintText = { affects: "changed the number or the confidence", worth_knowing: "context, no effect", background: "technical detail" }[g[0]];
+      nodes.push(el("details", { cls: "bg-group" }, [el("summary", null, [el("span", { cls: "log-head", text: g[2] + " " + g[1] + " · " + list.length }),
+        el("span", { cls: "muted small", text: hintText })]), log]));
     });
     return section("Findings", counts.join(" · "), nodes, false, k + "-findings", "findings");
   }

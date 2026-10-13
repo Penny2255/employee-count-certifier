@@ -1191,7 +1191,7 @@ CARD_JS = r"""
 
   function primary(r) {
     var p = r.primary_source, k = r.__k;
-    if (!p.source_id) return section("Key Source", "none", [none(p.none_reason)], true, k + "-key", "key");
+    if (!p.source_id) return section("Key Source", "none", [none(p.none_reason)], false, k + "-key", "key");
     var loc = p.location;
     return section("Key Source", sourceLabel(p) + " · " + (loc.section ? loc.section + " · " : "") + loc.page_label, [
       labelRow(p), whatIsThis(p),
@@ -1235,7 +1235,7 @@ CARD_JS = r"""
   }
   function findings(r) {
     var items = r.findings.items, k = r.__k;
-    if (!items.length) return section("Findings", "none", [none(r.findings.none_reason)], true, k + "-findings", "findings");
+    if (!items.length) return section("Findings", "none", [none(r.findings.none_reason)], false, k + "-findings", "findings");
     var nodes = [], counts = [];
     GROUPS.forEach(function (g) {
       var list = items.filter(function (f) { return (f.group || (f.score_impact ? "affects" : "worth_knowing")) === g[0]; });
@@ -1249,7 +1249,7 @@ CARD_JS = r"""
         nodes.push(el("p", { cls: "log-head", text: g[2] + " " + g[1] + " · " + list.length }), log);
       }
     });
-    return section("Findings", counts.join(" · "), nodes, true, k + "-findings", "findings");
+    return section("Findings", counts.join(" · "), nodes, false, k + "-findings", "findings");
   }
 
   // Guided drill-in hints: shown until opened once (remembered per browser).

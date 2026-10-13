@@ -417,6 +417,18 @@
     state.rating = null;
     var rec = payload.record;
     GTMCard.render($("result-card"), rec, { actions: false, logo: logoUrl, exportUrl: exportUrl });
+    // The card's bottom Download menu sits beside "Search another company" below the card, saving a row.
+    var bottom = $("result-card").nextElementSibling, menu = $("result-card").querySelector("footer .footer-actions .dl-menu");
+    if (bottom && menu) {
+      var oldSlot = bottom.querySelector(".dl-slot");
+      if (oldSlot) oldSlot.remove();
+      var slot = document.createElement("span"), inner = document.createElement("span");
+      slot.className = "cert dl-slot"; inner.className = "footer-actions";
+      inner.appendChild(menu); slot.appendChild(inner);
+      bottom.insertBefore(slot, bottom.firstChild);
+      var emptyRow = $("result-card").querySelector("footer .footer-actions");
+      if (emptyRow && !emptyRow.children.length) emptyRow.remove();
+    }
     // The expedition's theme signs off on the result it found.
     var done = $("theme-done"), theme = fromHistory ? null : state.theme;
     state.theme = null;

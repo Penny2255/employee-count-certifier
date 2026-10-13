@@ -274,43 +274,44 @@ def deck(record: dict, theme: str = "light", logo: bytes | None = None, site_url
         rect(s, 0.92 + i * 0.4, 3.75, 0.32, 0.12, "brand_green" if i < c["score"] else "line", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.5)
     text(s, 3.0, 3.66, 2.9, 0.3, f"{c['score']}/5 · {c['level']}", 11, bold=True)
     _seal(s, 5.98, 2.3, 1.78, c["score"], t)
-    bl = rect(s, 0.55, 4.35, 7.3, 0.62, tone + "_bg", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.18)
+    bl = rect(s, 0.55, 4.3, 7.3, 0.55, tone + "_bg", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.18)
     frame(bl, [(0, [({"ready": "✓  ", "usable": "!  ", "directional": "✕  "}[band], 14, True, tone, False, None),
                     ("Bottom line: ", 14, True, tone, False, None), (h.get("bottom_line") or "", 14, False, tone, False, None)])],
           anchor=MSO_ANCHOR.MIDDLE)
     if h.get("story"):  # "Our take" in the speaker notes, for whoever presents the slides
         s.notes_slide.notes_text_frame.text = "Our take: " + h["story"]
-    ks_top = 5.1
+    ks_top = 5.0
     if h.get("peer_note"):
         rare = h.get("peer_level") == "rare"
-        note = rect(s, 0.55, 5.03, 7.3, 0.42, "green_bg" if rare else "soft", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.3)
+        note = rect(s, 0.55, 4.95, 7.3, 0.4, "green_bg" if rare else "soft", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.3)
         frame(note, [(0, [("✦ " if rare else "◆ ", 11, True, "green" if rare else "accent", False, None),
                           ((f"Rare for a private company: a {c['score']}/5 without public filings. Worth celebrating."
                             if rare else "Strong for a private company: 3/5 is about as good as it gets without public "
                             "filings; 4-5 is rare."), 10, rare, "green" if rare else "text", False, None)])],
               anchor=MSO_ANCHOR.MIDDLE, margin=0.16)
-        ks_top = 5.55
-    ks = rect(s, 0.55, ks_top, 7.3, 6.82 - ks_top, "soft", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.06)
-    if p.get("source_id"):
-        loc = p.get("location") or {}
-        paras = [(0, [("KEY SOURCE", 9, True, "muted", False, None)]),
-                 (2, [(_source_label(p), 13, True, "text", False, None)])]
-        if p.get("excerpt"):
-            paras.append((4, [("“" + _excerpt(p["excerpt"], h.get("count")) + "”", 11, False, "text", True, None)]))
-        paras.append((4, [("Open the source at the quote ↗", 10.5, True, "accent", False, loc.get("deep_link") or p["url"]),
-                          (("  ·  " + _line_in_source(p)) if _line_in_source(p) else "", 10, False, "muted", False, None)]))
-        frame(ks, paras)
+        ks_top = 5.45
+    # Our take: the answer in plain words (the key source's details sit in "At a glance").
+    take = rect(s, 0.55, ks_top, 7.3, 6.82 - ks_top, "soft", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.05)
+    rect(s, 0.55, ks_top + 0.12, 0.06, 6.82 - ks_top - 0.24, "blue")
+    if h.get("story"):
+        paras = [(0, [("OUR TAKE", 9, True, "accent", False, None)]), (2, [(h["story"], 10.5, False, "text", False, None)])]
+        if h.get("story_sources"):
+            paras.append((3, [("Worth a look: " + " · ".join(h["story_sources"]) + " (slide 4)", 9, False, "muted", True, None)]))
+        frame(take, paras, margin=0.24)
     else:
-        frame(ks, [(0, [("KEY SOURCE", 9, True, "muted", False, None)]),
-                   (2, [(p.get("none_reason") or "No key source.", 12, False, "text", False, None)])])
-    rect(s, 8.15, 1.28, 4.73, 5.47, "card", MSO_SHAPE.ROUNDED_RECTANGLE, line="line", radius=0.05)
-    text(s, 8.42, 1.46, 4.2, 0.26, "AT A GLANCE", 9, "muted", bold=True)
-    facts = [f for f in _facts(r) if f[0] not in ("Employees", "Confidence", "Key source", "Excerpt")]
-    tbl = table(s, 8.32, 1.78, 4.4, len(facts), 2, (1.3, 3.1), row_h=0.42)
-    for i, (label, value) in enumerate(facts):
-        last_row = i == len(facts) - 1
-        cell(tbl.cell(i, 0), [(label.upper(), 8.5, True, "muted")], rule=not last_row, top=True)
-        cell(tbl.cell(i, 1), [(value, 11.5, False, "text")], rule=not last_row, top=True)
+        frame(take, [(0, [("KEY SOURCE", 9, True, "muted", False, None)]),
+                     (2, [(_source_label(p) if p.get("source_id") else (p.get("none_reason") or "No key source."), 12, False,
+                           "text", False, None)])], margin=0.24)
+    rect(s, 8.15, 1.28, 4.73, 5.54, "card", MSO_SHAPE.ROUNDED_RECTANGLE, line="line", radius=0.04)
+    text(s, 8.42, 1.42, 4.2, 0.26, "AT A GLANCE", 9, "muted", bold=True)
+    glance = _glance(r)
+    tbl = table(s, 8.32, 1.72, 4.4, len(glance), 2, (1.25, 3.15), row_h=0.33)
+    for i, (label, value, link, italic) in enumerate(glance):
+        last_row = i == len(glance) - 1
+        cell(tbl.cell(i, 0), [(label.upper(), 8, True, "muted")], rule=not last_row, top=True)
+        cell(tbl.cell(i, 1), [(value, 10, False, "accent" if link else "text", italic)], rule=not last_row, top=True)
+        if link:
+            tbl.cell(i, 1).text_frame.paragraphs[0].runs[0].hyperlink.address = link
 
     # 2. Trend and forecast ------------------------------------------------------------------------
     s = slide(2, "Trend and forecast", "History and outlook")
@@ -374,49 +375,63 @@ def deck(record: dict, theme: str = "light", logo: bytes | None = None, site_url
 
     # 3. Why you can trust this -----------------------------------------------------------------------
     s = slide(3, "Why you can trust this", "Evidence and checks")
-    corr = sum(1 for x in r["sources"]["items"] if x["role"] == "corroborates")
-    adj = sum(1 for a in r["adjustments"]["items"] if a.get("change"))
-    red = sum(1 for f in r["findings"]["items"] if f["status"] == "red")
-    key_sub = _clip(p.get("source_type") or p.get("tier_name") or "", 26) if p.get("source_id") else None
-    tiles = [("KEY SOURCE", f"Tier {p['tier']}" if p.get("source_id") else "none", "blue", key_sub),
-             ("AS OF", h.get("as_of_date") or "undated", "blue", "estimated" if h.get("as_of_estimated") else None),
-             ("CONFIRMATIONS", str(corr), "brand_green" if corr else "line", "independent sources"),
-             ("ADJUSTMENTS", str(adj), "blue", "to the count"), ("NEEDS ATTENTION", str(red), "red" if red else "brand_green",
-                                                                  "red findings" if red else "nothing red")]
-    for i, (label, value, stripe, sub_text) in enumerate(tiles):
-        x = 0.55 + i * 2.5
-        tile = rect(s, x, 1.3, 2.33, 1.0, "soft", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.1)
-        rect(s, x, 1.42, 0.06, 0.76, stripe)
-        paras = [(0, [(label, 8.5, True, "muted", False, None)]), (1, [(value, 16, True, "text", False, None)])]
-        if sub_text:
-            paras.append((0, [(sub_text, 9.5, False, "muted", False, None)]))
-        frame(tile, paras, anchor=MSO_ANCHOR.MIDDLE, margin=0.22)
-    groups = [(g, title, [f for f in r["findings"]["items"] if f.get("group") == g])
-              for g, title in (("affects", "Affects the answer"), ("worth_knowing", "Worth knowing"))]
-    budget, rows = 6, []
-    for g, title, items in groups:
-        take = items[: max(0, min(len(items), budget - (1 if g == "affects" and groups[1][2] else 0)))]
-        budget -= len(take)
-        if take:
-            rows.append(("head", title))
-            rows += [("item", f) for f in take]
-    shown = sum(1 for kind, _ in rows if kind == "item")
-    if rows:
-        tbl = table(s, 0.55, 2.55, 12.33, len(rows), 3, (0.45, 9.55, 2.33), row_h=0.4)
-        for i, (kind, item) in enumerate(rows):
-            if kind == "head":
-                tbl.cell(i, 0).merge(tbl.cell(i, 2))
-                cell(tbl.cell(i, 0), [(item.upper(), 9, True, "muted")], fill="bg", rule=False)
-                continue
+    journey = _journey(r)
+    for i, (label, value, chip, note, tone_key, running) in enumerate(journey):
+        x = 0.55 + i * 2.1
+        last = i == len(journey) - 1
+        color = {"strong": "green", "neutral": "accent", "weak": "yellow", "harmful": "red"}[tone_key]
+        fill = {"strong": "green_bg", "neutral": "soft", "weak": "yellow_bg", "harmful": "red_bg"}[tone_key]
+        box = rect(s, x, 1.3, 1.9, 1.62, fill if not last else fill, MSO_SHAPE.ROUNDED_RECTANGLE, line=color if last else None, radius=0.08)
+        if last:
+            frame(box, [(0, [("WHERE WE LANDED", 8, True, "muted", False, None)]), (2, [(value, 26, True, color, False, None)]),
+                        (0, [(note, 10, True, color, False, None)])], anchor=MSO_ANCHOR.MIDDLE, margin=0.12)
+            for para in box.text_frame.paragraphs:
+                para.alignment = PP_ALIGN.CENTER
+        else:
+            rect(s, x, 1.3, 1.9, 0.06, color)
+            frame(box, [(4, [(label.upper(), 8, True, "muted", False, None)]), (2, [(value, 11.5, True, "text", False, None)]),
+                        (4, [(chip + "  ", 11, True, color, False, None), (note, 9, False, color, False, None)])], margin=0.14)
+            # the running score, as on the card
+            rect(s, x + 0.14, 2.62, 1.62, 0.16, "line", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.5)
+            if running:
+                rect(s, x + 0.14, 2.62, 1.62 * running / 5, 0.16, "brand_green", MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.5)
+            text(s, x + 1.2, 2.6, 0.52, 0.2, f"{running}/5", 8.5, "text", bold=True, align=PP_ALIGN.RIGHT)
+        if i:
+            arrow = s.shapes.add_shape(MSO_SHAPE.OVAL, Inches(x - 0.17), Inches(1.98), Inches(0.24), Inches(0.24))
+            arrow.fill.solid()
+            arrow.fill.fore_color.rgb = rgb("card")
+            arrow.line.color.rgb, arrow.line.width = rgb("line"), Pt(0.75)
+            arrow.shadow.inherit = False
+            frame(arrow, [(0, [("=" if last else "›", 10, True, "accent", False, None)])], anchor=MSO_ANCHOR.MIDDLE, margin=0)
+            arrow.text_frame.paragraphs[0].alignment = PP_ALIGN.CENTER
+            arrow.text_frame.margin_top = arrow.text_frame.margin_bottom = 0
+    # How the score adds up, line by line.
+    lines = c.get("breakdown") or []
+    text(s, 0.55, 3.12, 6.0, 0.26, f"HOW THE SCORE ADDS UP  ·  {c['score']}/5 = {c.get('arithmetic', '')}", 9, "muted", bold=True)
+    tbl = table(s, 0.55, 3.4, 12.33, len(lines), 2, (0.6, 11.73), row_h=0.3)
+    for i, line in enumerate(lines):
+        pts = line["points"]
+        cell(tbl.cell(i, 0), [((("+" if pts > 0 and i else "") + str(pts)) if i else str(pts), 11, True,
+                              "green" if pts > 0 and i else "red" if pts < 0 else "text")], align=PP_ALIGN.CENTER)
+        cell(tbl.cell(i, 1), [(_clip(line["rationale"], 150), 10, False, "text")])
+    # The findings that affect the answer.
+    top = 3.55 + 0.32 * len(lines)
+    items = [f for f in r["findings"]["items"] if f.get("group") == "affects"]
+    room = max(0, int((6.5 - top - 0.3) / 0.36))
+    shown = items[:room]
+    if shown:
+        text(s, 0.55, top, 6.0, 0.26, "AFFECTS THE ANSWER", 9, "muted", bold=True)
+        tbl = table(s, 0.55, top + 0.28, 12.33, len(shown), 3, (0.45, 9.55, 2.33), row_h=0.34)
+        for i, item in enumerate(shown):
             sym = {"green": ("✓", "green"), "yellow": ("!", "yellow"), "red": ("✕", "red")}[item["status"]]
-            cell(tbl.cell(i, 0), [(sym[0], 14, True, sym[1])], align=PP_ALIGN.CENTER)
-            cell(tbl.cell(i, 1), [(_clip(item["title"], 95), 12, True, "text"),
-                                  ("  —  " + _clip(item.get("so_what", ""), 110), 10.5, False, "muted")])
-            cell(tbl.cell(i, 2), [(item.get("impact", ""), 10, False, "muted")], align=PP_ALIGN.RIGHT)
-    hidden = len(r["findings"]["items"]) - shown
+            cell(tbl.cell(i, 0), [(sym[0], 13, True, sym[1])], align=PP_ALIGN.CENTER)
+            cell(tbl.cell(i, 1), [(_clip(item["title"], 90), 11, True, "text"),
+                                  ("  —  " + _clip(item.get("so_what", ""), 100), 10, False, "muted")])
+            cell(tbl.cell(i, 2), [(item.get("impact", ""), 9.5, False, "muted")], align=PP_ALIGN.RIGHT)
+    hidden = len(r["findings"]["items"]) - len(shown)
     if hidden > 0:
-        text(s, 0.55, 6.55, 12.33, 0.28, f"+{hidden} more finding{'s' if hidden != 1 else ''} on the card and in the Word document.",
-             10, "muted", italic=True)
+        text(s, 0.55, 6.6, 12.33, 0.26, f"+{hidden} more finding{'s' if hidden != 1 else ''} on the card and in the Word document.",
+             9.5, "muted", italic=True)
 
     # 4. Sources -------------------------------------------------------------------------------------
     s = slide(4, "Sources", "Every source considered")
@@ -515,6 +530,75 @@ def _thank_you(prs, layout, company: str, site_url: str, site_label: str) -> Non
     rule.line.fill.background()
     say(0.75, 6.78, 6.5, 0.35, "Designing for the Human in the Hyperloop", 13, "text", bold=True)
     say(7.0, 6.82, 5.73, 0.3, "GTM DATA CERTIFIER  ·  © 2026 MATTHEW BELTRANO", 11, "accent", bold=True, align=PP_ALIGN.RIGHT)
+
+
+def _glance(r: dict) -> list[tuple[str, str, str | None, bool]]:
+    """"At a glance" on slide 1: (label, value, link, italic), as on the card's facts table."""
+    h, c, p, e, li = r["headline"], r["confidence"], r["primary_source"], r["entity"], r.get("linkedin_check") or {}
+    rng = h.get("range")
+    rows: list[tuple[str, str, str | None, bool]] = [
+        ("Our range", f"{_num(rng[0])}–{_num(rng[1])}" if rng and rng[0] != rng[1] else "Exact figure", None, False),
+        ("As of", (h.get("as_of_date") or "undated") + (" (estimated)" if h.get("as_of_estimated") else ""), None, False),
+        ("Confidence", f"{c['score']}/5 · {c['level']}", None, False)]
+    if p.get("source_id"):
+        rows.append(("Key source", _clip(_source_label(p), 70), None, False))
+        loc = p.get("location") or {}
+        rows.append(("Source link", "Open at the quote ↗", loc.get("deep_link") or p["url"], False))
+        if _line_in_source(p):
+            rows.append(("Line in source", _clip(_line_in_source(p), 70), None, False))
+        if p.get("excerpt"):
+            rows.append(("Excerpt", "“" + _excerpt(p["excerpt"], h.get("count"), 170) + "”", None, True))
+    else:
+        providers = [s for s in r["sources"]["items"] if s["tier"] >= 7 and s["scope"] == "global"]
+        basis = f"{len(providers)} data providers" + (" and LinkedIn" if li.get("member_count") else "")
+        rows.append(("Key source", f"No single source: derived from {basis}", None, False))
+        if providers:
+            vals = [s["value"] for s in providers]
+            rows.append(("Data providers", f"{_num(min(vals))}–{_num(max(vals))} ({len(vals)} figures)", None, False))
+    if li.get("member_count"):
+        growth = f" · {li['growth_1y']:+.0%} in a year" if li.get("growth_1y") is not None else ""
+        rows.append(("LinkedIn", f"{_num(li['member_count'])} members{growth} · check {li.get('status', '').replace('_', ' ')}",
+                     None, False))
+    if h.get("direction"):
+        rows.append(("Direction", DIRECTION.get(h["direction"], h["direction"]), None, False))
+    if h.get("next_update_note"):
+        rows.append(("Next update", _clip(h["next_update_note"], 80), None, False))
+    if e.get("address"):
+        rows.append(("HQ address", _clip(e["address"], 60), None, False))
+    return rows
+
+
+def _journey(r: dict) -> list[tuple[str, str, str, str, str, int]]:
+    """The trust journey, as on the card: (label, value, signed impact, note, tone, running score), then the landing."""
+    h, c, p = r["headline"], r["confidence"], r["primary_source"]
+    lines = c.get("breakdown") or []
+    base = lines[0]["points"] if lines else c["score"]
+    recency = sum(l["points"] for l in lines[1:] if l["rationale"].lower().startswith("recency"))
+    corr_pts = sum(l["points"] for l in lines[1:] if l["rationale"].lower().startswith("corroborat"))
+    flags = sum(l["points"] for l in lines[1:]) - recency - corr_pts
+    clamp = lambda v: max(0, min(5, v))  # noqa: E731
+    s1, s2 = clamp(base), clamp(base + recency)
+    s3 = clamp(s2 + corr_pts)
+    signed = lambda n: f"+{n}" if n > 0 else f"−{-n}" if n < 0 else "±0"  # noqa: E731
+    corr = sum(1 for x in r["sources"]["items"] if x["role"] == "corroborates")
+    adj = sum(1 for a in r["adjustments"]["items"] if a.get("change"))
+    red = sum(1 for f in r["findings"]["items"] if f["status"] == "red")
+    key = f"Tier {p['tier']} · {_clip(p.get('source_type') or p.get('tier_name') or '', 22)}" if p.get("source_id") else "No single source"
+    as_of = (h.get("as_of_date") or "undated") + (" (est.)" if h.get("as_of_estimated") else "")
+    return [
+        ("Key source", key, f"start {base}", "starting score",
+         "strong" if base >= 4 else "neutral" if base == 3 else "weak" if base == 2 else "harmful", s1),
+        ("As of", as_of, signed(recency), "older than the window" if recency < 0 else "current" if h.get("as_of_date") else "undated",
+         "weak" if recency < 0 else "strong" if h.get("as_of_date") and not h.get("as_of_estimated") else "neutral", s2),
+        ("Confirmations", f"{corr} independent", signed(corr_pts), "confirmed" if corr_pts > 0 else "single-sourced",
+         "strong" if corr_pts > 0 else "neutral", s3),
+        ("Adjustments", f"{adj} to the count", "±0", "figure moved" if adj else "none needed", "neutral" if adj else "strong", s3),
+        ("Needs attention", f"{red} red flag{'s' if red != 1 else ''}", signed(flags),
+         "see findings" if flags < 0 else "at the minimum" if red else "nothing red",
+         "harmful" if flags < 0 else "weak" if red else "strong", c["score"]),
+        ("Where we landed", f"{c['score']}/5", "", c["level"],
+         "strong" if c["score"] >= 4 else "weak" if c["score"] == 3 else "harmful", c["score"]),
+    ]
 
 
 def round_forecast(value) -> int:

@@ -874,3 +874,17 @@ The record's entity carries `address` and `address_source`, shown as **HQ addres
 ### D111. Shorter charts by default
 - The trend shows at least 3 years back and 3 ahead (7 years). It reaches further back only when reported figures or
   historical estimates do, and a short history gets a 3-year forecast (4 years with 3+ reported years).
+
+### D112. "Our take": the answer in a few plain sentences
+- Every certification carries a short account (at most four sentences, about 40-80 words), the way a data researcher
+  would explain it in passing: the answer and its range; what it rests on (a filing, the company's own page, or data
+  providers and how far apart they are, plus LinkedIn members, growth and open roles when they moved the estimate);
+  where it came from and is heading (historical estimate, a known change, the forecast); and the confidence with what
+  would raise it. "Worth a look" points to the key source and the source that differs most (or, with no key source,
+  the highest and lowest estimates).
+- It is written from the record's own facts by fixed rules, not generated freely, so every number traces to a source,
+  an adjustment or the trend, and it costs nothing extra.
+- When a CRM number is compared, one sentence joins it: within the acceptable range, keep it; otherwise, what to update
+  it to (and the minimum).
+- Shown on the card under the bottom line, in the Word document, in the deck's speaker notes (slide 1), in the summary
+  CSV ("our_take"), and Claude is asked to lead with it.

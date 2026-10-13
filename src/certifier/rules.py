@@ -225,7 +225,7 @@ def linkedin_check(value: int | None, evidence: LinkedInEvidence | None, policy:
                    else evidence.size_range[0] <= value <= evidence.size_range[1])
     base = dict(member_count=evidence.member_count, size_range=evidence.size_range,
                 workforce_profile=profile, size_range_agrees=size_agrees,
-                growth_1y=evidence.growth_1y, growth_2y=evidence.growth_2y)
+                growth_1y=evidence.growth_1y, growth_2y=evidence.growth_2y, open_roles=evidence.open_roles)
     if evidence.member_count is None:
         return LinkedInCheck(**base, implied_range=None, status="not_available",
                              note="No LinkedIn member count found.")

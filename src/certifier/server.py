@@ -44,7 +44,8 @@ Workflow:
    parent is certified too when the entity is a subsidiary. Results are cached for 90 days on the hosted
    service; pass refresh=true only when the user asks for a fresh lookup.
 4. The result renders as an interactive company card where the host supports MCP Apps (card_url or
-   card_path also links to it). Present: the certified count with its qualifier, as-of date (say when it
+   card_path also links to it). Lead with record.headline.story ("Our take", a few plain sentences built from the
+   record), then present: the certified count with its qualifier, as-of date (say when it
    is estimated or pre-adjustment), confidence and score breakdown, the key source excerpt with its link,
    section and page, any indicated current range, and red or yellow findings. Say plainly when
    confidence is low and why.

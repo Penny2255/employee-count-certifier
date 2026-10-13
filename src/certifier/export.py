@@ -11,7 +11,7 @@ from .notice import OWNER_LINE
 SUMMARY_FIELDS = [
     "entity_name", "website", "hq", "legal_parent", "certified_count", "qualifier", "count_basis", "count_type",
     "range_low", "range_high", "as_of_date", "as_of_estimated", "as_of_estimated_from", "adjustment_status",
-    "confidence_score", "confidence_level", "confidence_arithmetic", "bottom_line", "key_source_url", "key_source_tier", "key_source_category",
+    "confidence_score", "confidence_level", "confidence_arithmetic", "bottom_line", "our_take", "key_source_url", "key_source_tier", "key_source_category",
     "key_source_type",
     "key_source_section", "key_source_page", "key_source_excerpt", "indicated_range_low", "indicated_range_high",
     "direction", "direction_reason", "next_expected_update", "certified_on", "policy_version", "method",
@@ -43,7 +43,7 @@ def summary_row(record: dict) -> dict:
         "count_type": h.get("count_type"), "range_low": rng[0], "range_high": rng[1], "as_of_date": h.get("as_of_date"),
         "as_of_estimated": h.get("as_of_estimated"), "as_of_estimated_from": h.get("as_of_estimated_from"),
         "adjustment_status": h.get("adjustment_status"), "confidence_score": c["score"], "confidence_level": c["level"],
-        "confidence_arithmetic": c.get("arithmetic"), "bottom_line": h.get("bottom_line"), "key_source_url": p.get("url"),
+        "confidence_arithmetic": c.get("arithmetic"), "bottom_line": h.get("bottom_line"), "our_take": h.get("story"), "key_source_url": p.get("url"),
         "key_source_tier": p.get("tier"), "key_source_category": p.get("source_category"),
         "key_source_type": p.get("source_type"),
         "key_source_section": loc.get("section"), "key_source_page": loc.get("page_label"),

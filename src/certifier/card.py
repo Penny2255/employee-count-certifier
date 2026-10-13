@@ -256,6 +256,15 @@ CARD_CSS = r"""
 .cert .dl-thumb.dark .t-panel { background: #0D2440; border: 1px solid #1E3A5C; }
 .cert .dl-group { margin: 6px 10px 2px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .cert .footer-actions { margin-top: 12px; }
+.cert .our-take { margin: -4px 0 12px; padding: 9px 14px; border-left: 3px solid var(--loop-blue); border-radius: 0 10px 10px 0;
+  background: var(--soft); font-size: 14px; line-height: 1.5; }
+.cert .our-take p { margin: 0; }
+.cert .take-label { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); margin-right: 4px; }
+.cert .take-crm { font-weight: 600; }
+.cert .take-crm:empty { display: none; }
+.cert .take-look { margin-top: 4px !important; font-size: 12.5px; color: var(--muted); }
+.cert .take-src { font: inherit; font-size: 12px; font-weight: 700; padding: 0 7px; margin-left: 4px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--card); color: var(--accent); cursor: pointer; }
 .cert .peer-note { position: relative; display: flex; gap: 8px; align-items: flex-start; margin: -4px 0 12px; padding: 8px 12px;
   border-radius: 10px; font-size: 13.5px; overflow: hidden; }
 .cert .peer-note.strong { background: var(--soft); color: var(--text); }
@@ -699,6 +708,22 @@ CARD_JS = r"""
       rare ? el("span", { cls: "confetti", "aria-hidden": "true" }, [el("i"), el("i"), el("i"), el("i"), el("i"), el("i")]) : null]);
   }
 
+  // "Our take": the answer in a few plain sentences, with the sources worth opening. A CRM comparison adds a line.
+  function ourTake(r) {
+    var h = r.headline, k = r.__k;
+    if (!h.story) return null;
+    var crm = el("span", { cls: "take-crm" });
+    r.__takeCrm = crm;
+    var look = (h.story_sources || []).map(function (id) {
+      var b = el("button", { type: "button", cls: "take-src", text: id, title: "Open source " + id });
+      b.addEventListener("click", function () { jump(k + "-" + id); });
+      return b;
+    });
+    return el("div", { cls: "our-take" }, [
+      el("p", null, [el("strong", { cls: "take-label", text: "Our take " }), h.story, " ", crm]),
+      look.length ? el("p", { cls: "take-look" }, ["Worth a look: "].concat(look)) : null]);
+  }
+
   function answer(r, opts) {
     var h = r.headline, c = r.confidence, k = r.__k, p = r.primary_source;
     var meter = el("span", { cls: "meter", role: "img", "aria-label": "Confidence " + c.score + " of 5" });
@@ -745,7 +770,7 @@ CARD_JS = r"""
     var crm = h.count != null ? crmCheck(r) : null;
     return el("div", { cls: "block answer " + b }, [
       el("div", { cls: "hero-row" }, [hero, seal(c)]),
-      bottom, peerNote(h), facts,
+      bottom, peerNote(h), ourTake(r), facts,
       el("div", { cls: "row answer-actions" }, [downloadMenu(r, opts), crm ? crm.form : null]),
       crm ? crm.out : null]);
   }
@@ -1174,6 +1199,7 @@ CARD_JS = r"""
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       out.textContent = "";
+      if (r.__takeCrm) r.__takeCrm.textContent = "";
       if (!input.value.trim()) { if (r.__redraw) r.__redraw(null); return; }
       var v = parseCount(input.value);
       if (v == null) { out.appendChild(el("p", { cls: "small muted", text: "Enter a number, for example 95,000 or 95k." })); return; }
@@ -1187,6 +1213,11 @@ CARD_JS = r"""
       }
       if (r.__redraw) parts.push(el("span", { cls: "crm-see", text: " Shown on the chart above." }));
       out.appendChild(el("p", { cls: "crm-verdict " + adv.kind }, parts));
+      if (r.__takeCrm) r.__takeCrm.textContent = adv.kind === "keep"
+        ? "Your CRM's " + num(v) + " is within the acceptable range, so it can stay."
+        : "Your CRM's " + num(v) + " is " + (v > adv.band.hi ? "above" : "below") + " the acceptable range (" + num(adv.band.lo) + "–" +
+          num(adv.band.hi) + "); we'd update it to " + num(adv.target) +
+          (adv.minimum != null && adv.minimum !== adv.target ? " (at least " + num(adv.minimum) + ")" : "") + ".";
       if (r.__redraw) r.__redraw({ crm: v, lo: adv.band.lo, hi: adv.band.hi, xlo: adv.band.xlo, xhi: adv.band.xhi,
         target: adv.target != null ? adv.target : null });
     });

@@ -101,6 +101,11 @@ class Headline(BaseModel):
     # result for them and 4-5 is rare. "strong" or "rare" when it applies, with the sentence to show.
     peer_level: Literal["strong", "rare"] | None = None
     peer_note: str | None = None
+    # "Our take": a short, plain-English account of the answer, the evidence, the outlook and the confidence,
+    # written from this record's own facts (no number appears that the record doesn't hold), and the sources
+    # worth opening.
+    story: str | None = None
+    story_sources: list[str] = []
     next_expected_update: date | None = None  # e.g. when the next 10-K is due
     next_update_note: str | None = None
     none_reason: str | None = None
@@ -283,6 +288,9 @@ class LinkedInSection(BaseModel):
     pass_range: tuple[int, int] | None
     finding_id: str
     rationale: Rationale
+    growth_1y: float | None = None
+    growth_2y: float | None = None
+    open_roles: int | None = None
 
 
 class EventRow(BaseModel):
@@ -886,7 +894,7 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
     entity = cert.entity
     relationship = (f"{entity.relationship_to_parent or 'Part'} of {entity.legal_parent}" if entity.legal_parent
                     else "Not known to be part of a larger organization")
-    return CertificationRecord(
+    record = CertificationRecord(
         entity=EntitySection(name=entity.name, website=entity.website, hq=entity.hq,
                              address=entity.address or entity.hq,
                              address_source=entity.address_source or ("Confirmed headquarters location (city)"
@@ -921,7 +929,8 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
             none_reason=None if trend_rows else "Fewer than two dated figures of the same tier and basis were found."),
         linkedin_check=LinkedInSection(source_type_info=taxonomy.explain("LinkedIn: Member Count"), status=li.status, member_count=li.member_count, size_range=li.size_range,
                                        workforce_profile=li.workforce_profile, pass_range=li.implied_range,
-                                       finding_id=li_id, rationale=li.note),
+                                       finding_id=li_id, rationale=li.note, growth_1y=li.growth_1y,
+                                       growth_2y=li.growth_2y, open_roles=li.open_roles),
         events=Section[EventRow](items=events, none_reason=None if events else
                                  "No merger, acquisition or spinoff affecting headcount was confirmed."),
         methodology=Methodology(policy_version=cert.policy_version, record_version=RECORD_VERSION, method=method,
@@ -929,6 +938,8 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
                                 web_fetches=web_fetches, run_at=run_at, duration_s=duration_s, lookup_date=lookup_date,
                                 queries=queries or [], notes=notes or []),
     )
+    record.headline.story, record.headline.story_sources = our_take(record)
+    return record
 
 
 FORECAST_YEARS = 4
@@ -945,6 +956,104 @@ HISTORY_MAX_YEARS = 10     # how far back a historical estimate may reach
 HISTORY_MAX_POINTS = 2     # at most this many historical estimates
 HISTORICAL_WEIGHT = 0.35   # an older statement is weaker evidence: about a third of its growth carries forward
 HISTORICAL_MAX_RATE = 0.03 # ...and never more than ±3% a year: older statements often count differently
+
+
+def _month(d: date | None) -> str:
+    return d.strftime("%b %Y") if d else "an unknown date"
+
+
+def _n(v: float) -> str:
+    return f"{int(round(v)):,}"
+
+
+def our_take(r: "CertificationRecord") -> tuple[str | None, list[str]]:
+    """Four short sentences at most: the answer, the evidence, the outlook, the confidence. Built only from this
+    record's facts, so every number traces to a source, an adjustment or the trend."""
+    h, c, p, name = r.headline, r.confidence, r.primary_source, r.entity.name
+    if h.count is None:
+        return None, []
+    sources = r.sources.items
+    providers = [s for s in sources if s.tier >= 7 and s.scope == "global"]
+    li = r.linkedin_check
+    floor = next((a for a in r.adjustments.items if "LinkedIn members are taken" in a.rationale), None)
+    history = [t for t in r.trend.items if t.historical]
+    forecast = [t for t in r.trend.items if t.estimated]
+    out: list[str] = []
+    q = {"more_than": "more than ", "up_to": "up to ", "approximately": "about "}.get(h.qualifier, "")
+    spread = (f", most likely {_n(h.range[0])}–{_n(h.range[1])}" if h.range and h.range[0] != h.range[1]
+              and h.qualifier != "more_than" else "")
+    if p.source_id and p.tier <= 2 and h.count_type == "reported":
+        out.append(f"{name} reports {q}{_n(h.count)} employees as of {_month(h.as_of_date)}, in its {p.source_type}.")
+    else:
+        when = f", as of {_month(h.as_of_date)}" if h.as_of_date else " (the source is undated)"
+        out.append(f"We put {name} at {q or 'about '}{_n(h.count)} employees{spread}{when}.")
+
+    # The evidence: what the number rests on, in one sentence.
+    lo_hi = (f"{_n(min(s.value for s in providers))}–{_n(max(s.value for s in providers))}" if len(providers) > 1
+             else _n(providers[0].value) if providers else None)
+    hiring = []
+    if li.growth_1y is not None and li.growth_1y >= 0.1:
+        hiring.append(f"up {li.growth_1y:.0%} in a year")
+    if li.open_roles:
+        hiring.append(f"{_n(li.open_roles)} open roles")
+    if floor and li.member_count:
+        out.append(f"It doesn't publish a headcount and data providers say {lo_hi}, but LinkedIn shows "
+                   f"{_n(li.member_count)} members" + (f" ({', '.join(hiring)})" if hiring else "") +
+                   ", so we count at least 75% of them as real employees.")
+    elif not p.source_id and providers:
+        out.append(f"It doesn't publish a headcount, so this blends {len(providers)} data provider figures ({lo_hi}), "
+                   "which often draw on LinkedIn.")
+    elif p.source_id and p.tier <= 2:
+        agree = sum(1 for s in sources if s.role == "corroborates")
+        out.append("That's the strongest kind of source" + (
+            f", and {'an independent source agrees' if agree == 1 else f'{agree} independent sources agree'}."
+            if agree else "; nothing independent confirms it yet."))
+    elif p.source_id:
+        kind, _, detail = (p.source_type or "").partition(": ")
+        where = (f"the company's own {detail.lower().replace('about us', 'About page')}" if kind == "Website"
+                 else f"a {detail} report quoting the company" if kind.startswith("News") and detail
+                 else f"the company's {detail or kind}")
+        out.append(f"It comes from {where}" + (f" (\u201c{_short_quote(p.excerpt)}\u201d)" if p.excerpt else "")
+                   + (f"; data providers say {lo_hi}." if lo_hi else "."))
+
+    # The outlook: where it came from and where it's heading.
+    trend = []
+    if history:
+        trend.append(f"up from about {_n(history[0].value)} in {history[0].as_of_date.year}")
+    change = h.known_changes[0].split(" (")[0].split(";")[0].rstrip(".") if h.known_changes else ""
+    if len(change.split()) >= 4:  # a readable clause, not a bare filing reference
+        trend.append("since then, " + (change if len(change) <= 90 else change[:89].rsplit(" ", 1)[0] + "…"))
+    if forecast:
+        f = forecast[-1]
+        trend.append(f"on this trend, roughly {_n(round(f.value, -2 if f.value >= 2000 else -1))} by {f.as_of_date.year}")
+    if trend:
+        out.append(trend[0][0].upper() + trend[0][1:] + ("; " + "; ".join(trend[1:]) if trend[1:] else "") + ".")
+
+    # The confidence, and what would raise it.
+    if c.score >= 4:
+        raise_it = "ready to use."
+    elif not p.source_id:
+        raise_it = "a company statement, such as an executive interview or press release with a headcount, would raise it."
+    elif p.tier >= 4:
+        raise_it = "a dated company document or filing would raise it."
+    else:
+        raise_it = h.next_update_note[0].lower() + h.next_update_note[1:] if h.next_update_note else "a newer filing would raise it."
+    out.append(f"Confidence {c.score}/5: {raise_it}")
+
+    # Worth a look: the key source, and the source that differs most from the answer.
+    if not p.source_id and len(providers) > 1:  # no key source: the highest and lowest estimates
+        hi_s, lo_s = max(providers, key=lambda s: s.value), min(providers, key=lambda s: s.value)
+        return " ".join(out), [hi_s.id, lo_s.id]
+    pointers = [p.source_id] if p.source_id else []
+    others = [s for s in sources if s.id not in pointers and s.tier <= 6] or [s for s in sources if s.id not in pointers]
+    if others:
+        pointers.append(max(others, key=lambda s: (abs(s.value - h.count) / max(1, h.count), -s.tier)).id)
+    return " ".join(out), pointers[:2]
+
+
+def _short_quote(text: str, limit: int = 50) -> str:
+    text = " ".join((text or "").replace("·", " ").split())
+    return text if len(text) <= limit else text[: limit - 1].rsplit(" ", 1)[0] + "…"
 
 
 def _historical_points(cert: Certification, rows: list[TrendRow]) -> list[TrendRow]:

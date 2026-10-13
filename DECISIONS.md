@@ -899,3 +899,10 @@ The record's entity carries `address` and `address_source`, shown as **HQ addres
   alone.
 - Every section header shows a "View details ▾" pill (on phones "Open ▾") that turns into "Hide ▴", and the whole
   header highlights on hover, so it's clear the sections open.
+
+### D114. Hotfix: the extraction schema is at its size limit
+- Adding `linkedin.open_roles` (D110) pushed the structured-output grammar over the API's limit, and every new lookup
+  failed with "compiled grammar is too large". The field is removed; open roles remain an input the engine accepts
+  when supplied, and research notes heavy hiring in its notes. The growth signal still works from LinkedIn growth.
+- An offline test now caps the schema at 43 fields (the size that compiles); raising it requires running the live
+  schema test first.

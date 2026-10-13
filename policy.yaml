@@ -125,8 +125,7 @@ research_guidelines:
   - >-
     When the only figures are data providers' (often LinkedIn-derived), look for company-tied statements that can
     corroborate them: executives interviewed by reputable press ("we're now about 4,000 people"), press releases,
-    funding or office announcements, and the careers page. Record open job postings (careers page or LinkedIn
-    jobs) in linkedin.open_roles: heavy hiring at a white-collar company is a growth signal.
+    funding or office announcements, and the careers page. Note heavy hiring (many open job postings) in the research notes: it supports LinkedIn growth.
   - >-
     Look for LinkedIn headcount growth (the Insights "6m / 1y / 2y growth" figures), often quoted in search
     results or third-party pages, and record it in linkedin.growth_6m, growth_1y and growth_2y. It feeds the

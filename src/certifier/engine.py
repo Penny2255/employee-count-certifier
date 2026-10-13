@@ -124,8 +124,14 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
             profile = linkedin.workforce_profile or policy.linkedin.default_profile
             lo, hi = rules.implied_headcount(linkedin.member_count, profile, policy)
             inputs.append((f"LinkedIn member count implied ({profile})", round((lo + hi) / 2)))
-        if linkedin.size_range:
-            inputs.append(("LinkedIn size range midpoint", round(sum(linkedin.size_range) / 2)))
+        # LinkedIn's size band is often stale (Anthropic: "501-1K" beside 5,756 members): it counts only when there's
+        # no member count, or when the member count actually falls inside it.
+        band = linkedin.size_range
+        if band and (not linkedin.member_count or band[0] <= linkedin.member_count <= band[1] * 1.5):
+            inputs.append(("LinkedIn size range midpoint", round(sum(band) / 2)))
+        elif band:
+            notes.append(f"LinkedIn's size band ({band[0]:,}-{band[1]:,}) is left out: its {linkedin.member_count:,} "
+                         "members put it well above that band, so the band is out of date.")
         derivation = rules.derive_value(inputs, policy)
         for s in selection.derive_from:
             s.role = "derived_input"
@@ -144,25 +150,48 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
     # estimate below 75% of members moves to the middle of that floor and the member count. Only for an estimate
     # from data providers or a tier 4-6 anchor: a filing or company-published document (tiers 1-3) stands.
     signal = rules.growth_signal(linkedin, policy)
+    history_growth = None
+    if value is not None and as_of is not None and linkedin.growth_1y is None and linkedin.growth_2y is None:
+        older = [s for s in sources if s.as_of_date and s.scope == "global" and s.value > 0 and not s.corroboration_only
+                 and 270 < (as_of - s.as_of_date).days <= 365.25 * 4 and 0.1 <= s.value / value <= 5]
+        if older:
+            first = min(older, key=lambda s: s.as_of_date)
+            years = (as_of - first.as_of_date).days / 365.25
+            history_growth = (value / first.value) ** (1 / years) - 1
+            if not signal and (linkedin.workforce_profile or policy.linkedin.default_profile) == "white_collar" \
+                    and linkedin.member_count and history_growth >= policy.linkedin.growth_signal_1y:
+                signal = (f"its dated sources show about {history_growth:+.0%} a year since {first.as_of_date.year} "
+                          f"({first.value:,} then)")
     current_primary = (selected is not None and policy.tier_class(selected.tier) == "primary" and as_of is not None
                        and (rules.within_months(as_of, lookup_date, policy.recency.certified_max_age_months)
                             or rules.latest_release_current(selected, lookup_date, policy)))
     linkedin_floor_used = False
+    supported_floor = None
     weak_anchor = selected is None or selected.tier >= 4  # data providers, website, LinkedIn description, news
     if signal and value is not None and not current_primary and weak_anchor:
-        members = linkedin.member_count
-        floor = round(members * policy.linkedin.growth_floor_share)
-        if value < floor:
-            moved = rules.round_significant((floor + members) / 2, 3)
+        members, lp = linkedin.member_count, policy.linkedin
+        # Very strong, sustained growth leans further forward: a higher floor, an estimate near the member count,
+        # and a tighter range (LinkedIn lags hiring at this pace, so the total is less inflated than usual).
+        strong = ((linkedin.growth_1y is not None and linkedin.growth_1y >= lp.growth_strong_1y)
+                  or (history_growth is not None and history_growth >= lp.growth_strong_1y))
+        share = lp.growth_strong_floor_share if strong else lp.growth_floor_share
+        floor = round(members * share)
+        target = (rules.round_significant(members * lp.growth_strong_point_share, 3) if strong
+                  else rules.round_significant((floor + members) / 2, 3))
+        if value < target if strong else value < floor:
+            high = round(members * lp.growth_strong_high_share) if strong else max(members, value_range[1] if value_range else members)
             adjustments.append(Adjustment(
-                source_url="(LinkedIn growth floor)", source_figure=value, change=moved - value, result=moved,
-                reason=f"{signal}, so at least {policy.linkedin.growth_floor_share:.0%} of its {members:,} LinkedIn "
-                       f"members are taken to be current employees (a floor of {floor:,}); moved to the middle of "
-                       f"{floor:,}-{members:,}."))
-            notes.append(f"LinkedIn growth floor: {value:,} moved to {moved:,} ({signal}).")
-            value, qualifier, count_type = moved, "approximately", "estimated"
-            value_range = (floor, max(members, value_range[1] if value_range else members))
+                source_url="(LinkedIn growth floor)", source_figure=value, change=target - value, result=target,
+                reason=f"{signal}, so at least {share:.0%} of its {members:,} LinkedIn members are taken to be current "
+                       f"employees (a floor of {floor:,}); " + (
+                           f"growth this strong is real hiring, so the estimate leans to {lp.growth_strong_point_share:.0%} "
+                           f"of members ({floor:,}-{high:,})." if strong else
+                           f"moved to the middle of {floor:,}-{members:,}.")))
+            notes.append(f"LinkedIn growth floor: {value:,} moved to {target:,} ({signal}).")
+            value, qualifier, count_type = target, "approximately", "estimated"
+            value_range = (floor, high)
             linkedin_floor_used = True
+            supported_floor = floor
 
     # Events lower confidence only when they closed after the as-of date (the figure can't include them).
     event_outcomes: list[EventOutcome] = []
@@ -299,6 +328,10 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
         steps = rules.confidence_steps(selected, derivation, corroborators, lookup_date, policy)
     steps += rules.flag_steps(sum(st.points for st in steps), flags)
     score = sum(st.points for st in steps)
+    direction = _direction(selected, value, event_outcomes, sources, effective, lookup_date, policy, growth is not None)
+    if value is not None:  # the one range we give, centred on our number and as wide as the confidence warrants
+        value_range = rules.confidence_range(value, score, qualifier, direction.direction if direction else None,
+                                             supported_floor, policy)
 
     return Certification(
         entity=entity, certified_count=value, count_type=count_type, qualifier=qualifier,
@@ -309,8 +342,7 @@ def certify(entity: Entity, sources: list[Source], linkedin: LinkedInEvidence | 
         as_of_from_url=bool(selected is not None and selected.as_of_from_url),
         pre_adjustment=not primary_anchor and (any(o.after_as_of for o in event_outcomes)
                                                or bool(selected is not None and selected.predates_change)),
-        direction=_direction(selected, value, event_outcomes, sources, effective, lookup_date, policy,
-                             growth is not None),
+        direction=direction,
         scope_notes=scope_notes, explained_flags=explained,
         indicated_range=rules.indicated_range(selected, value, sources, lookup_date, policy) if growth is None else None,
         sources=_explain_unassigned(sources, value), linkedin_check=li, adjustments=adjustments, flags=flags,

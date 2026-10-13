@@ -22,13 +22,13 @@ expected:
   qualifier: approximately
   count_type: estimated
   policy_tier: 4
-  range: [1500, 2300]
+  range: [1750, 2250]
   confidence_score: 3
 lesson: >
   The website's 1,500 is undated, and LinkedIn shows 2,137 members with 27% one-year and 60%
   two-year growth, so 1,500 is an old data point (it matches the member count roughly 1-2
   years ago). Rather than certifying 1,500 or jumping to the member count, move conservatively
-  toward it: 1,500 + 75% x (2,137 - 1,500) = 1,978, rounded to ~2,000, with a range from the
-  stated 1,500 to the white-collar implied midpoint (~2,300). The size range 1,001-5,000
+  toward it: 1,500 + 75% x (2,137 - 1,500) = 1,978, rounded to ~2,000. Our range is centred on that
+  number and as wide as the confidence warrants (±12% at 3/5): 1,750-2,250. The size range 1,001-5,000
   agrees. Confidence is Supported (3): we are confident the true figure is about 2,000 or
   more, but no company source states it.

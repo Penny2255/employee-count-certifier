@@ -906,3 +906,38 @@ The record's entity carries `address` and `address_source`, shown as **HQ addres
   when supplied, and research notes heavy hiring in its notes. The growth signal still works from LinkedIn growth.
 - An offline test now caps the schema at 43 fields (the size that compiles); raising it requires running the live
   schema test first.
+
+### D115. Lean forward on very strong growth; the chart names the level; calmer trust cards
+- **Very strong, sustained growth** (LinkedIn 1-year growth of 60% or more at a white-collar organization, with a weak
+  anchor): the floor rises to 85% of members, the estimate leans to 95% of members and the range tops out at 105%
+  (open roles are being filled and LinkedIn lags hiring at this pace). Anthropic-like case: about 5,470 (4,893-6,044)
+  instead of 5,040 (4,317-6,227). Moderate growth keeps the 75% floor and the midpoint.
+- **The certified point's caption says the level:** ✓ Certified (4-5), ◆ Supported (3), ! Estimated (2), ⚠ Unverified
+  (1), coloured to match, with the halo and guide line in the same colour. The deck's chart and its first stat card
+  use the same words.
+- **Trust cards:** every card has the same rows: icon and title, the fact ("1 independent source", "0 red flags"), a
+  signed impact chip (start 4, +1, −1, ±0) with a short note, and the meter at the bottom with the score written on it.
+  The arrows between cards are round badges.
+
+### D116. Try hard for history
+- A short history now draws on every route, strongest first, one point per year, up to three, each labelled "est."
+  with a footnote under the chart (and in the deck note) naming where it came from: older company statements (tiers
+  1-6), a back-cast from LinkedIn growth, and older data-provider figures (tiers 7-9). Points within four years may be
+  as low as a tenth of today's figure (fast growers); older ones a fifth.
+- Research is asked for headcount figures from one to three years ago, as well as LinkedIn's growth figures.
+- Growth visible in the dated sources counts as a growth signal when LinkedIn's growth figures aren't available
+  (Anthropic: about 1,000 in 2024 to about 4,100 now), so the LinkedIn floor and lean-forward still apply.
+- Consistent recent history (several rising or falling points within four years, or one within two and a half) carries
+  half its growth into the forecast; a single old statement keeps the gentle ±3% lean.
+
+### D117. One range, ours
+- The range we give is ours: centred on the certified number and as wide as the confidence warrants (±3% at 5/5, ±6%
+  at 4, ±12% at 3, ±20% at 2, ±30% at 1). "More than" extends only upward (twice as far), "up to" only downward; the
+  likely direction widens its side by half; a supported LinkedIn floor sets the low end, and the range then sits
+  symmetrically about the number. Bounds are rounded outward (10s, 25s, 100s, 1,000s).
+- Source ranges are inputs to the number, never the range: LinkedIn's size band is used only when there's no member
+  count or the members fall inside it (Anthropic's stale "501-1K" had made the range 750-6,146), and the spread of
+  data providers no longer sets the range.
+- The card ("Our range"), Our take, the CRM compare (one band, no separate acceptable range), the CSV, the deck and the
+  Word document all show this same range; it's recomputed when the record is built, so samples and cached results
+  match new lookups. A test checks they agree.

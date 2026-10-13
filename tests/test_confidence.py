@@ -167,7 +167,7 @@ def test_two_agreeing_tertiary_sources_are_calculated_2(entity):
     cert = score(entity, src(7, 1_000, as_of=date(2026, 6, 1)), src(8, 1_100, as_of=date(2026, 5, 1)))
     assert cert.certified_count == 1_050
     assert cert.count_type == "calculated"
-    assert cert.range == (1_000, 1_100)
+    assert cert.range == (840, 1_260)  # our range: ±20% at 2/5
     assert cert.policy_tier == 7
     assert cert.confidence_score == 2
     assert all(s.role == "derived_input" for s in cert.sources)

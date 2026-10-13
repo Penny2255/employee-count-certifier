@@ -164,7 +164,8 @@ def test_an_older_company_statement_becomes_a_historical_estimate_and_leans_the_
     cert = certify(Entity(name="M. A. Mortenson Company"), [careers, ceo, provider], lookup_date=date(2026, 10, 12))
     items = build_record(cert, lookup_date=date(2026, 10, 12)).trend.items
     history = [t for t in items if t.historical]
-    assert [(t.as_of_date.year, t.value) for t in history] == [(2019, 7_000)]
+    assert [(t.as_of_date.year, t.value) for t in history] == [(2019, 7_000), (2021, 6_500)]
+    assert "older statement" in history[0].rationale and "data provider" in history[1].rationale
     forecast = [t for t in items if t.estimated]
     yearly = (forecast[-1].value / 10_000) ** (1 / 4) - 1
     assert 0.01 < yearly <= 0.03 and "historical estimate" in forecast[0].rationale  # a gentle, capped lean

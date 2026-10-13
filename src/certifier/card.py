@@ -139,35 +139,43 @@ CARD_CSS = r"""
 .cert .answer-actions .breakdown > summary { padding: 4px 0; color: var(--accent); font-size: 14px; }
 .cert .answer-actions .breakdown[open] { flex-basis: 100%; }
 .cert .trust-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
-.cert .trust-strip.journey { grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(0, .9fr); gap: 14px; }
-.cert .journey .trust-item { position: relative; display: grid; align-content: start; gap: 3px; padding: 9px 10px 10px; border-width: 1px;
-  border-top-width: 4px; cursor: pointer; }
-.cert .journey .trust-item:not(:first-child)::before { content: "\203A"; position: absolute; left: -12px; top: 50%; transform: translateY(-50%);
-  color: var(--muted); font-size: 16px; font-weight: 700; }
+.cert .trust-strip.journey { grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(0, .9fr); gap: 18px; }
+.cert .journey .trust-item { position: relative; display: grid; grid-template-rows: auto auto 1fr auto; gap: 6px; padding: 10px 10px 10px;
+  border-width: 1px; border-top-width: 4px; cursor: pointer; text-align: left; }
+.cert .journey .trust-item:not(:first-child)::before, .cert .trust-land::before { content: "\203A"; position: absolute; left: -20px; top: 50%;
+  transform: translateY(-50%); display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--card);
+  border: 1px solid var(--line); color: var(--accent); font-size: 16px; font-weight: 800; line-height: 1; z-index: 1;
+  box-shadow: 0 1px 3px rgba(10, 37, 69, .12); }
+.cert .trust-land::before { content: "="; }
+.cert .journey .t-top { min-height: 34px; align-items: flex-start; }
+.cert .journey .t-label { font-size: 12px; font-weight: 700; color: var(--muted); line-height: 1.3; padding-top: 1px; }
+.cert .journey .t-value { min-height: 2.6em; font-size: 14px; line-height: 1.3; }
+.cert .journey .t-impact { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: baseline; align-self: start; }
+.cert .journey .t-chip { font-size: 12.5px; font-weight: 800; padding: 1px 7px; border-radius: 999px; background: var(--card);
+  border: 1px solid currentColor; white-space: nowrap; }
 .cert .journey .t-top { display: flex; gap: 6px; align-items: center; }
 .cert .journey .t-sym { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; font-size: 11px; font-weight: 800;
   color: #fff; flex: none; }
 .cert .journey strong { font-size: 14px; line-height: 1.3; overflow-wrap: anywhere; }
 .cert .journey .t-effect { font-size: 12px; font-weight: 600; }
-.cert .t-run { position: relative; display: block; height: 6px; margin-top: 4px; border-radius: 999px; background: var(--line); }
+.cert .t-run { position: relative; display: block; height: 18px; border-radius: 999px; background: var(--line); overflow: hidden; align-self: end; }
 .cert .t-run i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: linear-gradient(90deg, var(--loop-green), var(--loop-blue)); }
-.cert .t-run b { position: absolute; right: 0; top: 8px; font-size: 10.5px; color: var(--muted); }
-.cert .journey .trust-item { padding-bottom: 20px; }
+.cert .t-run b { position: absolute; right: 7px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 800; color: var(--text); }
 .cert .journey .strong { border-top-color: var(--loop-green); background: var(--green-bg); }
 .cert .journey .strong .t-sym { background: var(--green); }
-.cert .journey .strong .t-effect { color: var(--green); }
+.cert .journey .strong .t-effect, .cert .journey .strong .t-chip { color: var(--green); }
 .cert .journey .neutral { border-top-color: var(--loop-blue); }
 .cert .journey .neutral .t-sym { background: var(--loop-blue); }
-.cert .journey .neutral .t-effect { color: var(--muted); }
+.cert .journey .neutral .t-effect, .cert .journey .neutral .t-chip { color: var(--muted); }
 .cert .journey .weak { border-top-color: #F2C35B; background: var(--yellow-bg); }
 .cert .journey .weak .t-sym { background: #D99A1E; }
-.cert .journey .weak .t-effect { color: var(--yellow); }
+.cert .journey .weak .t-effect, .cert .journey .weak .t-chip { color: var(--yellow); }
 .cert .journey .harmful { border-top-color: var(--red); background: var(--red-bg); }
 .cert .journey .harmful .t-sym { background: var(--red); }
-.cert .journey .harmful .t-effect { color: var(--red); }
+.cert .journey .harmful .t-effect, .cert .journey .harmful .t-chip { color: var(--red); }
 .cert .trust-land { display: grid; align-content: center; justify-items: center; gap: 2px; text-align: center; border-radius: 14px; padding: 10px;
   border: 2px solid var(--line); position: relative; }
-.cert .trust-land::before { content: "="; position: absolute; left: -12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-weight: 800; }
+
 .cert .trust-land strong { font-size: 26px; line-height: 1.1; }
 .cert .trust-land .t-label { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .cert .trust-land .t-effect { font-size: 12px; font-weight: 600; }
@@ -352,9 +360,12 @@ CARD_CSS = r"""
 .cert .crm-verdict.light { background: var(--soft); color: var(--text); }
 .cert .crm-copy { font-weight: 700; text-decoration: underline; color: inherit; padding: 0; font-size: inherit; background: none; border: 0; }
 .cert .crm-see { opacity: .8; }
+.cert .chart-note { margin: 6px 0 0; font-style: italic; }
 .cert .legend .lg.hist { border: 2px dashed var(--muted); background: var(--card); }
 .cert .chart .pt-faint { opacity: .55; font-weight: 600; font-size: 11.5px; }
 .cert .chart .pt-cert { font-size: 10.5px; font-weight: 800; letter-spacing: .08em; fill: var(--green); }
+.cert .chart .pt-cert.lv-mid, .cert .chart .pt-cert.lv-warn { fill: var(--yellow); }
+.cert .chart .pt-cert.lv-bad { fill: var(--red); }
 .cert .chart .gap-label { font-size: 11px; fill: var(--muted); font-style: italic; }
 .cert .chart .ov-label { font-size: 11.5px; font-weight: 700; }
 .cert .legend .lg.gap { width: auto; height: auto; border: 0; background: none; color: var(--muted); font-style: normal; font-weight: 700; font-size: 11px; }
@@ -804,7 +815,7 @@ CARD_JS = r"""
     var dirShort = h.direction ? (DIRECTION[h.direction] || h.direction) : null;
     var facts = factRows([
       ["Employees", countVal],
-      ["Certified range", range],
+      ["Our range", range],
       ["As of", h.as_of_date ? h.as_of_date + (h.as_of_estimated ? (h.as_of_estimated_from === "url" ? " (estimated from URL)" : " (estimated)") : "") : "undated"],
       ["Confidence", conf],
       ["HQ address", r.entity.address ? el("span", null, [r.entity.address,
@@ -851,12 +862,14 @@ CARD_JS = r"""
     var clamp = function (v) { return Math.max(0, Math.min(5, v)); };
     var s1 = clamp(st.base), s2 = clamp(s1 + st.recency), s3 = clamp(s2 + st.corr), s5 = c.score;
     var TONE_SYM = { strong: "✓", neutral: "◆", weak: "!", harmful: "✕" };
-    function card(label, value, effect, tone, running, target) {
+    function signed(n) { return n > 0 ? "+" + n : n < 0 ? "\u2212" + (-n) : "\u00b10"; }
+    function card(label, value, impact, effect, tone, running, target) {
       var b = el("button", { type: "button", cls: "trust-item " + tone, title: "Open the detail" }, [
         el("span", { cls: "t-top" }, [el("span", { cls: "t-sym", "aria-hidden": "true", text: TONE_SYM[tone] }), el("span", { cls: "t-label", text: label })]),
-        el("strong", { text: value }),
-        el("span", { cls: "t-effect", text: effect }),
-        el("span", { cls: "t-run", "aria-label": "Score so far " + running + " of 5" }, [el("i", { style: "width:" + running * 20 + "%" }), el("b", { text: running + "/5" })])]);
+        el("strong", { cls: "t-value", text: value }),
+        el("span", { cls: "t-impact" }, [el("b", { cls: "t-chip", text: impact }), el("span", { cls: "t-effect", text: effect })]),
+        el("span", { cls: "t-run", role: "img", "aria-label": "Score so far " + running + " of 5" }, [el("i", { style: "width:" + Math.max(running, 0.4) * 20 + "%" }),
+          el("b", { text: running + "/5" })])]);
       b.addEventListener("click", function () { jump(target); });
       return b;
     }
@@ -869,15 +882,15 @@ CARD_JS = r"""
       el("div", { cls: "block-title" }, [icon("trust"), el("h2", { text: "Why you can trust this" }),
         el("span", { cls: "muted small", text: "· read left to right: where the score started, what moved it, where it landed" })]),
       el("div", { cls: "trust-strip journey" }, [
-        card("Key source", keyValue, "starts at " + st.base + "/5", baseTone, s1, k + "-key"),
-        card("As of", asOf, st.recency < 0 ? "−" + (-st.recency) + " · older than the window" : h.as_of_date ? "current · no change" : "undated · no change",
+        card("Key source", keyValue, "start " + st.base, "the starting score", baseTone, s1, k + "-key"),
+        card("As of", asOf, signed(st.recency), st.recency < 0 ? "older than the window" : h.as_of_date ? "current" : "undated",
           st.recency < 0 ? "weak" : h.as_of_date && !h.as_of_estimated ? "strong" : "neutral", s2, k + "-key"),
-        card("Independent confirmations", String(corr.length), st.corr > 0 ? "+" + st.corr + " · confirmed" : "no change · single-sourced",
-          st.corr > 0 ? "strong" : "neutral", s3, corrFinding ? k + "-" + corrFinding.id : k + "-sources"),
-        card("Adjustments to the count", String(adj), adj ? "the figure moved · no score change" : "none needed",
+        card("Confirmations", corr.length + " independent source" + (corr.length === 1 ? "" : "s"), signed(st.corr),
+          st.corr > 0 ? "confirmed" : "single-sourced", st.corr > 0 ? "strong" : "neutral", s3, corrFinding ? k + "-" + corrFinding.id : k + "-sources"),
+        card("Adjustments", adj + " to the count", "±0", adj ? "figure moved, score didn't" : "none needed",
           adj ? "neutral" : "strong", s3, k + "-adjustments"),
-        card("Needs attention", String(attention), st.flags < 0 ? "−" + (-st.flags) + " · see findings"
-          : attention ? "no further effect · already at the minimum" : "nothing red",
+        card("Needs attention", attention + " red flag" + (attention === 1 ? "" : "s"), signed(st.flags),
+          st.flags < 0 ? "see the findings" : attention ? "already at the minimum" : "nothing red",
           st.flags < 0 ? "harmful" : attention ? "weak" : "strong", s5, k + "-findings"),
         landed])]);
   }
@@ -912,6 +925,11 @@ CARD_JS = r"""
   function roundForecast(v) {
     var step = v < 2000 ? 10 : v < 20000 ? 25 : v < 500000 ? 100 : 1000;
     return Math.round(v / step) * step;
+  }
+  // The certified point's caption says what the confidence level is: ✓ Certified, ◆ Supported, ! Estimated, ⚠ Unverified.
+  function levelTag(score) {
+    return score >= 4 ? { sym: "✓", word: "CERTIFIED", cls: "lv-ok" } : score === 3 ? { sym: "◆", word: "SUPPORTED", cls: "lv-mid" }
+      : score === 2 ? { sym: "!", word: "ESTIMATED", cls: "lv-warn" } : { sym: "⚠", word: score === 1 ? "UNVERIFIED" : "NOT CERTIFIED", cls: "lv-bad" };
   }
   function yearDate(year, md) { return year + (md === "-02-29" ? "-02-28" : md); }
   function chart(r, overlay) {
@@ -990,7 +1008,7 @@ CARD_JS = r"""
       add("rect", { x: L, y: Y(overlay.xhi), width: W - L - R, height: Math.max(2, Y(overlay.xlo) - Y(overlay.xhi)), fill: "var(--loop-green)",
         "fill-opacity": .16, "class": "ov-cert" });
     }
-    if (overlay) {  // the acceptable range: a soft band behind everything else
+    if (overlay) {  // our range: a soft band behind everything else
       add("rect", { x: L, y: Y(overlay.hi), width: W - L - R, height: Math.max(2, Y(overlay.lo) - Y(overlay.hi)), fill: "var(--loop-green)", "fill-opacity": .12, "class": "ov-band" });
       [overlay.lo, overlay.hi].forEach(function (b) {
         add("line", { x1: L, x2: W - R, y1: Y(b), y2: Y(b), stroke: "var(--loop-green)", "stroke-width": 1, "stroke-opacity": .7, "stroke-dasharray": "2 4" });
@@ -1078,9 +1096,10 @@ CARD_JS = r"""
         add("text", { x: cx, y: cy - 12, "text-anchor": i === 0 ? "start" : "middle", "class": "pt-label pt-faint hist-label" }, "≈" + num(p.value) + " est.");
         return;
       }
-      if (isLast) {  // the certified figure: a soft halo and a guide down to its as-of date
-        add("line", { x1: cx, x2: cx, y1: cy + 12, y2: H - B, stroke: "var(--loop-green)", "stroke-width": 1.5, "stroke-dasharray": "2 4", "class": "cert-guide" });
-        add("circle", { cx: cx, cy: cy, r: 11, fill: "var(--loop-green)", "fill-opacity": .22 });
+      if (isLast) {  // the certified figure: a soft halo and a guide down to its as-of date, in the level's colour
+        var lvc = { "lv-ok": "var(--loop-green)", "lv-mid": "#F2C35B", "lv-warn": "#F2C35B", "lv-bad": "var(--red)" }[levelTag(r.confidence.score).cls];
+        add("line", { x1: cx, x2: cx, y1: cy + 12, y2: H - B, stroke: lvc, "stroke-width": 1.5, "stroke-dasharray": "2 4", "class": "cert-guide" });
+        add("circle", { cx: cx, cy: cy, r: 11, fill: lvc, "fill-opacity": .22 });
       }
       add("circle", { cx: cx, cy: cy, r: isLast ? 6.5 : (p.estimated ? 4 : 5), fill: p.estimated ? "var(--card)" : "var(--meter)", stroke: isLast ? "var(--loop-green)" : "var(--meter)", "stroke-width": isLast ? 3 : 2.5 });
       // Values only on the chart; the certified point and the forecast range are named in the legend. The
@@ -1100,7 +1119,9 @@ CARD_JS = r"""
         "text-anchor": first && items.length > 1 ? "start" : (i === items.length - 1 && !gaps.some(function (g) { return g.kind === "forecast"; }) ? "end" : "middle"),
         "class": "pt-label" + (isLast ? " pt-key" : "") + (p.estimated ? " pt-est" + (p === finalForecast ? "" : " pt-faint") : "") },
         p.estimated ? "≈" + num(roundForecast(p.value)) : num(p.value));
-      if (isLast) add("text", { x: cx, y: cy - 34 < T - 8 ? cy + 28 : cy - 34, "text-anchor": first && items.length > 1 ? "start" : "middle", "class": "pt-cert" }, "✓ CERTIFIED");
+      if (isLast) { var lv = levelTag(r.confidence.score);
+        add("text", { x: cx, y: cy - 34 < T - 8 ? cy + 28 : cy - 34, "text-anchor": first && items.length > 1 ? "start" : "middle", "class": "pt-cert " + lv.cls },
+          lv.sym + " " + lv.word); }
     });
     return svgEl;
   }
@@ -1133,10 +1154,9 @@ CARD_JS = r"""
         (fc.low != null ? " (range " + num(roundForecast(fc.low)) + "–" + num(roundForecast(fc.high)) + ")" : "")]) : null,
       svgEl.__gaps ? el("span", null, [el("i", { cls: "lg gap", text: "✕" }), "No reported figure"]) : null,
       r.trend.items.some(function (p) { return p.historical; }) ? el("span", null, [el("i", { cls: "lg hist" }),
-        "Historical estimate (older statement, not certified)"]) : null,
+        "Historical estimate (not certified)"]) : null,
       h.indicated_current_range ? el("span", null, [el("i", { cls: "lg box" }), "Indicated current range (context only)"]) : null,
-      overlay && overlay.xhi > overlay.xlo ? el("span", null, [el("i", { cls: "lg range strong" }), "Certified range " + num(overlay.xlo) + "–" + num(overlay.xhi)]) : null,
-      overlay ? el("span", null, [el("i", { cls: "lg range" }), "Acceptable for your CRM " + num(overlay.lo) + "–" + num(overlay.hi)]) : null,
+      overlay ? el("span", null, [el("i", { cls: "lg range strong" }), "Our range " + num(overlay.lo) + "–" + num(overlay.hi)]) : null,
       overlay ? el("span", null, [el("i", { cls: "lg crm" }), "Your CRM " + num(overlay.crm)]) : null,
       overlay && overlay.target != null ? (overlay.target === h.count ? el("span", null, [el("i", { cls: "lg key" }), "Suggested: the certified figure"])
         : el("span", null, [el("i", { cls: "lg target" }), "Suggested " + num(overlay.target)])) : null]);
@@ -1149,6 +1169,14 @@ CARD_JS = r"""
     if (svgEl) {
       var wrap = el("div", { cls: "chart-wrap" }, [svgEl]), key = legend(r, svgEl);
       nodes.push(wrap, key);
+      var kinds = [];
+      r.trend.items.filter(function (p) { return p.historical; }).forEach(function (p) {
+        var why = /LinkedIn/.test(p.rationale) ? "LinkedIn headcount growth" : /data provider/.test(p.rationale) ? "data providers' earlier figures"
+          : "older company statements";
+        if (kinds.indexOf(why) < 0) kinds.push(why);
+      });
+      if (kinds.length) nodes.push(el("p", { cls: "chart-note small muted", text: "est. = historical estimate from " +
+        kinds.join(" and ") + ": shown for direction, not certified." }));
       // The CRM compare redraws the chart with its overlays (or without, when cleared).
       r.__redraw = function (overlay) {
         var next = chart(r, overlay), nextKey = legend(r, next, overlay);
@@ -1247,42 +1275,34 @@ CARD_JS = r"""
     var v = parseFloat(m[1]) * (m[2] === "k" ? 1e3 : m[2] === "m" ? 1e6 : 1);
     return v > 0 ? Math.round(v) : null;
   }
-  // Two ranges, one story: the certified range (X) is what we stand behind; the acceptable range (Y) is wider,
-  // as wide as the confidence warrants, for leaving a CRM number alone. Outside Y we suggest moving into X (its
-  // nearest edge), and at the very least to Y's edge. When the likely direction since the as-of date points toward
-  // your number, we suggest only Y's edge.
+  // One range: ours, centred on the certified number and as wide as the confidence warrants. A CRM number inside it
+  // can stay; outside it, we suggest our best estimate, and at the least the range's edge. When the likely direction
+  // since the as-of date points toward your number, we suggest only the edge.
   function crmAdvice(r, v) {
-    var h = r.headline, c = h.count, score = r.confidence.score, t = CRM_TOLERANCE[score];
-    if (c == null || !t) return { kind: "none", text: "There's no certified figure to compare against." };
-    var xlo = h.range ? h.range[0] : c, xhi = h.range ? h.range[1] : c;
-    var lo = Math.min(xlo, c * (1 - t)), hi = Math.max(xhi, c * (1 + t));
-    if (h.direction === "lower") lo -= c * t / 2;  // the true figure has likely moved down: widen the lower side
-    if (h.direction === "higher") hi += c * t / 2;
-    lo = Math.round(lo); hi = Math.round(hi);
-    var band = { lo: lo, hi: hi, certified: c, xlo: xlo, xhi: xhi };
-    var xText = xlo === xhi ? num(c) : num(xlo) + "–" + num(xhi);
+    var h = r.headline, c = h.count, score = r.confidence.score;
+    if (c == null || !h.range) return { kind: "none", text: "There's no certified figure to compare against." };
+    var lo = h.range[0], hi = h.range[1], band = { lo: lo, hi: hi, certified: c, xlo: lo, xhi: hi };
+    var rangeText = lo === hi ? num(c) : num(lo) + "–" + num(hi);
     if (v >= lo && v <= hi) {
-      var inX = v >= xlo && v <= xhi;
       return { kind: "keep", band: band, label: "Keep your number",
-        text: num(v) + " is inside the " + score + "/5 acceptable range (" + num(lo) + "–" + num(hi) + ")" +
-          (inX ? " and the certified range. No change needed." : ". No change needed; the certified range is " + xText + ".") };
+        text: num(v) + " is inside our " + score + "/5 range (" + rangeText + "). No change needed" +
+          (Math.abs(v - c) / c > 0.02 ? "; our best estimate is " + num(c) + "." : ".") };
     }
-    var above = v > hi, edge = above ? hi : lo, off = above ? (v - hi) / hi : (lo - v) / lo;
+    var above = v > hi, edge = above ? hi : lo, off = above ? (v - hi) / hi : (lo - v) / Math.max(1, lo);
     var agrees = (above && h.direction === "lower") || (!above && h.direction === "higher");
     var against = (above && h.direction === "higher") || (!above && h.direction === "lower");
-    var target = above ? xhi : xlo;
     var strength = score >= 4 ? "strong" : score === 3 ? "moderate" : "light";
     if (agrees) strength = strength === "light" ? "moderate" : "strong";
+    var target = c;
     if (against) {
-      target = edge;  // the true figure may have moved your way: the acceptable range's edge is enough
+      target = edge;  // the true figure may have moved your way: the edge of our range is enough
       if (strength === "strong" && score < 5) strength = "moderate";
     }
-    var why = agrees ? " The recent direction agrees." : against ? " Only to the acceptable range: the figure has likely moved " +
+    var why = agrees ? " The recent direction agrees." : against ? " Only to the edge: the figure has likely moved " +
       (h.direction === "higher" ? "up" : "down") + " since." : "";
     return { kind: strength, band: band, target: target, minimum: edge, label: CRM_STRENGTH[strength],
-      text: num(v) + " is " + Math.round(off * 100) + "% " + (above ? "above" : "below") + " the " + score + "/5 acceptable range (" +
-        num(lo) + "–" + num(hi) + "). Suggest " + num(target) + (target === edge ? "." : (xlo === xhi ? ", the certified figure" :
-        ", the edge of the certified range " + xText) + " (at least " + num(edge) + ").") + why };
+      text: num(v) + " is " + Math.round(off * 100) + "% " + (above ? "above" : "below") + " our " + score + "/5 range (" + rangeText +
+        "). Suggest " + num(target) + (target === edge ? "." : ", our best estimate (at least " + num(edge) + ").") + why };
   }
 
   // Compact: an inline box beside Download. The verdict appears below it, and the chart above gains the
@@ -1310,11 +1330,11 @@ CARD_JS = r"""
       if (r.__redraw) parts.push(el("span", { cls: "crm-see", text: " Shown on the chart above." }));
       out.appendChild(el("p", { cls: "crm-verdict " + adv.kind }, parts));
       if (r.__takeCrm) r.__takeCrm.textContent = adv.kind === "keep"
-        ? "Your CRM's " + num(v) + " is within the acceptable range, so it can stay."
-        : "Your CRM's " + num(v) + " is " + (v > adv.band.hi ? "above" : "below") + " the acceptable range (" + num(adv.band.lo) + "–" +
+        ? "Your CRM's " + num(v) + " is within our range, so it can stay."
+        : "Your CRM's " + num(v) + " is " + (v > adv.band.hi ? "above" : "below") + " our range (" + num(adv.band.lo) + "–" +
           num(adv.band.hi) + "); we'd update it to " + num(adv.target) +
           (adv.minimum != null && adv.minimum !== adv.target ? " (at least " + num(adv.minimum) + ")" : "") + ".";
-      if (r.__redraw) r.__redraw({ crm: v, lo: adv.band.lo, hi: adv.band.hi, xlo: adv.band.xlo, xhi: adv.band.xhi,
+      if (r.__redraw) r.__redraw({ crm: v, lo: adv.band.lo, hi: adv.band.hi, xlo: null, xhi: null,
         target: adv.target != null ? adv.target : null });
     });
     return { form: form, out: out };

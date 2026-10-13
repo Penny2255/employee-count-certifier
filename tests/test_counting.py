@@ -52,7 +52,7 @@ def test_qualified_value_recorded_as_stated(entity, policy):
     cert = certify(entity, [src(1, 5_000, qualifier="more_than")], lookup_date=LOOKUP)
     assert cert.certified_count == 5_000
     assert cert.qualifier == "more_than"
-    assert cert.range == (5_000, 5_500)
+    assert cert.range == (5_000, 5_625)  # 'more than' extends upward only
 
 
 def test_range_bands(policy):

@@ -881,9 +881,7 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
                                           f"The certified figure, shown at the certification date ({when.isoformat()}) "
                                           "because its source is undated."))]
     if 0 < len(trend_rows) < 3 and cert.certified_count:
-        trend_rows = _historical_points(cert, trend_rows) + trend_rows
-    if 0 < len(trend_rows) < 3 and cert.certified_count and not any(t.historical for t in trend_rows):
-        trend_rows = _linkedin_backcast(cert, trend_rows) + trend_rows
+        trend_rows = _history(cert, trend_rows) + trend_rows
     reported_only = [t for t in trend_rows if not t.historical]
     trend_rows += (_forecast(trend_rows) if len(reported_only) >= 3 and len(reported_only) == len(trend_rows)
                    else _short_forecast(trend_rows, cert.linkedin_check))
@@ -900,7 +898,7 @@ def build_record(cert: Certification, policy: Policy | None = None, *, method: s
                              address_source=entity.address_source or ("Confirmed headquarters location (city)"
                                                                       if entity.hq else None),
                              legal_parent=entity.legal_parent, relationship=relationship),
-        headline=Headline(count=cert.certified_count, qualifier=cert.qualifier, range=cert.range,
+        headline=Headline(count=cert.certified_count, qualifier=cert.qualifier, range=_our_range(cert, policy),
                           count_type=cert.count_type, count_basis=cert.count_basis, as_of_date=cert.as_of_date,
                           as_of_estimated=cert.as_of_estimated,
                           as_of_estimated_from=("url" if cert.as_of_from_url else "context") if cert.as_of_estimated
@@ -953,9 +951,24 @@ LINKEDIN_WEIGHT = 0.5      # LinkedIn over-represents office staff: half of its 
 
 
 HISTORY_MAX_YEARS = 10     # how far back a historical estimate may reach
-HISTORY_MAX_POINTS = 2     # at most this many historical estimates
+HISTORY_MAX_POINTS = 3     # at most this many historical estimates
 HISTORICAL_WEIGHT = 0.35   # an older statement is weaker evidence: about a third of its growth carries forward
 HISTORICAL_MAX_RATE = 0.03 # ...and never more than ±3% a year: older statements often count differently
+
+
+def _our_range(cert: Certification, policy: Policy):
+    """The one range we give, recomputed from the certification (so stored and sample results match new lookups):
+    centred on the number and as wide as the confidence warrants, with a supported LinkedIn floor kept."""
+    import re
+    if cert.certified_count is None:
+        return cert.range
+    floor = None
+    for a in cert.adjustments:
+        m = re.search(r"a floor of ([\d,]+)", a.reason or "")
+        if m and "LinkedIn members are taken" in a.reason:
+            floor = int(m.group(1).replace(",", ""))
+    direction = cert.direction.direction if cert.direction else None
+    return rules.confidence_range(cert.certified_count, cert.confidence_score, cert.qualifier, direction, floor, policy)
 
 
 def _month(d: date | None) -> str:
@@ -999,7 +1012,7 @@ def our_take(r: "CertificationRecord") -> tuple[str | None, list[str]]:
     if floor and li.member_count:
         out.append(f"It doesn't publish a headcount and data providers say {lo_hi}, but LinkedIn shows "
                    f"{_n(li.member_count)} members" + (f" ({', '.join(hiring)})" if hiring else "") +
-                   ", so we count at least 75% of them as real employees.")
+                   f", so we count at least {_floor_share(floor.rationale)} of them as real employees.")
     elif not p.source_id and providers:
         out.append(f"It doesn't publish a headcount, so this blends {len(providers)} data provider figures ({lo_hi}), "
                    "which often draw on LinkedIn.")
@@ -1051,29 +1064,53 @@ def our_take(r: "CertificationRecord") -> tuple[str | None, list[str]]:
     return " ".join(out), pointers[:2]
 
 
+def _floor_share(rationale: str) -> str:
+    import re
+    m = re.search(r"at least (\d+%)", rationale)
+    return m.group(1) if m else "75%"
+
+
 def _short_quote(text: str, limit: int = 50) -> str:
     text = " ".join((text or "").replace("·", " ").split())
     return text if len(text) <= limit else text[: limit - 1].rsplit(" ", 1)[0] + "…"
 
 
-def _historical_points(cert: Certification, rows: list[TrendRow]) -> list[TrendRow]:
-    """Older company-voice figures (tiers 1-6: filings, the company's own pages and press, LinkedIn description,
-    an executive quoted in the press) dated before the first trend point, one per year, plausible against the
-    certified figure (within 5x either way). They give a short history some shape; they are never certified."""
+def _history(cert: Certification, rows: list[TrendRow]) -> list[TrendRow]:
+    """Historical estimates for a short history, from every route, strongest first, one point per year (up to
+    three): older company-voice statements (tiers 1-6); a back-cast from LinkedIn's headcount growth; older
+    data-provider figures (tiers 7-9). Each is labelled with where it came from; none is certified."""
+    picked: dict[int, TrendRow] = {}
+    for route in (_historical_points(cert, rows, 6), _linkedin_backcast(cert, rows),
+                  _historical_points(cert, rows, 9, min_tier=7)):
+        for t in route:
+            picked.setdefault(t.as_of_date.year, t)
+        if len(picked) >= HISTORY_MAX_POINTS:
+            break
+    return [picked[y] for y in sorted(picked)][-HISTORY_MAX_POINTS:]
+
+
+def _historical_points(cert: Certification, rows: list[TrendRow], max_tier: int = 6, min_tier: int = 1) -> list[TrendRow]:
+    """Older figures from the given tiers (1-6 company voice: filings, the company's own pages and press, LinkedIn
+    description, an executive quoted in the press; 7-9 data providers) dated before the first trend point, one per
+    year, plausible against the certified figure (within 5x either way). They give a short history some shape; they
+    are never certified."""
     first = rows[0].as_of_date
     by_year: dict[int, Source] = {}
     for s in cert.sources:
-        if (s.as_of_date is None or s.as_of_date >= first or s.tier > 6 or s.scope != "global" or s.basis != "headcount"
+        if (s.as_of_date is None or s.as_of_date >= first or not min_tier <= s.tier <= max_tier or s.scope != "global"
+                or s.basis != "headcount"
                 or s.corroboration_only or not s.value or (first - s.as_of_date).days > 365.25 * HISTORY_MAX_YEARS
-                or not 0.2 <= s.value / cert.certified_count <= 5 or s.as_of_date.year == first.year):
+                or not (0.1 if (first - s.as_of_date).days <= 365.25 * 4 else 0.2) <= s.value / cert.certified_count <= 5
+                or s.as_of_date.year == first.year):
             continue
         current = by_year.get(s.as_of_date.year)
         if current is None or (s.tier, -s.as_of_date.toordinal()) < (current.tier, -current.as_of_date.toordinal()):
             by_year[s.as_of_date.year] = s
     picks = [by_year[y] for y in sorted(by_year)][-HISTORY_MAX_POINTS:]
+    kind = "a data provider's figure" if min_tier >= 7 else "an older statement"
     return [TrendRow(as_of_date=s.as_of_date, value=s.value, tier=s.tier, url=s.url, estimated=False, historical=True,
-                     rationale=f"Historical estimate from a tier {s.tier} statement as of {s.as_of_date.isoformat()}: older "
-                               "context for the trend, not a certified figure.")
+                     rationale=f"Historical estimate from {kind} (tier {s.tier}) as of {s.as_of_date.isoformat()}: context "
+                               "for the trend, not a certified figure.")
             for s in picks]
 
 
@@ -1116,7 +1153,16 @@ def _short_forecast(points: list[TrendRow], li) -> list[TrendRow]:
         first = points[0]
         years = max(0.5, (last.as_of_date - first.as_of_date).days / 365.25)
         change = (last.value / first.value) ** (1 / years) - 1
-        if first.historical:
+        values = [p.value for p in points]
+        steady = ((len(points) >= 3 and years <= 4.5) or years <= 2.5)  # several recent points, or one recent one
+        steady = (steady
+                  and (all(a < b for a, b in zip(values, values[1:])) or all(a > b for a, b in zip(values, values[1:]))))
+        if first.historical and steady:
+            cap = GROWTH_FORECAST_CAP if change >= 0.25 else FORECAST_MAX_RATE
+            rate = max(-FORECAST_MAX_RATE, min(cap, change * 0.5))
+            basis = (f"half the steady growth shown since {first.as_of_date.year} ({change:+.0%} a year then; "
+                     f"{rate:+.1%} a year carried forward)")
+        elif first.historical:
             rate = max(-HISTORICAL_MAX_RATE, min(HISTORICAL_MAX_RATE, change * HISTORICAL_WEIGHT))
             basis = (f"a gentle lean from the growth since the {first.as_of_date.year} historical estimate "
                      f"({rate:+.1%} a year carried forward, at most ±{HISTORICAL_MAX_RATE:.0%})")

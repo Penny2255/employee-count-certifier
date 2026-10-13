@@ -205,6 +205,34 @@ def select_source(sources: list[Source], lookup_date: date, policy: Policy) -> S
 # --- Range -------------------------------------------------------------------
 
 
+def _round_step(value: float) -> int:
+    return 10 if value < 2_000 else 25 if value < 20_000 else 100 if value < 500_000 else 1_000
+
+
+def confidence_range(value: int, score: int, qualifier: Qualifier | None, direction: str | None, floor: int | None,
+                     policy: Policy) -> tuple[int, int]:
+    """The one range we give: centred on the certified number and as wide as the confidence warrants. "More than"
+    extends only upward, "up to" only downward; the likely direction widens its side by half; a supported floor
+    keeps the low end up. Bounds are rounded outward to a step that suits the size (10s, 25s, 100s, 1,000s)."""
+    w = policy.range_width_by_score.get(score, 0.5)
+    lo_w, hi_w = w, w
+    if qualifier == "more_than":
+        lo_w, hi_w = 0.0, 2 * w
+    elif qualifier == "up_to":
+        lo_w, hi_w = 2 * w, 0.0
+    if direction == "lower":
+        lo_w *= 1.5
+    elif direction == "higher":
+        hi_w *= 1.5
+    step = _round_step(value)
+    lo = math.floor(value * (1 - lo_w) / step) * step if lo_w else value
+    hi = math.ceil(value * (1 + hi_w) / step) * step if hi_w else value
+    if floor is not None and floor < value:  # a supported floor: the range sits symmetrically between it and our number
+        lo = floor
+        hi = min(hi, math.ceil((value + (value - floor)) / step) * step)
+    return max(0, min(lo, value)), max(hi, value)
+
+
 def qualifier_range(value: int, qualifier: Qualifier, policy: Policy) -> tuple[int, int]:
     low, high = policy.range_bands[qualifier]
     return round(value * (1 + low)), round(value * (1 + high))

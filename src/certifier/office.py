@@ -84,7 +84,7 @@ def _facts(r: dict) -> list[tuple[str, str]]:
     rng = h.get("range")
     rows = [("Employees", (QUAL.get(h.get("qualifier") or "exact", "") + _num(h.get("count"))) if h.get("count") is not None
              else "Not certified"),
-            ("Range", f"{_num(rng[0])}–{_num(rng[1])}" if rng and rng[0] != rng[1] else "Exact figure"),
+            ("Our range", f"{_num(rng[0])}–{_num(rng[1])}" if rng and rng[0] != rng[1] else "Exact figure"),
             ("As of", (h.get("as_of_date") or "undated") + (" (estimated)" if h.get("as_of_estimated") else "")),
             ("Confidence", f"{c['score']}/5 · {c['level']}")]
     if p.get("source_id"):
@@ -343,6 +343,8 @@ def deck(record: dict, theme: str = "light", logo: bytes | None = None, site_url
                     + "; the range widens each year."
                     if why.startswith("Best-guess") else
                     "The forecast carries the reported trend forward from the latest figure; an estimate, not a reported figure.")
+            if any(p.get("historical") for p in reported):
+                note += " est. = historical estimate, shown for direction, not certified."
             text(s, 0.65, 6.58, 8.4, 0.28, note, 9, "muted", italic=True)
         last = reported[-1]
         first = reported[0]

@@ -123,6 +123,7 @@ class Policy(BaseModel):
     fact_sheet: FactSheetRule = FactSheetRule()
     confidence_levels: dict[int, str]
     range_bands: dict[str, tuple[float, float]]
+    range_width_by_score: dict[int, float] = {5: 0.03, 4: 0.06, 3: 0.12, 2: 0.20, 1: 0.30, 0: 0.50}
     qualifier_phrases: dict[str, list[str]]
     growth_adjustment: GrowthAdjustment
     research_guidelines: list[str] = []

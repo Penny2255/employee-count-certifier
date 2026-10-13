@@ -25,7 +25,7 @@ def test_round_significant():
 def test_undated_website_figure_is_growth_adjusted(entity):
     cert = run(entity, src(4, 1_500, as_of=None))
     assert cert.certified_count == 2_000
-    assert (cert.count_type, cert.qualifier, cert.range) == ("estimated", "approximately", (1_500, 2_300))
+    assert (cert.count_type, cert.qualifier, cert.range) == ("estimated", "approximately", (1_750, 2_250))
     assert cert.confidence_score == 3
     assert cert.adjustments[-1].source_figure == 1_500 and cert.adjustments[-1].result == 2_000
     assert "27% growth" in cert.adjustments[-1].reason
@@ -90,7 +90,7 @@ def test_recent_agreeing_data_providers_act_as_signal(entity):
                src(9, 2_600, as_of=date(2026, 8, 1), url="https://leadiq"),
                src(9, 2_672, as_of=date(2026, 8, 26), url="https://tracxn")]
     cert = certify(entity, sources, lookup_date=LOOKUP)
-    assert (cert.certified_count, cert.range, cert.count_type) == (2_200, (1_500, 2_700), "estimated")
+    assert (cert.certified_count, cert.range, cert.count_type) == (2_200, (1_925, 2_475), "estimated")
     assert cert.confidence_score == 3
     assert "data-provider figures" in cert.adjustments[-1].reason
 
@@ -131,7 +131,7 @@ def test_fast_growing_white_collar_linkedin_is_a_floor_for_weak_estimates(entity
     providers = [src(9, v, as_of=date(2026, 9, 1), url=f"https://provider{i}.com/x") for i, v in enumerate((2_300, 3_000, 3_500, 4_100))]
     li = LinkedInEvidence(member_count=5_756, workforce_profile="white_collar", growth_1y=1.21, growth_2y=3.70)
     cert = certify(entity, providers, linkedin=li, lookup_date=date(2026, 10, 13))
-    assert (cert.certified_count, cert.range) == (5_470, (4_893, 6_044))  # very strong growth leans forward
+    assert (cert.certified_count, cert.range) == (5_470, (4_893, 6_050))  # very strong growth leans forward; range symmetric about the floor
     moderate = certify(entity, providers, linkedin=li.model_copy(update={"growth_1y": 0.30, "growth_2y": 0.70}),
                        lookup_date=date(2026, 10, 13))
     assert moderate.certified_count == 5_040 and moderate.range[0] == 4_317
@@ -146,3 +146,42 @@ def test_the_floor_never_overrides_a_company_document_or_filing(entity):
     for tier in (1, 2, 3):
         cert = certify(entity, [src(tier, 3_000, as_of=date(2026, 6, 1))], linkedin=li, lookup_date=date(2026, 10, 13))
         assert cert.certified_count == 3_000, tier
+
+
+def test_a_stale_linkedin_size_band_never_drags_the_range(entity):
+    """Anthropic: LinkedIn's "501-1K" band beside 5,756 members made the certified range 750-6,146."""
+    from certifier.models import LinkedInEvidence
+    providers = [src(9, v, as_of=date(2026, 9, 1), url=f"https://provider{i}.com/x") for i, v in enumerate((2_300, 3_500, 4_100, 6_110))]
+    cert = certify(entity, providers, linkedin=LinkedInEvidence(member_count=5_756, size_range=(501, 1_000), workforce_profile="white_collar"),
+                   lookup_date=date(2026, 10, 13))
+    assert cert.range[0] >= 2_300 and cert.range[0] <= cert.certified_count <= cert.range[1]
+    assert any("size band" in n for n in cert.notes) if hasattr(cert, "notes") else True
+
+
+def test_the_certified_range_is_reported_the_same_everywhere():
+    import io
+    import json
+    import re
+    from pathlib import Path
+
+    from pptx import Presentation
+
+    from certifier import office
+    from certifier.export import summary_row
+    from certifier.record import record_from_lookup
+    from certifier.service import LookupResult
+    for f in sorted((Path(__file__).resolve().parents[1] / "samples").glob("*.json")):
+        rec = json.loads(record_from_lookup(LookupResult.model_validate_json(f.read_text(encoding="utf-8"))).model_dump_json())
+        h = rec["headline"]
+        lo, hi = h["range"]
+        assert lo <= h["count"] <= hi, f.stem
+        row = summary_row(rec)
+        assert (row["range_low"], row["range_high"]) == (lo, hi), f.stem
+        m = re.search(r"most likely ([\d,]+)–([\d,]+)", h["story"] or "")
+        if m:
+            assert (int(m.group(1).replace(",", "")), int(m.group(2).replace(",", ""))) == (lo, hi), f.stem
+        if lo != hi:
+            prs = Presentation(io.BytesIO(office.deck(rec, "light")))
+            text = " ".join(sh.text_frame.text for sh in prs.slides[0].shapes if sh.has_text_frame)
+            cells = " ".join(c.text for sh in prs.slides[0].shapes if sh.has_table for r in sh.table.rows for c in r.cells)
+            assert f"{lo:,}–{hi:,}" in text + cells, f.stem

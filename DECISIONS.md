@@ -965,3 +965,9 @@ The record's entity carries `address` and `address_source`, shown as **HQ addres
   providers' spread when no single source sets it; LinkedIn members and growth; direction; next update; HQ).
 - Deck slide 3 is the same trust journey as the card (colour-coded cards with signed impact and a running score,
   arrows, and where we landed), then how the score adds up line by line, then the findings that affect the answer.
+
+### D120. Phones: one proportional step down
+- Below 560px wide the whole page is scaled to 82% (78% below 380px) in one CSS rule, so headings, the hero, tables and
+  Our take wrap far less and the header fits on one line, without a separate mobile layout.
+- Text boxes keep an effective 16px font, so iOS doesn't zoom the page when the search box is tapped (which had made
+  it look wider than the screen); decorative sparkles can't widen the page.

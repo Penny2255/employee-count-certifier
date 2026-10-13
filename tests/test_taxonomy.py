@@ -160,3 +160,13 @@ def test_research_document_type_is_normalized():
     from certifier.research import _document_type
     assert _document_type("Fact Sheet") == "fact_sheet" and _document_type("10-K") == "10-K"
     assert _document_type("press release") == "press_release" and _document_type("blog") is None
+
+
+def test_extraction_schema_field_count_is_capped():
+    """Each field grows the compiled grammar; one extra field (linkedin.open_roles) pushed it over the API's limit
+    in production. 43 fields compile (RUN_LIVE=1 tests/test_live_schema.py). Before raising this cap, run that
+    live test and confirm it passes."""
+    from certifier.research import Extraction
+    schema = Extraction.model_json_schema()
+    fields = sum(len(d.get("properties", {})) for d in [schema] + list(schema.get("$defs", {}).values()))
+    assert fields <= 43, f"{fields} fields: run the live schema test before raising the cap"
